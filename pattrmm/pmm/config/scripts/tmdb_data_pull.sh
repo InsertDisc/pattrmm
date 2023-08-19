@@ -1,5 +1,7 @@
 #!/bin/bash
-
+# This section will attempt to pull the required information
+# from your pmm config.yml, if it fails you'll have to comment 
+# these 4 lines out and fill in the section below it.
 source ./vars.sh
 plex_url="$plex_config_url"
 plex_token="$plex_config_token"
@@ -8,6 +10,7 @@ tmdb_apiKey="$tmdb_config_api"
 #### if the correct information is not being pulled using vars then you can fill in the information manually ####
 #### just comment out the above variables and fill in the information below ####
 
+#### use this section if the above isn't working correctly
 #plex_url="plex url, i.e. http://192.xxx.xxx.x:32400"
 #plex_token="plex token"
 #tmdb_apiKey="TMDB API KEY"
