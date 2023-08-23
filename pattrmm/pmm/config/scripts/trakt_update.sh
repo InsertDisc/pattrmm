@@ -55,7 +55,7 @@ curl --include \
 
 tomorrow=$(date +%Y-%m-%d -d "+ 1 day" )
 days_out=$(date +%Y-%m-%d -d "+ 31 day" )
-days_before=$(date +%Y-%m-%d -d "- 31 day" )
+days_before=$(date +%Y-%m-%d -d "- 46 day" )
 
 # read cached tmdb data json file #
 
