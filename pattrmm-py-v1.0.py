@@ -364,7 +364,11 @@ titlesInPlex = get_count(series['MediaContainer']['Metadata'])
 count = 1
 for this in series['MediaContainer']['Metadata']:
     print("\rAdding to list " + "(" + str(count) + "/" + get_count(series['MediaContainer']['Metadata']) + ")", end="")
-    Search.append(Plex_Item(this['title'],this['originallyAvailableAt'], this['ratingKey']))
+    try:
+        Search.append(Plex_Item(this['title'],this['originallyAvailableAt'], this['ratingKey']))
+    except KeyError:
+        print(this['title'] + " does not have an - originally available at - date. Skipping")
+        continue 
     count += 1
     time.sleep(.004)
 
