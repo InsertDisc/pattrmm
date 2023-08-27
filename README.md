@@ -1,6 +1,6 @@
 # pattrmm
 Plex Meta Manager helper script for a chronological Returning Soon collection with dates.
-
+(Plex Assistant To The Regional Meta Manager)
 Requirements:
     Trakt MUST be setup in your PMM installation to post 'returning soon' series to.
     This is also what the returning-soon.yml will pull from.
