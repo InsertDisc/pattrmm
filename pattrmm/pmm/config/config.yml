@@ -3,10 +3,9 @@
 libraries:                                      # Library mappings must have a colon (:) placed after them
   Series:
     metadata_path:
-    - file: config/returning-soon.yml # this is the yml that pulls the returning soon list from your trakt account that the TRAKT UPDATE script generated.
+    - file: config/returning-soon.yml # this is the yml that pulls the returning soon list from your trakt account.
     overlay_path:
     - remove_overlays: false
-    - file: config/overlays/series_overlay.yml # Feel free not to use this. It contains matching banners to the RETURNING banners.
-    - file: config/overlays/series_overlay_returning.yml # this doesn't exist until the similarly named SCRIPT runs. Schedule the script for a daily run.
+    - file: config/overlays/returning-soon-overlay.yml # this doesn't exist until the first run.
 
 
