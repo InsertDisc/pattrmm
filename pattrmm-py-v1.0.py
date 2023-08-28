@@ -51,6 +51,14 @@ nextAirDate = str(date.today() + timedelta(days=30))
 # Info display
 print("Checking folder structure")
 
+# Check if PMM config file can be found. If not, inform and exit.
+isConfig = os.path.exists(config_path)
+if not isConfig:
+    print("Plex Meta Manager Config file could not be located.")
+    print("Please ensure PATTRMM is in a subfolder of the Plex Meta Manager config directory.")
+    exit()
+else:
+    print("PMM config file found.")
 
 # Check for vars file and create if not present
 # If overlay file doesn't exist, create it
@@ -355,14 +363,7 @@ else:
     print("Overlay file present.")
 
 
-# Check if PMM config file can be found. If not, inform and exit.
-isConfig = os.path.exists(config_path)
-if not isConfig:
-    print("Plex Meta Manager Config file could not be located.")
-    print("Please ensure PATTRMM is in a subfolder of the Plex Meta Manager config directory.")
-    exit()
-else:
-    print("PMM config file found.")
+
 
 # declare date formats
 date_format = '%Y-%m-%d'
