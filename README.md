@@ -21,3 +21,6 @@ When to run:
     only new entries in Plex will get detailed searches. Any series that are not considered a returning series will not be
     updated upon following runs. Any series that loses it's 'Returning Series' status will be updated accordingly and removed
     from further searches. This greatly speeds up the process of daily executions.
+
+Update notes:
+    Recent changes require the deletion of preferences/settings.yml to use the newest features.
