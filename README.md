@@ -1,6 +1,5 @@
 # pattrmm
-Plex Meta Manager helper script for a chronological Returning Soon collection with dates.
-(Plex Assistant To The Regional Meta Manager)
+PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in Plex Meta Manager.
 Requirements:
     Trakt MUST be setup in your PMM installation to post 'returning soon' series to.
     This is also what the returning-soon.yml will pull from.
