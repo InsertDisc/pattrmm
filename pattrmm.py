@@ -1,4 +1,4 @@
-#pattrmm-py v0.85 by insertdisc
+#pattrmm-py by insertdisc
 
 # import dependencies
 from datetime import date
