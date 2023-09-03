@@ -5,15 +5,15 @@ Requirements:
     This is also what the returning-soon.yml will pull from.
     The only must-have module is ruamel.yaml. This is included in requirements.txt.
 
-About use:
-    PATTRMM will try it's best to get the matching tmdb id of all the shows in the library that you have it scanning.
-    Fill in the appropriate settings in preferences/settings.yml. This file is created on the first run and the script will
-    exit to give you a chance to make these changes. You can modify the appearance of the generated overlays file using the
-    preferences/returning-soon-template.yml. Run the script again after you make your changes to initiate a full cycle.
+Installation/Use:
+    Just drop pattrymm.py in a subfolder of your Plex Meta Manager config folder and run it. A settings file will be created in
+    the new preferences folder. The script will stop so you can fill in the appropriate settings in preferences/settings.yml.
+    You can modify the appearance of the generated overlays file using the
+    preferences/*-returning-soon-template.yml files. Run the script again after you make your changes to initiate a full cycle.
 
 What now:
-    Add the returning-soon.yml under the appropriate metadata section of the corresponding library you are having it scan.
-    Add the overlays/returning-soon-overlay.yml under the appropriate overlay section of the same library.
+    Add the ?-returning-soon.yml under the appropriate metadata section of the corresponding library you are having it scan.
+    Add the overlays/?-returning-soon-overlay.yml under the appropriate overlay section of the same library.
 
 When to run:
     I've tried my best to optimize how PATTRMM runs, meaning, you can run it on a daily basis. After the initial full cycle,
@@ -22,4 +22,11 @@ When to run:
     from further searches. This greatly speeds up the process of daily executions.
 
 Update notes:
-    Recent changes require the deletion of preferences/settings.yml to use the newest features.
+Recent changes require updating your settings.yml
+
+As such...
+    library_name:
+      - Your Library
+    days_ahead: 30 # Can be any number of days between 30 and 90 to be considered 'Returning Soon'
+
+(or deleting it) and the deletion of vars.py to use the newest features.
