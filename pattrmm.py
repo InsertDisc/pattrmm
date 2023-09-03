@@ -1,6 +1,8 @@
 #pattrmm-py by insertdisc
 
 # import dependencies
+import time
+start_time = time.time()
 from datetime import date
 from datetime import timedelta
 from datetime import datetime
@@ -1178,4 +1180,7 @@ overlays:
         time.sleep(1.25)
 
     print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
-print("All operations complete.")
+end_time = time.time()
+elapsed_time = end_time - start_time
+minutes, seconds = divmod(elapsed_time, 60)
+print(f"All operations complete. Run time {int(minutes)}:{int(seconds)}")
