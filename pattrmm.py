@@ -15,6 +15,7 @@ import os.path
 import os
 from ruamel.yaml import YAML
 import xml.etree.ElementTree as ET
+import logging
 
 
 # Main variables file
@@ -25,6 +26,8 @@ config_path = '../config.yml'
 overlay_path = '../overlays'
 # data folder for created files
 data = "data"
+# logs folder
+logs = "logs"
 # preferences folder
 pref = "preferences"
 # settings file for pattrmm
@@ -55,6 +58,10 @@ import xml.etree.ElementTree as ET
 import requests
 import json
 import re
+import logging
+log_file = "logs/pattrmm.log"
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
 
 config_path = '../config.yml'
 settings_path = 'preferences/settings.yml'
@@ -105,23 +112,28 @@ class Plex:
             year = self.year(rating_key)
             if year != None:
                print("")
-               print("No TMDB ID found in Plex: Searching for " + show_name + " with year " + str(year))
+               print("No TMDB ID found locally: Searching for " + show_name + " with year " + str(year))
+               logging.info("No TMDB ID found locally: Searching for " + show_name + " with year " + str(year))
                search =  self.search_tmdb_id(show_name, year)
                if search == None:
                     year = int(year)
                     year += 1
                     print("No results, searching again with year " + str(year))
+                    logging.info("No results, searching again with year " + str(year))
                     search = self.search_tmdb_id(show_name, str(year))
                     if search == None:              
                          year -= 2
                          print("No results, searching again with year " + str(year))
+                         logging.info("No results, searching again with year " + str(year))
                          search = self.search_tmdb_id(show_name, str(year))
                          if search == None:
                               print(show_name + " could not be matched.")
+                              logging.info(show_name + " could not be matched.")
                               search = "null"
                               return search
             if year == None:
                 print("No originally availabe year for " + show_name + ", cannot search for title reliably.")
+                logging.warning("No originally availabe year for " + show_name + ", cannot search for title reliably.")
             if search != None:
                 return search
 
@@ -398,6 +410,7 @@ plex_method_url = vars.plexApi('url')
 plex_method_token = vars.plexApi('token')
 tmdb_method_api_key = vars.tmdbApi('token')
 plex = Plex(plex_method_url, plex_method_token, tmdb_method_api_key)
+
 # If data folder doesn't exist, create it
 isData = os.path.exists(data)
 if not isData:
@@ -407,6 +420,17 @@ else:
     print("data folder present...")
 
 # If data folder doesn't exist, create it
+isLogs = os.path.exists(logs)
+if not isLogs:
+    print("Creating logs folder...")
+    os.makedirs(logs)
+else:
+    print("Logs folder present...")
+
+log_file = "logs/pattrmm.log"
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
+# If overlay folder cannot be found, stop
 isOvPath = os.path.exists(overlay_path)
 if not isOvPath:
     print("Plex Meta Manager Overlay folder could not be located.")
@@ -500,22 +524,27 @@ for library in loadSettings['library_name']:
 
     # Info display
     print("Checking folder structure for " + library + ".")
+    logging.info('Checking folder structure for ' + library + '.')
 
     print("Checking " + library + " files...")
-
+    logging.info("Checking " + library + " files...")
     # If keys file doesn't exist, create it
     isKeys = os.path.exists(keys)
     if not isKeys:
         print("Creating " + library + " keys file..")
+        logging.info("Creating " + library + " keys file..")
         writeKeys = open(keys, "x")
         writeKeys.close()
         firstRun = True
     else:
         print(library + " keys file found.")
+        logging.info(library + " keys file found.")
         print("Checking " + library + " data...")
+        logging.info("Checking " + library + " data...")
         if os.stat(keys).st_size == 0:
             firstRun = True
             print(library + " keys file is empty. Initiating first run.")
+            logging.info(library + " keys file is empty. Initiating first run.")
         if os.stat(keys).st_size != 0:
             firstRun = False
 
@@ -523,11 +552,13 @@ for library in loadSettings['library_name']:
     isCache = os.path.exists(cache)
     if not isCache:
         print("Creating " + library + " cache file..")
+        logging.info("Creating " + library + " cache file..")
         writeCache = open(cache, "x")
         writeCache.write('tmdbDataCache')
         writeCache.close()
     else:
         print(library + " cache file present.")
+        logging.info(library + " cache file present.")
 
 
 
@@ -536,6 +567,7 @@ for library in loadSettings['library_name']:
     isMeta = os.path.exists(meta)
     if not isMeta:
         print("Creating " + library + " metadata collection file..")
+        logging.info("Creating " + library + " metadata collection file..")
         writeMeta = open(meta, "x")
         me = vars.traktApi('me')
         writeMeta.write(
@@ -552,11 +584,13 @@ collections:
         writeMeta.close()
     else:
         print(library + " metadata file present.")
+        logging.info(library + " metadata file present.")
 
     # If overlay template doesn't exist, create it
     isTemplate = os.path.exists(overlay_temp)
     if not isTemplate:
         print("Generating " + library + " template file..")
+        logging.info("Generating " + library + " template file..")
         writeTemp = open(overlay_temp, "x")
         writeTemp.write(
         '''
@@ -584,16 +618,19 @@ templates:
         writeTemp.close()
     else:
         print(library + " template file found.")
+        logging.info(library + " template file found.")
 
     # If overlay file doesn't exist, create it
     isOverlay = os.path.exists(rso)
     if not isOverlay:
         print("Creating empty " + library + " Overlay file..")
+        logging.info("Creating empty " + library + " Overlay file..")
         writeRSO = open(rso, "x")
         writeRSO.write('')
         writeRSO.close()
     else:
         print(library + " overlay file present.")
+        logging.info(library + " overlay file present.")
 
 
 
@@ -669,7 +706,8 @@ templates:
 
     # gather list of entries in plex
     print("Gathering Plex entries...")
-    time.sleep(.01)
+    logging.info("Gathering Plex entries...")
+    
 
     series = json.loads(prettyJson(requests.get(plex_url, headers=plex_headers, params=plex_token).json()))
     titlesInPlex = get_count(series['MediaContainer']['Metadata'])
@@ -681,9 +719,10 @@ templates:
         except KeyError:
             print("")
             print("Caution " + this['title'] + " does not have an originally available at date. May not be able to match.")
+            logging.warning("Caution " + this['title'] + " does not have an originally available at date. May not be able to match.")
             Search.append(Plex_Item(this['title'],"null", this['ratingKey']))
         count += 1
-        time.sleep(.004)
+        #time.sleep(.004)
 
 
     # search for tmdb id of each entry, will update to use stored keys to reduce unnecessary searches
@@ -719,14 +758,17 @@ templates:
                 #print("Key data exists for " + eachItem['title'] + ". Removed from search list")
                 rfSearch += 1
                 print("\rFound existing data for " + str(rfSearch) + " titles. Removing from search list.", end="")
-                time.sleep(.004)       
-        time.sleep(2.5)
+                #time.sleep(.004)       
+        #time.sleep(2.5)
+        logging.info("Found existing data for " + str(rfSearch) + " titles. Removing from search list.")
         print("")
         for remainingItem in newSearch:
             print("No key entry found for " + remainingItem['title'] + ". Searching for details...")
+            logging.info("No key entry found for " + remainingItem['title'] + ". Searching for details...")
         if len(newSearch) < 1:
             message = False
             print("Nothing new to search for. Proceeding...")
+            logging.info("Nothing new to search for. Proceeding...")
         if len(newSearch) > 0:
             message = True
             Search = newSearch
@@ -754,6 +796,7 @@ templates:
             key_pairs.append(tmdb_search(query['title'], query['ratingKey'], id, "null"))
                     # info for found match
             print(" Found ID ==> " + str(id) + " for " + '"' + query['title'] + '"')
+            logging.info(" Found ID ==> " + str(id) + " for " + '"' + query['title'] + '"')
             # end adding to the list after the first match is found, else duplicate entries occur
                 
         # increment progress after a successful match 
@@ -782,6 +825,7 @@ templates:
         tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
 
         print("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
+        logging.info("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
 
         if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
             lastAir = tmdb['last_air_date']
@@ -831,10 +875,13 @@ templates:
     writeKeys.close()
     if firstRun == True:
         print(library + " Keys updated...")
+        logging.info(library + " Keys updated...")
     if firstRun == False:
         if message == True:
             print(library + " Keys updated...")
+            logging.info(library + " Keys updated...")
             print("Updating data for Returning " + library + ".")
+            logging.info("Updating data for Returning " + library + ".")
 
     if firstRun == False:
         updateMe = []
@@ -856,7 +903,7 @@ templates:
         
                 tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
 
-                print("\033[KRefreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )", end="\r", flush=True)
+                print("\033[KRefreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )", end="\r")
 
                 if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
                     lastAir = tmdb['last_air_date']
@@ -900,10 +947,12 @@ templates:
     writeTmdb.write(listResults)
     writeTmdb.close()
     print("\033[K" + library + " TMDB data updated...")
+    logging.info(library + " TMDB data updated...")
 
 
     # write Template to Overlay file
     print("Writing " + library + " Overlay Template to Returning Soon " + library + " overlay file.")
+    logging.info("Writing " + library + " Overlay Template to Returning Soon " + library + " overlay file.")
     with open(overlay_temp) as ot:
         ovrTemp = yaml.load(ot)
         rsoWrite = open(rso, "w")
@@ -931,6 +980,7 @@ templates:
     prefix = vars.setting('prefix')
 
     print("Generating " + library + " overlay body.")
+    logging.info("Generating " + library + " overlay body.")
 
     overlay_base = '''
 
@@ -941,6 +991,7 @@ overlays:
 
 
     if vars.setting('ovNew') == True:
+        logging.info('"New" Overlay enabled, generating body...')
         newText = vars.setting('ovNewText')
         newFontColor = vars.setting('ovNewFontColor')
         newColor = vars.setting('ovNewColor')
@@ -966,6 +1017,7 @@ overlays:
 
 
     if vars.setting('ovAiring') == True:
+        logging.info('"Airing" Overlay enabled, generating...')
         airTodayTemp = date.today()
         airToday = airTodayTemp.strftime("%m/%d/%Y")
         considered_airingTemp = date.today() - timedelta(days=15)
@@ -1008,6 +1060,7 @@ overlays:
 
 
     if vars.setting('ovEnded') == True:
+        logging.info('"Ended" Overlay enabled, generating body...')
         endedText = vars.setting('ovEndedText')
         endedFontColor = vars.setting('ovEndedFontColor')
         endedColor = vars.setting('ovEndedColor')
@@ -1029,6 +1082,7 @@ overlays:
 
 
     if vars.setting('ovCanceled') == True:
+        logging.info('"Canceled" Overlay enabled, generating body...')
         canceledText = vars.setting('ovCanceledText')
         canceledFontColor = vars.setting('ovCanceledFontColor')
         canceledColor = vars.setting('ovCanceledColor')
@@ -1050,6 +1104,7 @@ overlays:
 
 
     if vars.setting('ovReturning') == True:
+        logging.info('"Returning" Overlay enabled, generating body...')
         returningText = vars.setting('ovReturningText')
         returningFontColor = vars.setting('ovReturningFontColor')
         returningColor = vars.setting('ovReturningColor')
@@ -1106,21 +1161,25 @@ overlays:
         overlay_base = overlay_base + overlay_gen
     
     print(library + " overlay body generated. Writing to file.")
+    logging.info(library + " overlay body generated. Writing to file.")
 
     # Write the rest of the overlay
     writeBody = open(rso, "a")
     yaml.dump(yaml.load(overlay_base), writeBody)
     writeBody.close()
     print("Overlay body appened to " + library + "-returning-soon-overlay.")
+    logging.info("Overlay body appened to " + library + "-returning-soon-overlay.")
 
     # use keys file to gather show details
     print("Reading " + library + " cache file...")
+    logging.info("Reading " + library + " cache file...")
     cacheFile = open(cache, "r")
     cacheData = json.load(cacheFile)
     cacheFile.close()
 
     # this is for the trakt list
     print("Filtering " + library + " data...")
+    logging.info("Filtering " + library + " data...")
     returningSoon = filter(
         lambda x: (
             x['status'] == "Returning Series" and 
@@ -1130,6 +1189,7 @@ overlays:
             x['lastAir'] < str(lastAirDate)),
             cacheData)
     print("Sorting " + library + "...")
+    logging.info("Sorting " + library + "...")
     returningSorted = sortedList(returningSoon, 'nextAir')
 
     traktaccess = vars.traktApi('token')
@@ -1157,17 +1217,18 @@ overlays:
     '''
 
     print("Clearing " + library + " trakt list...")
+    logging.info("Clearing " + library + " trakt list...")
     traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
     time.sleep(1.25)
     traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
     time.sleep(1.25)
-
     traktListShow = '''
 {
     "shows": [
         '''
     for item in returningSorted:
         print("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon " + library + ".")
+        logging.info("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon " + library + ".")
 
         traktListShow += f'''
     {{
@@ -1175,20 +1236,22 @@ overlays:
         "tmdb": "{str(item['id'])}"
             }}
     }},'''
-
+        
+        
     traktListShow = traktListShow.rstrip(",")
     traktListShow += '''
 ]
 }
 '''
-
+    
     postShow = requests.post(traktListUrlPostShow, headers=traktHeaders, data=traktListShow)
     if postShow.status_code == 201:
         print("Success")
         print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
-    else:
-        print("Failure: " + str(postShow.status_code))
+        logging.info('Success: Added ' + str(get_count(returningSorted)) + ' entries to Trakt.')
 end_time = time.time()
 elapsed_time = end_time - start_time
-minutes, seconds = divmod(elapsed_time, 60)
-print(f"All operations complete. Run time {int(minutes)}:{int(seconds)}")
+minutes = int(elapsed_time // 60)
+seconds = int(elapsed_time % 60)
+print(f"All operations complete. Run time {minutes:02}:{seconds:02}")
+logging.info(f"All operations complete. Run time {minutes:02}:{seconds:02}")
