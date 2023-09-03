@@ -1,4 +1,4 @@
-#pattrmm-py by insertdisc
+#pattrmm-py v1.0 by insertdisc
 
 # import dependencies
 from datetime import date
@@ -14,7 +14,6 @@ import os
 from ruamel.yaml import YAML
 import xml.etree.ElementTree as ET
 
-# check for needed folders and files
 
 # Main variables file
 var_path = 'vars.py'
@@ -26,30 +25,11 @@ overlay_path = '../overlays'
 data = "data"
 # preferences folder
 pref = "preferences"
-# keys file for ratingKey and tmdb pairs
-keys = "data/keys.json"
-# cache file for tmdb details
-cache = "data/tmdb_cache.json"
 # settings file for pattrmm
 settings = "preferences/settings.yml"
-# returning-soon metadata file for collection
-meta = "../returning-soon.yml"
-# generated overlay file path
-rso = "../overlays/returning-soon-overlay.yml"
-# overlay template path
-overlay_temp = "preferences/returning-soon-template.yml"
 # assign YAML variable
 yaml = YAML()
 yaml.preserve_quotes = True
-
-
-# define date ranges
-today = str(date.today())
-lastAirDate = str(date.today() - timedelta(days=45))
-nextAirDate = str(date.today() + timedelta(days=30))
-
-# Info display
-print("Checking folder structure")
 
 # Check if PMM config file can be found. If not, inform and exit.
 isConfig = os.path.exists(config_path)
@@ -61,7 +41,6 @@ else:
     print("PMM config file found.")
 
 # Check for vars file and create if not present
-# If overlay file doesn't exist, create it
 isVars = os.path.exists(var_path)
 if not isVars:
     print("Creating vars module file..")
@@ -69,6 +48,7 @@ if not isVars:
     writeVars.write(
         '''
 from ruamel.yaml import YAML
+yaml = YAML()
 import xml.etree.ElementTree as ET
 import requests
 import json
@@ -77,6 +57,221 @@ import re
 config_path = '../config.yml'
 settings_path = 'preferences/settings.yml'
 
+class Plex:
+    def __init__(self, plex_url, plex_token, tmdb_api_key):
+        self.plex_url = plex_url
+        self.plex_token = plex_token
+        self.tmdb_api_key = tmdb_api_key
+        self.context = None
+
+    @property
+    def show(self):
+        self.context = 'show'
+        return self  # Return self to allow method chaining
+
+    def id(self, show_name):
+        if self.context == 'show':
+            try:
+                # Replace with the correct section ID and library URL
+                section_id = plexGet(library)  # Replace with the correct section ID
+                library_url = f"{self.plex_url}/library/sections/{section_id}/all"
+                library_url = re.sub("0//", "0/", library_url)
+                headers = {"X-Plex-Token": self.plex_token}
+                response = requests.get(library_url, headers=headers)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data['MediaContainer']['Metadata']:
+                        if item['type'] == 'show' and item['title'] == show_name:
+                            return f"ID for show '{show_name}': {item['ratingKey']}"
+                    return f"Show '{show_name}' not found"
+                else:
+                    return f"Error: {response.status_code} - {response.text}"
+            except Exception as e:
+                return f"Error: {str(e)}"
+
+    def tmdb_id(self, rating_key):
+        # Attempt to retrieve TMDB ID from Plex
+        plex_tmdb_id = self.get_tmdb_id_from_plex(rating_key)
+        
+        if plex_tmdb_id is not None:
+            return plex_tmdb_id
+        
+        # If not found in Plex, search TMDB
+        if plex_tmdb_id == None:
+            show_name = self.get_show_name(rating_key)
+            year = self.year(rating_key)
+            if year != None:
+               print("")
+               print("No TMDB ID found locally: Searching themoviedb.org with " + show_name + " and year " + str(year))
+               search =  self.search_tmdb_id(show_name, year)
+               if search == None:
+                    year = int(year)
+                    year += 1
+                    print("No results, searching again with year " + str(year))
+                    search = self.search_tmdb_id(show_name, str(year))
+                    if search == None:              
+                         year -= 2
+                         print("No results, searching again with year " + str(year))
+                         search = self.search_tmdb_id(show_name, str(year))
+                         if search == None:
+                              print(show_name + " could not be matched.")
+                              search = "null"
+                              return search
+            if year == None:
+                print("No originally availabe year for " + show_name + ", cannot search for title reliably.")
+            if search != None:
+                return search
+
+
+
+    def get_tmdb_id_from_plex(self, rating_key):
+        try:
+            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
+            show_details_url = re.sub("0//", "0/", show_details_url)
+            headers = {"X-Plex-Token": self.plex_token}
+            response = requests.get(show_details_url, headers=headers)
+            if response.status_code == 200:
+                root = ET.fromstring(response.text)
+                guid_elements = root.findall('.//Guid')
+                for guid_element in guid_elements:
+                    if guid_element.get('id', '').startswith('tmdb://'):
+                        tmdb_id = guid_element.get('id')[7:]
+                        #tmdb_id = guid.split('tmdb://')[1]
+                        return tmdb_id
+                return None
+            else:
+                return f"Error: {response.status_code} - {response.text}"
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+
+    def get_show_name(self, rating_key):
+        try:
+            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
+            show_details_url = re.sub("0//", "0/", show_details_url)
+            headers = {"X-Plex-Token": self.plex_token,
+                       "accept": "application/json"
+            }
+            
+            # Make a request to get show details
+            response = requests.get(show_details_url, headers=headers)
+            
+            if response.status_code == 200:
+               data = json.loads(json.dumps(response.json()))
+               values = data['MediaContainer']['Metadata']
+               for result in values:
+                   title = result['title']
+                   title = re.sub("\s\(.*?\)","", title)
+               return title
+            else:
+                return f"Error: {response.status_code} - {response.text}"
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    def retry_search_with_adjusted_years(self, title, year):
+        for i in range(2):
+            if i == 0:
+                year += 1
+            elif i == 1:
+                year -= 2
+
+        tmdb_search_result = self.search_tmdb_id(title, year)
+        if tmdb_search_result is not None:
+            return tmdb_search_result
+
+        return "null"
+        
+
+    def year(self, rating_key):
+        try:
+            # Get the originally available year from Plex
+            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
+            show_details_url = re.sub("0//", "0/", show_details_url)
+            headers = {"X-Plex-Token": self.plex_token,
+                       "accept": "application/json"}
+            
+            response = requests.get(show_details_url, headers=headers)
+            
+            if response.status_code == 200:
+                data = json.loads(json.dumps(response.json()))
+                for result in data['MediaContainer']['Metadata']:
+                    try:
+                        year = result['originallyAvailableAt'][:4]
+                    except KeyError:
+                        year = None
+                return year
+            else:
+                return None
+        except Exception as e:
+            return None
+
+    def search_tmdb_id(self, title, year):
+        try:
+            # Query TMDB to search for a show based on title and year
+            tmdb_api_url = "https://api.themoviedb.org/3/search/tv"
+            tmdb_api_key = self.tmdb_api_key
+            tmdb_headers = {
+            'accept': 'application/json'
+            }
+            tmdb_params = {
+                "api_key": tmdb_api_key,
+                "query": title,
+                "first_air_date_year": year
+            }
+            tmdb_response = requests.get(tmdb_api_url, headers=tmdb_headers, params=tmdb_params)
+
+            if tmdb_response.status_code == 200:
+                tmdb_data = json.loads(json.dumps(tmdb_response.json()))
+                if tmdb_data['total_results'] > 0:
+                    for item in tmdb_data['results']:
+                        if item['first_air_date'][:4] == year:
+                            id = item['id']
+                            
+                            return id
+                if tmdb_data['total_results'] == 0:
+                    return None
+
+        except Exception as e:
+            return e
+
+
+    def episodes(self, rating_key):
+        try:
+            # Retrieve a list of episodes for a show based on rating key
+            episodes_url = f"{self.plex_url}/library/metadata/{rating_key}/allLeaves"
+            episodes_url = re.sub("0//", "0/", episodes_url)
+            headers = {"X-Plex-Token": self.plex_token,
+                       "accept": "application/json"}
+            response = requests.get(episodes_url, headers=headers)
+
+            if response.status_code == 200:
+                tree = ET.ElementTree(ET.fromstring(response.text))
+                root = tree.getroot()
+                episodes = []
+                for video in root.iter('Video'):
+                    if video.get('type') == 'episode':
+                        episodes.append(video.get('title'))
+                return episodes
+            else:
+                return None
+        except Exception as e:
+            return None
+
+def read_config():
+    config_file = config_path
+    with open(config_file, "r") as yaml_file:
+        config = yaml.load(yaml_file)
+        plex_url = config['plex']['url']
+        plex_token = config['plex']['token']
+        tmdb_api_key = config['tmdb']['apikey']
+    return plex_url, plex_token, tmdb_api_key
+
+if __name__ == "__main__":
+    plex_url, plex_token, tmdb_api_key = read_config()
+    if plex_url and plex_token and tmdb_api_key:
+        plex = Plex(plex_url, plex_token, tmdb_api_key)
+
 def setting(value):
         yaml = YAML()
         settings = settings_path
@@ -84,6 +279,8 @@ def setting(value):
             pref = yaml.load(sf)
             if value == 'library':
                 entry = pref['library_name']
+            if value == 'days':
+                 entry = pref['days_ahead']
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
             if value == 'rsfont_color':
@@ -187,14 +384,18 @@ def plexGet(identifier):
                 key = directory.get('key')
                 title = directory.get('title')
         return key
-
 '''
-    )
+        )
     writeVars.close()
 else:
     print("Vars module found.")
 
 import vars
+from vars import Plex
+plex_method_url = vars.plexApi('url')
+plex_method_token = vars.plexApi('token')
+tmdb_method_api_key = vars.tmdbApi('token')
+plex = Plex(plex_method_url, plex_method_token, tmdb_method_api_key)
 # If data folder doesn't exist, create it
 isData = os.path.exists(data)
 if not isData:
@@ -227,8 +428,10 @@ if not isSettings:
     writeSettings = open(settings, "x")
     writeSettings.write(
         '''
-library_name: "TV Shows"             # Plex Library to read from.
-overlay_prefix: "RETURNING"     # Text to display before the dates.
+library_name:
+  - Tv Shows                         # Plex Libraries to read from. Can enter multiple libraries.
+days_ahead: 30
+overlay_prefix: "RETURNING"          # Text to display before the dates.
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
 returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
@@ -259,73 +462,101 @@ extra_overlays:
     font_color: "#FFFFFF"
     text: "C A N C E L E D"
 '''
-    )
+        )
     writeSettings.close()
     print("Settings file created. Please configure preferences/settings.yml and rerun PATTRMM.")
     exit()
 else:
     print("Settings file present.")
 
+#check for days_ahead assignment
+try:
+    days_ahead = vars.setting('days')
+    if days_ahead > 90:
+        days_ahead = 90
+except KeyError:
+    days_ahead = 30
 
-print("Checking files...")
+# Start sequencing through defined Libraries
+openSettings = open(settings, "r")
+loadSettings = yaml.load(openSettings)
+for library in loadSettings['library_name']:
+    library = re.sub(" ", "-", library)
 
-# If keys file doesn't exist, create it
-isKeys = os.path.exists(keys)
-if not isKeys:
-    print("Creating keys file..")
-    writeKeys = open(keys, "x")
-    writeKeys.close()
-    firstRun = True
-else:
-    print("Keys file found.")
-    print("Checking data...")
-    if os.stat(keys).st_size == 0:
+    # keys file for ratingKey and tmdb pairs
+    keys = "data/" + library + "-keys.json"
+    # cache file for tmdb details
+    cache = "data/" + library + "-tmdb-cache.json"
+    
+    # returning-soon metadata file for collection
+    meta = "../" + library + "-returning-soon.yml"
+    # generated overlay file path
+    rso = "../overlays/" + library + "-returning-soon-overlay.yml"
+    # overlay template path
+    overlay_temp = "preferences/" + library + "-returning-soon-template.yml"
+    
+
+    # Info display
+    print("Checking folder structure for " + library + ".")
+
+    print("Checking " + library + " files...")
+
+    # If keys file doesn't exist, create it
+    isKeys = os.path.exists(keys)
+    if not isKeys:
+        print("Creating " + library + " keys file..")
+        writeKeys = open(keys, "x")
+        writeKeys.close()
         firstRun = True
-        print("Keys file is empty. Initiating first run.")
-    if os.stat(keys).st_size != 0:
-        print("Keys file found.")
-        firstRun = False
+    else:
+        print(library + " keys file found.")
+        print("Checking " + library + " data...")
+        if os.stat(keys).st_size == 0:
+            firstRun = True
+            print(library + " keys file is empty. Initiating first run.")
+        if os.stat(keys).st_size != 0:
+            firstRun = False
 
-# If cache file doesn't exist, create it
-isCache = os.path.exists(cache)
-if not isCache:
-    print("Creating cache file..")
-    writeCache = open(cache, "x")
-    writeCache.write('tmdbDataCache')
-    writeCache.close()
-else:
-    print("Cache file present.")
+    # If cache file doesn't exist, create it
+    isCache = os.path.exists(cache)
+    if not isCache:
+        print("Creating " + library + " cache file..")
+        writeCache = open(cache, "x")
+        writeCache.write('tmdbDataCache')
+        writeCache.close()
+    else:
+        print(library + " cache file present.")
 
 
 
 
-# If returning-soon metadata file doesn't exist, create it
-isMeta = os.path.exists(meta)
-if not isMeta:
-    print("Creating metadata collection file..")
-    writeMeta = open(meta, "x")
-    me = vars.traktApi('me')
-    writeMeta.write(
-        f'''
+    # If returning-soon metadata file doesn't exist, create it
+    isMeta = os.path.exists(meta)
+    if not isMeta:
+        print("Creating " + library + " metadata collection file..")
+        writeMeta = open(meta, "x")
+        me = vars.traktApi('me')
+        writeMeta.write(
+            f'''
 collections:
-  Returning Soon:
-    trakt_list: https://trakt.tv/users/{me}/lists/returning-soon
+  Returning Soon {library}:
+    trakt_list: https://trakt.tv/users/{me}/lists/returning-soon-{library}
     collection_order: custom
     visible_home: true
     visible_shared: true
     sync_mode: sync
-'''
-    )
-    writeMeta.close()
-else:
-    print("Metadata file present.")
+    '''
+        )
+        writeMeta.close()
+    else:
+        print(library + " metadata file present.")
 
-# If overlay template doesn't exist, create it
-isTemplate = os.path.exists(overlay_temp)
-if not isTemplate:
-    print("Generating Template file..")
-    writeTemp = open(overlay_temp, "x")
-    writeTemp.write(
+    # If overlay template doesn't exist, create it
+    isTemplate = os.path.exists(overlay_temp)
+    if not isTemplate:
+        print("Generating " + library + " template file..")
+        writeTemp = open(overlay_temp, "x")
+        writeTemp.write(
         '''
 templates:
   # TEXT CENTER
@@ -347,213 +578,159 @@ templates:
       back_width: 1920
       back_height: 90
 '''
-)
-    writeTemp.close()
-else:
-    print("Template file found.")
+    )
+        writeTemp.close()
+    else:
+        print(library + " template file found.")
 
-# If overlay file doesn't exist, create it
-isOverlay = os.path.exists(rso)
-if not isOverlay:
-    print("Creating empty Overlay file..")
-    writeRSO = open(rso, "x")
-    writeRSO.write('')
-    writeRSO.close()
-else:
-    print("Overlay file present.")
-
-
+    # If overlay file doesn't exist, create it
+    isOverlay = os.path.exists(rso)
+    if not isOverlay:
+        print("Creating empty " + library + " Overlay file..")
+        writeRSO = open(rso, "x")
+        writeRSO.write('')
+        writeRSO.close()
+    else:
+        print(library + " overlay file present.")
 
 
-# declare date formats
-date_format = '%Y-%m-%d'
-
-# define classes and definitions
-def sortedList(list, field):
-    return sorted(list, key=lambda k: k[field], reverse=False)
-
-def prettyJson(value):
-    return json.dumps(value, indent=4, sort_keys=False)
-
-def dict_ToJson(value):
-    return json.dumps([ob.__dict__ for ob in value], indent=4, sort_keys=False)
-
-# function to count a list #
-def get_count(list):
-    count = 0
-    for element in list:
-        count += 1
-    return str(count)
-
-# strip date to just year #
-def get_year(date):
-    return datetime.strptime(date, date_format).year
-
-# strip (words) and url format plex title #
-class Plex_Item:
-    def __init__(self, title, year, ratingKey):
-        self.title = re.sub("\s\(.*?\)","", title)
-        self.year = datetime.strptime(year, date_format).year
-        self.ratingKey = ratingKey
-
-class tmdb_search:
-    def __init__(self, title, ratingKey, tmdb_id, status):
-        self.title = title
-        self.ratingKey = ratingKey
-        self.tmdb_id = tmdb_id
-        self.status = status
-
-class tmdbDetails:
-    def __init__(self, id, title, firstAir, lastAir, nextAir, status, pop):
-        self.id = id
-        self.title = title
-        self.firstAir = firstAir
-        self.lastAir = lastAir
-        self.nextAir = nextAir
-        self.status = status
-        self.pop = pop
-
-# declare lists
-Search = []
-key_pairs = []
-status_key_pairs = []
-tmdb_details = []
-
-# create access variables 
-library = vars.setting('library')
-plexCall = vars.plexApi('url') + '/library/sections/' + vars.plexGet(library) + '/all'
-plex_url = re.sub("//lib", "/lib", plexCall)
-plex_headers = {
-    "accept": "application/json"
-}
-plex_token = {'X-Plex-Token': '' + vars.plexApi('token') + ''}
 
 
-# gather list of entries in plex
-print("Gathering Plex entries...")
-time.sleep(.01)
+    # declare date formats
+    date_format = '%Y-%m-%d'
 
-series = json.loads(prettyJson(requests.get(plex_url, headers=plex_headers, params=plex_token).json()))
-titlesInPlex = get_count(series['MediaContainer']['Metadata'])
-count = 1
-for this in series['MediaContainer']['Metadata']:
-    print("\rAdding to list " + "(" + str(count) + "/" + get_count(series['MediaContainer']['Metadata']) + ")", end="")
-    try:
-        Search.append(Plex_Item(this['title'],this['originallyAvailableAt'], this['ratingKey']))
-    except KeyError:
-        print(this['title'] + " does not have an originally available at - date. Skipping")
-        continue 
-    count += 1
-    time.sleep(.004)
+    # define classes and definitions
+    def sortedList(list, field):
+        return sorted(list, key=lambda k: k[field], reverse=False)
+
+    def prettyJson(value):
+        return json.dumps(value, indent=4, sort_keys=False)
+
+    def dict_ToJson(value):
+        return json.dumps([ob.__dict__ for ob in value], indent=4, sort_keys=False)
+
+    # function to count a list #
+    def get_count(list):
+        count = 0
+        for element in list:
+            count += 1
+        return str(count)
+
+    # strip date to just year #
+    def get_year(date):
+        return datetime.strptime(date, date_format).year
+
+    # strip (words) and url format plex title #
+    class Plex_Item:
+        def __init__(self, title, year, ratingKey):
+            self.title = re.sub("\s\(.*?\)","", title)
+            if year != "null":
+                self.year = datetime.strptime(year, date_format).year
+            else:
+                self.year = year
+            self.ratingKey = ratingKey
+
+    class tmdb_search:
+        def __init__(self, title, ratingKey, tmdb_id, status):
+            self.title = title
+            self.ratingKey = ratingKey
+            self.tmdb_id = tmdb_id
+            self.status = status
+
+    class tmdbDetails:
+        def __init__(self, id, title, firstAir, lastAir, nextAir, status, pop):
+            self.id = id
+            self.title = title
+            self.firstAir = firstAir
+            self.lastAir = lastAir
+            self.nextAir = nextAir
+            self.status = status
+            self.pop = pop
+
+    # declare lists
+    Search = []
+    key_pairs = []
+    status_key_pairs = []
+    tmdb_details = []
 
 
-# search for tmdb id of each entry, will update to use stored keys to reduce unnecessary searches
-refreshSearch = Search
-Search = json.loads(dict_ToJson(Search))
 
-if firstRun == False:
-    keyFile = open(keys, "r")
-    keyData = json.load(keyFile)
-    keyFile.close()
+    # create access variables 
+    #library = vars.setting('library')
+    plexCall = vars.plexApi('url') + '/library/sections/' + vars.plexGet(library) + '/all'
+    plex_url = re.sub("//lib", "/lib", plexCall)
+    plex_headers = {
+        "accept": "application/json"
+    }
+    plex_token = {'X-Plex-Token': '' + vars.plexApi('token') + ''}
 
-    cleanedKeysList = []
-    compareSearch = dict_ToJson(refreshSearch)
 
-    # Find if any entries were removed from Plex and remove from Key data
-    for existingKey in keyData[:]:
-        if (existingKey['ratingKey'] not in compareSearch):
-            keyData.remove(existingKey)
+    # gather list of entries in plex
+    print("Gathering Plex entries...")
+    time.sleep(.01)
+
+    series = json.loads(prettyJson(requests.get(plex_url, headers=plex_headers, params=plex_token).json()))
+    titlesInPlex = get_count(series['MediaContainer']['Metadata'])
+    count = 1
+    for this in series['MediaContainer']['Metadata']:
+        print("\rAdding to list " + "(" + str(count) + "/" + get_count(series['MediaContainer']['Metadata']) + ")", end="")
+        try:
+            Search.append(Plex_Item(this['title'],this['originallyAvailableAt'], this['ratingKey']))
+        except KeyError:
             print("")
-            print(existingKey['title'] + " was no longer found in Plex. Removing from Keys.")
-            time.sleep(.6)
-    for cleanedKey in keyData:
-        cleanedKeysList.append(tmdb_search(cleanedKey['title'], cleanedKey['ratingKey'], cleanedKey['tmdb_id'], cleanedKey['status']))
-
-    updatedKeys = dict_ToJson(cleanedKeysList)
-
-    rfSearch = 0
-    newSearch = Search
-    print("")
-    for eachItem in newSearch[:]:
-        if (eachItem['ratingKey'] in updatedKeys):
-            newSearch.remove(eachItem)
-            #print("Key data exists for " + eachItem['title'] + ". Removed from search list")
-            rfSearch += 1
-            print("\rFound existing data for " + str(rfSearch) + " titles. Removing from search list.", end="")
-            time.sleep(.004)       
-    time.sleep(2.5)
-    print("")
-    for remainingItem in newSearch:
-        print("No key entry found for " + remainingItem['title'] + ". Searching for details...")
-    if len(newSearch) < 1:
-        message = False
-        print("Nothing new to search for. Proceeding...")
-    if len(newSearch) > 0:
-        message = True
-        Search = newSearch
-
-    # Hold list to append searches
-    status_key_pairs = cleanedKeysList
+            print("Caution " + this['title'] + " does not have an originally available at date. May not be able to match.")
+            Search.append(Plex_Item(this['title'],"null", this['ratingKey']))
+        count += 1
+        time.sleep(.004)
 
 
+    # search for tmdb id of each entry, will update to use stored keys to reduce unnecessary searches
+    refreshSearch = Search
+    Search = json.loads(dict_ToJson(Search))
 
+    if firstRun == False:
+        keyFile = open(keys, "r")
+        keyData = json.load(keyFile)
+        keyFile.close()
 
+        cleanedKeysList = []
+        compareSearch = dict_ToJson(refreshSearch)
 
-
-
-
-count = 1
-for query in Search:
-    # display search progress
-    print("\rSearching... " + "(" + str(count) + "/" + get_count(Search) + ")", end="")
-    
-    # define search parameters
-    tmdb_url = "https://api.themoviedb.org/3/search/tv"
-    tmdb_params = {"query": query['title'], "first_air_date_year": query['year'], "api_key": vars.tmdbApi('token')}
-    tmdb_headers = {
-        'accept': 'application/json'
-    }
-
-    # store search result
-    tmdb_response = requests.get(tmdb_url, headers=tmdb_headers, params=tmdb_params)
-    tmdb_response_json = json.loads(prettyJson(tmdb_response.json()))
-
-    # check if a match was found given parameters
-    if tmdb_response_json['total_results'] < 1:
-        # if no match, increase search year to try and allow for variances and search again
-        query['year'] += 1
-        tmdb_params = {"query": query['title'], "first_air_date_year": query['year'], "api_key": vars.tmdbApi('token')}
-        tmdb_response = requests.get(tmdb_url, headers=tmdb_headers, params=tmdb_params)
-        tmdb_response_json = json.loads(prettyJson(tmdb_response.json()))
-        #check secondary search results
-        if tmdb_response_json['total_results'] < 1:
-            # if nothing was found, try again using an earlier year
-            query['year'] -= 2
-            tmdb_params = {"query": query['title'], "first_air_date_year": query['year'], "api_key": vars.tmdbApi('token')}
-            tmdb_response = requests.get(tmdb_url, headers=tmdb_headers, params=tmdb_params)
-            tmdb_response_json = json.loads(prettyJson(tmdb_response.json()))
-            # if nothing was found on this attempt, skip entry
-            if tmdb_response_json['total_results'] < 1:
-                print(" Could not find an ID for " + query['title'] + " ...skipping.")
+        # Find if any entries were removed from Plex and remove from Key data
+        for existingKey in keyData[:]:
+            if (existingKey['ratingKey'] not in compareSearch):
+                keyData.remove(existingKey)
+                print("")
+                print(existingKey['title'] + " was no longer found in Plex. Removing from Keys.")
                 time.sleep(.6)
-                # increment progress count to include skipped entries
-                count += 1
-                # continue after the failed search attempt
-                continue
+        for cleanedKey in keyData:
+            cleanedKeysList.append(tmdb_search(cleanedKey['title'], cleanedKey['ratingKey'], cleanedKey['tmdb_id'], cleanedKey['status']))
 
-    # if a match was found, try and get the correct entry based of the year used
-    if tmdb_response_json['total_results'] >=1:
-        for item in tmdb_response_json['results']:
-            # if the year matches, add it to the key pairs list
-            if str(query['year']) in str(get_year(item['first_air_date'])):
-                key_pairs.append(tmdb_search(query['title'], query['ratingKey'], str(item['id']), "null"))
-                # info for found match
-                print(" Found ID ==> " + str(item['id']) + " for " + '"' + query['title'] + '"')
-                # end adding to the list after the first match is found, else duplicate entries occur
-                break
-    # increment progress after a successful match 
-    count += 1
- 
+        updatedKeys = dict_ToJson(cleanedKeysList)
+
+        rfSearch = 0
+        newSearch = Search
+        print("")
+        for eachItem in newSearch[:]:
+            if (eachItem['ratingKey'] in updatedKeys):
+                newSearch.remove(eachItem)
+                #print("Key data exists for " + eachItem['title'] + ". Removed from search list")
+                rfSearch += 1
+                print("\rFound existing data for " + str(rfSearch) + " titles. Removing from search list.", end="")
+                time.sleep(.004)       
+        time.sleep(2.5)
+        print("")
+        for remainingItem in newSearch:
+            print("No key entry found for " + remainingItem['title'] + ". Searching for details...")
+        if len(newSearch) < 1:
+            message = False
+            print("Nothing new to search for. Proceeding...")
+        if len(newSearch) > 0:
+            message = True
+            Search = newSearch
+
+        # Hold list to append searches
+        status_key_pairs = cleanedKeysList
 
 
 
@@ -562,184 +739,210 @@ for query in Search:
 
 
 
-
-
-for d in json.loads(dict_ToJson(key_pairs)):
-
-    tmdbUrl = "https://api.themoviedb.org/3/tv/" + d['tmdb_id']
-    tmdbHeaders = {
-    "accept": "application/json"
-    }
-    tmdbParams = {
-        "language": "en-US", "api_key": vars.tmdbApi('token')
-    }
+    count = 1
+    for query in Search:
+        # display search progress
+        print("\rSearching... " + "(" + str(count) + "/" + get_count(Search) + ")", end="")
+        ratingKey = query['ratingKey']
+        searchYear = True
+        if query['year'] == "null":
+            searchYear = False
+        id = plex.show.tmdb_id(ratingKey)
+        if id != "null" and searchYear != False:
+            key_pairs.append(tmdb_search(query['title'], query['ratingKey'], id, "null"))
+                    # info for found match
+            print(" Found ID ==> " + str(id) + " for " + '"' + query['title'] + '"')
+            # end adding to the list after the first match is found, else duplicate entries occur
+                
+        # increment progress after a successful match 
+        count += 1
     
-    tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
-
-    print("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
-
-    if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
-        lastAir = tmdb['last_air_date']
-    if tmdb['last_air_date'] == None or tmdb['last_air_date'] == "":
-        lastAir = "null"
-
-    if tmdb['next_episode_to_air'] != None and tmdb['next_episode_to_air']['air_date'] != None:
-        nextAir = tmdb['next_episode_to_air']['air_date']
-    if tmdb['next_episode_to_air'] == None or tmdb['next_episode_to_air'] == "":
-        nextAir = "null"
-
-    if tmdb['first_air_date'] != None and tmdb['first_air_date'] != "":
-        firstAir = tmdb['first_air_date']
-    if tmdb['first_air_date'] == None or tmdb['first_air_date'] == "":
-        firstAir = "null"
-
-    status_key_pairs.append(
-        tmdb_search(
-            d['title'],
-            d['ratingKey'],
-            d['tmdb_id'],
-            tmdb['status']
-            )
-            )
 
 
 
 
-    if firstRun == True:
-        if tmdb['status'] == "Returning Series":
-            tmdb_details.append(
-                tmdbDetails(
-                    tmdb['id'],
-                    tmdb['name'],
-                    firstAir,
-                    lastAir,
-                    nextAir,
-                    tmdb['status'],
-                    tmdb['popularity']
-                    )
-                    )
-            
 
-key_string = dict_ToJson(status_key_pairs)
-writeKeys = open(keys, "w")
-writeKeys.write(key_string)
-writeKeys.close()
-if firstRun == True:
-    print("Keys updated...")
-if firstRun == False:
-    if message == True:
-        print("Keys updated...")
-        print("Updating data for Returning Series.")
 
-if firstRun == False:
-    updateMe = []
-    keyFile = open(keys, "r")
-    keyData = json.load(keyFile)
-    
-    for u in keyData:
 
-        if u['status'] != "Returning Series":
-            updateMe.append(tmdb_search(u['title'], u['ratingKey'], u['tmdb_id'], u['status']))
-        if u['status'] == "Returning Series":
-            tmdbUrl = "https://api.themoviedb.org/3/tv/" + u['tmdb_id']
-            tmdbHeaders = {
-            "accept": "application/json"
-            }
-            tmdbParams = {
+
+
+
+    for d in json.loads(dict_ToJson(key_pairs)):
+
+        tmdbUrl = "https://api.themoviedb.org/3/tv/" + str(d['tmdb_id'])
+        tmdbHeaders = {
+        "accept": "application/json"
+        }
+        tmdbParams = {
             "language": "en-US", "api_key": vars.tmdbApi('token')
-            }
-    
-            tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
+        }
+        
+        tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
 
-            print("Refreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
+        print("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
 
-            if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
-                lastAir = tmdb['last_air_date']
-            if tmdb['last_air_date'] == None or tmdb['last_air_date'] == "":
-                lastAir = "null"
+        if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
+            lastAir = tmdb['last_air_date']
+        if tmdb['last_air_date'] == None or tmdb['last_air_date'] == "":
+            lastAir = "null"
 
-            if tmdb['next_episode_to_air'] != None and tmdb['next_episode_to_air']['air_date'] != None:
-                nextAir = tmdb['next_episode_to_air']['air_date']
-            if tmdb['next_episode_to_air'] == None or tmdb['next_episode_to_air'] == "":
-                nextAir = "null"
+        if tmdb['next_episode_to_air'] != None and tmdb['next_episode_to_air']['air_date'] != None:
+            nextAir = tmdb['next_episode_to_air']['air_date']
+        if tmdb['next_episode_to_air'] == None or tmdb['next_episode_to_air'] == "":
+            nextAir = "null"
 
-            if tmdb['first_air_date'] != None and tmdb['first_air_date'] != "":
-                firstAir = tmdb['first_air_date']
-            if tmdb['first_air_date'] == None or tmdb['first_air_date'] == "":
-                firstAir = "null"
-            updateMe.append(tmdb_search(u['title'], u['ratingKey'], u['tmdb_id'], tmdb['status']))
+        if tmdb['first_air_date'] != None and tmdb['first_air_date'] != "":
+            firstAir = tmdb['first_air_date']
+        if tmdb['first_air_date'] == None or tmdb['first_air_date'] == "":
+            firstAir = "null"
+
+        status_key_pairs.append(
+            tmdb_search(
+                d['title'],
+                d['ratingKey'],
+                d['tmdb_id'],
+                tmdb['status']
+                )
+                )
+
+
+
+
+        if firstRun == True:
             if tmdb['status'] == "Returning Series":
                 tmdb_details.append(
-                        tmdbDetails(
-                            tmdb['id'],
-                            tmdb['name'],
-                            firstAir,
-                            lastAir,
-                            nextAir,
-                            tmdb['status'],
-                            tmdb['popularity']
-                            )
-                            )
-    updated_key_string = dict_ToJson(updateMe)
-    updatedwriteKeys = open(keys, "w")
-    updatedwriteKeys.write(updated_key_string)
-    updatedwriteKeys.close()
+                    tmdbDetails(
+                        tmdb['id'],
+                        tmdb['name'],
+                        firstAir,
+                        lastAir,
+                        nextAir,
+                        tmdb['status'],
+                        tmdb['popularity']
+                        )
+                        )
+                
+
+    key_string = dict_ToJson(status_key_pairs)
+    writeKeys = open(keys, "w")
+    writeKeys.write(key_string)
+    writeKeys.close()
+    if firstRun == True:
+        print(library + " Keys updated...")
+    if firstRun == False:
+        if message == True:
+            print(library + " Keys updated...")
+            print("Updating data for Returning " + library + ".")
+
+    if firstRun == False:
+        updateMe = []
+        keyFile = open(keys, "r")
+        keyData = json.load(keyFile)
+        
+        for u in keyData:
+
+            if u['status'] != "Returning Series":
+                updateMe.append(tmdb_search(u['title'], u['ratingKey'], u['tmdb_id'], u['status']))
+            if u['status'] == "Returning Series":
+                tmdbUrl = "https://api.themoviedb.org/3/tv/" + str(u['tmdb_id'])
+                tmdbHeaders = {
+                "accept": "application/json"
+                }
+                tmdbParams = {
+                "language": "en-US", "api_key": vars.tmdbApi('token')
+                }
+        
+                tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
+
+                print("Refreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
+
+                if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
+                    lastAir = tmdb['last_air_date']
+                if tmdb['last_air_date'] == None or tmdb['last_air_date'] == "":
+                    lastAir = "null"
+
+                if tmdb['next_episode_to_air'] != None and tmdb['next_episode_to_air']['air_date'] != None:
+                    nextAir = tmdb['next_episode_to_air']['air_date']
+                if tmdb['next_episode_to_air'] == None or tmdb['next_episode_to_air'] == "":
+                    nextAir = "null"
+
+                if tmdb['first_air_date'] != None and tmdb['first_air_date'] != "":
+                    firstAir = tmdb['first_air_date']
+                if tmdb['first_air_date'] == None or tmdb['first_air_date'] == "":
+                    firstAir = "null"
+                updateMe.append(tmdb_search(u['title'], u['ratingKey'], u['tmdb_id'], tmdb['status']))
+                if tmdb['status'] == "Returning Series":
+                    tmdb_details.append(
+                            tmdbDetails(
+                                tmdb['id'],
+                                tmdb['name'],
+                                firstAir,
+                                lastAir,
+                                nextAir,
+                                tmdb['status'],
+                                tmdb['popularity']
+                                )
+                                )
+        updated_key_string = dict_ToJson(updateMe)
+        updatedwriteKeys = open(keys, "w")
+        updatedwriteKeys.write(updated_key_string)
+        updatedwriteKeys.close()
 
 
-listResults = prettyJson(sortedList(json.loads(dict_ToJson(tmdb_details)), 'nextAir'))
+    listResults = prettyJson(sortedList(json.loads(dict_ToJson(tmdb_details)), 'nextAir'))
 
 
 
-## write tmdb details to file ##
-writeTmdb = open(cache, "w")
-writeTmdb.write(listResults)
-writeTmdb.close()
-print("TMDB data updated...")
+    ## write tmdb details to file ##
+    writeTmdb = open(cache, "w")
+    writeTmdb.write(listResults)
+    writeTmdb.close()
+    print(library + " TMDB data updated...")
 
 
-# write Template to Overlay file
-print("Writing user Overlay Template to Returning Soon overlay file.")
-with open(overlay_temp) as ot:
-    ovrTemp = yaml.load(ot)
-    rsoWrite = open(rso, "w")
-    yaml.dump(ovrTemp, rsoWrite)
-    print("Template applied.")
+    # write Template to Overlay file
+    print("Writing " + library + " Overlay Template to Returning Soon " + library + " overlay file.")
+    with open(overlay_temp) as ot:
+        ovrTemp = yaml.load(ot)
+        rsoWrite = open(rso, "w")
+        yaml.dump(ovrTemp, rsoWrite)
+        print(library + " template applied.")
 
 
-# Generate Overlay body
-# define date ranges
-dayCounter = 1
-today = date.today()
-lastAirDate = date.today() - timedelta(days=45)
-last_episode_aired = lastAirDate.strftime("%m/%d/%Y")
-nextAirDate = date.today() + timedelta(days=31)
-thisDayTemp = date.today() + timedelta(days=int(dayCounter))
-thisDay = thisDayTemp.strftime("%m/%d/%Y")
-thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
-if vars.setting('zeros') == True or vars.setting('zeros') != False:
-    thisDayDisplayText = thisDayTemp.strftime("%m/%d")
-if vars.setting('zeros') == False:
-    if platform.system() == "Windows":
-        thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
-    if platform.system() == "Linux" or platform.system() == "Darwin":
-        thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
-prefix = vars.setting('prefix')
+    # Generate Overlay body
+    # define date ranges
+    dayCounter = 1
+    today = date.today()
+    lastAirDate = date.today() - timedelta(days=45)
+    last_episode_aired = lastAirDate.strftime("%m/%d/%Y")
+    nextAirDate = date.today() + timedelta(days=int(days_ahead))
+    thisDayTemp = date.today() + timedelta(days=int(dayCounter))
+    thisDay = thisDayTemp.strftime("%m/%d/%Y")
+    thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
+    if vars.setting('zeros') == True or vars.setting('zeros') != False:
+        thisDayDisplayText = thisDayTemp.strftime("%m/%d")
+    if vars.setting('zeros') == False:
+        if platform.system() == "Windows":
+            thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
+        if platform.system() == "Linux" or platform.system() == "Darwin":
+            thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
+    prefix = vars.setting('prefix')
 
-print("Generating overlay body.")
+    print("Generating " + library + " overlay body.")
 
-overlay_base = '''
+    overlay_base = '''
 
 overlays:
-'''
+    '''
 
 
 
 
-if vars.setting('ovNew') == True:
-    newText = vars.setting('ovNewText')
-    newFontColor = vars.setting('ovNewFontColor')
-    newColor = vars.setting('ovNewColor')
-    ovNew = f'''
+    if vars.setting('ovNew') == True:
+        newText = vars.setting('ovNewText')
+        newFontColor = vars.setting('ovNewFontColor')
+        newColor = vars.setting('ovNewColor')
+        ovNew = f'''
   # New
   TV_Top_TextCenter_New:
     template:
@@ -756,19 +959,19 @@ if vars.setting('ovNew') == True:
         - production
       first_episode_aired: 45
       '''
-    overlay_base = overlay_base + ovNew
+        overlay_base = overlay_base + ovNew
 
 
 
-if vars.setting('ovAiring') == True:
-    airTodayTemp = date.today()
-    airToday = airTodayTemp.strftime("%m/%d/%Y")
-    considered_airingTemp = date.today() - timedelta(days=15)
-    considered_airing = considered_airingTemp.strftime("%m/%d/%Y")
-    airingText = vars.setting('ovAiringText')
-    airingFontColor = vars.setting('ovAiringFontColor')
-    airingColor = vars.setting('ovAiringColor')
-    ovAiring = f'''
+    if vars.setting('ovAiring') == True:
+        airTodayTemp = date.today()
+        airToday = airTodayTemp.strftime("%m/%d/%Y")
+        considered_airingTemp = date.today() - timedelta(days=15)
+        considered_airing = considered_airingTemp.strftime("%m/%d/%Y")
+        airingText = vars.setting('ovAiringText')
+        airingFontColor = vars.setting('ovAiringFontColor')
+        airingColor = vars.setting('ovAiringColor')
+        ovAiring = f'''
   # Airing
   TV_Top_TextCenter_Airing:
     template:
@@ -799,14 +1002,14 @@ if vars.setting('ovAiring') == True:
       with_status: 0
       limit: 500
 '''
-    overlay_base = overlay_base + ovAiring
+        overlay_base = overlay_base + ovAiring
 
 
-if vars.setting('ovEnded') == True:
-    endedText = vars.setting('ovEndedText')
-    endedFontColor = vars.setting('ovEndedFontColor')
-    endedColor = vars.setting('ovEndedColor')
-    ovEnded = f'''
+    if vars.setting('ovEnded') == True:
+        endedText = vars.setting('ovEndedText')
+        endedFontColor = vars.setting('ovEndedFontColor')
+        endedColor = vars.setting('ovEndedColor')
+        ovEnded = f'''
   # Ended
   TV_Top_TextCenter_Ended:
     template:
@@ -820,14 +1023,14 @@ if vars.setting('ovEnded') == True:
       tmdb_status:
         - ended
 '''
-    overlay_base = overlay_base + ovEnded
+        overlay_base = overlay_base + ovEnded
 
 
-if vars.setting('ovCanceled') == True:
-    canceledText = vars.setting('ovCanceledText')
-    canceledFontColor = vars.setting('ovCanceledFontColor')
-    canceledColor = vars.setting('ovCanceledColor')
-    ovCanceled = f'''
+    if vars.setting('ovCanceled') == True:
+        canceledText = vars.setting('ovCanceledText')
+        canceledFontColor = vars.setting('ovCanceledFontColor')
+        canceledColor = vars.setting('ovCanceledColor')
+        ovCanceled = f'''
   # Canceled
   TV_Top_TextCenter_Canceled:
     template:
@@ -841,14 +1044,14 @@ if vars.setting('ovCanceled') == True:
       tmdb_status:
         - canceled
 '''
-    overlay_base = overlay_base + ovCanceled
+        overlay_base = overlay_base + ovCanceled
 
 
-if vars.setting('ovReturning') == True:
-    returningText = vars.setting('ovReturningText')
-    returningFontColor = vars.setting('ovReturningFontColor')
-    returningColor = vars.setting('ovReturningColor')
-    ovReturning = f'''
+    if vars.setting('ovReturning') == True:
+        returningText = vars.setting('ovReturningText')
+        returningFontColor = vars.setting('ovReturningFontColor')
+        returningColor = vars.setting('ovReturningColor')
+        ovReturning = f'''
   # Returning
   TV_Top_TextCenter_Returning:
     template:
@@ -864,23 +1067,13 @@ if vars.setting('ovReturning') == True:
         - planned
         - production
 '''
-    overlay_base = overlay_base + ovReturning
+        overlay_base = overlay_base + ovReturning
 
 
-
-
-
-
-
-
-
-
-
-
-while thisDayTemp < nextAirDate:
-    rsback_color = vars.setting('rsback_color')
-    rsfont_color = vars.setting('rsfont_color')
-    overlay_gen = f'''
+    while thisDayTemp < nextAirDate:
+        rsback_color = vars.setting('rsback_color')
+        rsfont_color = vars.setting('rsfont_color')
+        overlay_gen = f'''
 # RETURNING {thisDayDisplay}
   TV_Top_TextCenter_Returning_{thisDayDisplay}:
     template:
@@ -897,92 +1090,92 @@ while thisDayTemp < nextAirDate:
     filters:
       last_episode_aired.before: {last_episode_aired}
 '''
-    dayCounter += 1
-    thisDayTemp = date.today() + timedelta(days=int(dayCounter))
-    thisDay = thisDayTemp.strftime("%m/%d/%Y")
-    thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
-    if vars.setting('zeros') == True or vars.setting('zeros') != False:
-        thisDayDisplayText = thisDayTemp.strftime("%m/%d")
-    if vars.setting('zeros') == False:
-        if platform.system() == "Windows":
-            thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
-        if platform.system() == "Linux" or platform.system() == "Darwin":
-            thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
-    overlay_base = overlay_base + overlay_gen
-  
-print("Overlay body generated. Writing to file.")
+        dayCounter += 1
+        thisDayTemp = date.today() + timedelta(days=int(dayCounter))
+        thisDay = thisDayTemp.strftime("%m/%d/%Y")
+        thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
+        if vars.setting('zeros') == True or vars.setting('zeros') != False:
+            thisDayDisplayText = thisDayTemp.strftime("%m/%d")
+        if vars.setting('zeros') == False:
+            if platform.system() == "Windows":
+                thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
+            if platform.system() == "Linux" or platform.system() == "Darwin":
+                thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
+        overlay_base = overlay_base + overlay_gen
+    
+    print(library + " overlay body generated. Writing to file.")
 
-# Write the rest of the overlay
-writeBody = open(rso, "a")
-yaml.dump(yaml.load(overlay_base), writeBody)
-writeBody.close()
-print("Overlay body appened to returning-soon-overlay.")
+    # Write the rest of the overlay
+    writeBody = open(rso, "a")
+    yaml.dump(yaml.load(overlay_base), writeBody)
+    writeBody.close()
+    print("Overlay body appened to " + library + "-returning-soon-overlay.")
 
-# use keys file to gather show details
-print("Reading cache file...")
-cacheFile = open(cache, "r")
-cacheData = json.load(cacheFile)
-cacheFile.close()
+    # use keys file to gather show details
+    print("Reading " + library + " cache file...")
+    cacheFile = open(cache, "r")
+    cacheData = json.load(cacheFile)
+    cacheFile.close()
 
-# this is for the trakt list
-print("Filtering data...")
-returningSoon = filter(
-    lambda x: (
-        x['status'] == "Returning Series" and 
-        x['nextAir'] != "null" and 
-        x['nextAir'] < str(nextAirDate) and 
-        x['nextAir'] > str(today) and 
-        x['lastAir'] < str(lastAirDate)),
-        cacheData)
-print("Sorting...")
-returningSorted = sortedList(returningSoon, 'nextAir')
+    # this is for the trakt list
+    print("Filtering " + library + " data...")
+    returningSoon = filter(
+        lambda x: (
+            x['status'] == "Returning Series" and 
+            x['nextAir'] != "null" and 
+            x['nextAir'] < str(nextAirDate) and 
+            x['nextAir'] > str(today) and 
+            x['lastAir'] < str(lastAirDate)),
+            cacheData)
+    print("Sorting " + library + "...")
+    returningSorted = sortedList(returningSoon, 'nextAir')
 
-traktaccess = vars.traktApi('token')
-traktapi = vars.traktApi('client')
-traktHeaders = {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + traktaccess + '',
-                'trakt-api-version': '2',
-                'trakt-api-key': '' + traktapi + ''
-                }
+    traktaccess = vars.traktApi('token')
+    traktapi = vars.traktApi('client')
+    traktHeaders = {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + traktaccess + '',
+                    'trakt-api-version': '2',
+                    'trakt-api-key': '' + traktapi + ''
+                    }
 
-traktListUrl = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
-traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon"
-traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon/items"
-traktListData = """
-{
-    "name": "Returning Soon",
-    "description": "Season premiers within the next 30 days.",
+    traktListUrl = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
+    traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library + ""
+    traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library + "/items"
+    traktListData = f'''
+{{
+    "name": "Returning Soon {library}",
+    "description": "Season premiers and returns within the next 30 days.",
     "privacy": "private",
     "display_numbers": true,
     "allow_comments": true,
     "sort_by": "rank",
     "sort_how": "asc"
-}
-"""
+}}
+    '''
 
-print("Clearing trakt list...")
-traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
-time.sleep(1.25)
-traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
-time.sleep(1.25)
+    print("Clearing " + library + " trakt list...")
+    traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
+    time.sleep(1.25)
+    traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
+    time.sleep(1.25)
 
-for item in returningSorted:
-    print("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon.")
+    for item in returningSorted:
+        print("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon " + library + ".")
 
-    traktListShow = f'''
+        traktListShow = f'''
 {{
 "shows": [
     {{
-      "ids": {{
+    "ids": {{
         "tmdb": "{str(item['id'])}"
-               }}
+            }}
     }}
-  ]
+]
 }}
-'''
-    postShow = requests.post(traktListUrlPostShow, headers=traktHeaders, data=traktListShow)
-    time.sleep(1.25)
+    '''
+        postShow = requests.post(traktListUrlPostShow, headers=traktHeaders, data=traktListShow)
+        time.sleep(1.25)
 
-print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
+    print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
 print("All operations complete.")
