@@ -1167,8 +1167,8 @@ overlays:
     writeBody = open(rso, "a")
     yaml.dump(yaml.load(overlay_base), writeBody)
     writeBody.close()
-    print("Overlay body appened to " + library + "-returning-soon-overlay.")
-    logging.info("Overlay body appened to " + library + "-returning-soon-overlay.")
+    print("Overlay body appended to " + library + "-returning-soon-overlay.")
+    logging.info("Overlay body appended to " + library + "-returning-soon-overlay.")
 
     # use keys file to gather show details
     print("Reading " + library + " cache file...")
