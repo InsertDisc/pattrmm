@@ -105,7 +105,7 @@ class Plex:
             year = self.year(rating_key)
             if year != None:
                print("")
-               print("No TMDB ID found locally: Searching themoviedb.org with " + show_name + " and year " + str(year))
+               print("No TMDB ID found in Plex: Searching for " + show_name + " with year " + str(year))
                search =  self.search_tmdb_id(show_name, year)
                if search == None:
                     year = int(year)
@@ -856,7 +856,7 @@ templates:
         
                 tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
 
-                print("Refreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
+                print("\033[KRefreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )", end="\r", flush=True)
 
                 if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
                     lastAir = tmdb['last_air_date']
@@ -899,7 +899,7 @@ templates:
     writeTmdb = open(cache, "w")
     writeTmdb.write(listResults)
     writeTmdb.close()
-    print(library + " TMDB data updated...")
+    print("\033[K" + library + " TMDB data updated...")
 
 
     # write Template to Overlay file
@@ -1162,24 +1162,32 @@ overlays:
     traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
     time.sleep(1.25)
 
+    traktListShow = '''
+{
+    "shows": [
+        '''
     for item in returningSorted:
         print("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon " + library + ".")
 
-        traktListShow = f'''
-{{
-"shows": [
+        traktListShow += f'''
     {{
     "ids": {{
         "tmdb": "{str(item['id'])}"
             }}
-    }}
-]
-}}
-    '''
-        postShow = requests.post(traktListUrlPostShow, headers=traktHeaders, data=traktListShow)
-        time.sleep(1.25)
+    }},'''
 
-    print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
+    traktListShow = traktListShow.rstrip(",")
+    traktListShow += '''
+]
+}
+'''
+
+    postShow = requests.post(traktListUrlPostShow, headers=traktHeaders, data=traktListShow)
+    if postShow.status_code == 201:
+        print("Success")
+        print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
+    else:
+        print("Failure: " + str(postShow.status_code))
 end_time = time.time()
 elapsed_time = end_time - start_time
 minutes, seconds = divmod(elapsed_time, 60)
