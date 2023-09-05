@@ -27,7 +27,11 @@ overlay_path = '../overlays'
 # data folder for created files
 data = "data"
 # logs folder
+
 log_path = "logs"
+
+
+
 # preferences folder
 pref = "preferences"
 # settings file for pattrmm
@@ -420,10 +424,14 @@ else:
     print("data folder present...")
 
 # If data folder doesn't exist, create it
+
 isLogs = os.path.exists(log_path)
 if not isLogs:
     print("Creating logs folder...")
     os.makedirs(log_path)
+
+
+
 else:
     print("Logs folder present...")
 
