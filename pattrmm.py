@@ -131,6 +131,11 @@ class Plex:
         if plex_tmdb_id == None:
             show_name = self.get_show_name(rating_key)
             year = self.year(rating_key)
+            if year == None:
+                print("No originally availabe year for " + show_name + ", cannot search for title reliably.")
+                logging.warning("No originally availabe year for " + show_name + ", cannot search for title reliably.")
+                search = "null"
+                return search
             if year != None:
                print("")
                print("No TMDB ID found locally: Searching for " + show_name + " with year " + str(year))
@@ -151,11 +156,9 @@ class Plex:
                               print(show_name + " could not be matched.")
                               logging.info(show_name + " could not be matched.")
                               search = "null"
-                              return search
-            if year == None:
-                print("No originally availabe year for " + show_name + ", cannot search for title reliably.")
-                logging.warning("No originally availabe year for " + show_name + ", cannot search for title reliably.")
-            if search != None:
+                              
+            
+            
                 return search
 
 
