@@ -27,7 +27,11 @@ overlay_path = '../overlays'
 # data folder for created files
 data = "data"
 # logs folder
-logPath = "logs"
+
+log_path = "logs"
+
+
+
 # preferences folder
 pref = "preferences"
 # settings file for pattrmm
@@ -420,10 +424,14 @@ else:
     print("data folder present...")
 
 # If data folder doesn't exist, create it
-isLogs = os.path.exists(logPath)
+
+isLogs = os.path.exists(log_path)
 if not isLogs:
     print("Creating logs folder...")
-    os.makedirs(logPath)
+    os.makedirs(log_path)
+
+
+
 else:
     print("Logs folder present...")
 
@@ -507,19 +515,25 @@ except KeyError:
 openSettings = open(settings, "r")
 loadSettings = yaml.load(openSettings)
 for library in loadSettings['library_name']:
-    library = re.sub(" ", "-", library)
+    
 
     # keys file for ratingKey and tmdb pairs
     keys = "data/" + library + "-keys.json"
+    keys = re.sub(" ", "-", keys)
+
     # cache file for tmdb details
     cache = "data/" + library + "-tmdb-cache.json"
+    cache = re.sub(" ", "-", cache)
     
     # returning-soon metadata file for collection
     meta = "../" + library + "-returning-soon.yml"
+    meta = re.sub(" ", "-", meta)
     # generated overlay file path
     rso = "../overlays/" + library + "-returning-soon-overlay.yml"
+    rso = re.sub(" ", "-", rso)
     # overlay template path
     overlay_temp = "preferences/" + library + "-returning-soon-template.yml"
+    overlay_temp = re.sub(" ", "-", overlay_temp)
     
 
     # Info display
