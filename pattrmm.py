@@ -470,7 +470,7 @@ if not isSettings:
     writeSettings.write(
         '''
 library_name:
-  - Tv Shows                         # Plex Libraries to read from. Can enter multiple libraries.
+  - TV Shows                         # Plex Libraries to read from. Can enter multiple libraries.
 days_ahead: 30
 overlay_prefix: "RETURNING"          # Text to display before the dates.
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
