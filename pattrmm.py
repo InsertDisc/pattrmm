@@ -151,13 +151,15 @@ class Plex:
                               print(show_name + " could not be matched.")
                               logging.info(show_name + " could not be matched.")
                               search = "null"
-                              return search
+                              
+                return search
+                
             if year == None:
                 print("No originally availabe year for " + show_name + ", cannot search for title reliably.")
                 logging.warning("No originally availabe year for " + show_name + ", cannot search for title reliably.")
-            if search != None:
+                search = "null"
                 return search
-
+            
 
 
     def get_tmdb_id_from_plex(self, rating_key):
