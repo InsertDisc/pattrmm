@@ -429,13 +429,16 @@ isLogs = os.path.exists(log_path)
 if not isLogs:
     print("Creating logs folder...")
     os.makedirs(log_path)
-
-
-
 else:
     print("Logs folder present...")
 
 log_file = "logs/pattrmm.log"
+isLogFile = os.path.exists(log_file)
+if not isLogFile:
+    print("Creating log file..")
+    writeLogs = open(log_file, "x")
+    writeLogs.close()
+
 logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
 # If overlay folder cannot be found, stop
