@@ -824,15 +824,6 @@ templates:
         count += 1
     
 
-
-
-
-
-
-
-
-
-
     for d in json.loads(dict_ToJson(key_pairs)):
 
         tmdbUrl = "https://api.themoviedb.org/3/tv/" + str(d['tmdb_id'])
@@ -842,8 +833,18 @@ templates:
         tmdbParams = {
             "language": "en-US", "api_key": vars.tmdbApi('token')
         }
+
+        tmdb_request = requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams)
         
-        tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
+        if tmdb_request.status_code != 200:
+            print("There was a problem accessing the resouce for TMDB ID " + str(d['tmdb_id']))
+            if tmdb_request.status_code == 34:
+                print("This ID has been removed from TMDB, or is no longer accessible.")
+                print("Try refreshing the metadata for " + d['title'])
+            
+            continue
+            
+        tmdb = json.loads(prettyJson(tmdb_request.json()))
 
         print("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
         logging.info("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
