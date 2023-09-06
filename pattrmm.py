@@ -593,11 +593,12 @@ for library in loadSettings['library_name']:
         logging.info("Creating " + library + " metadata collection file..")
         writeMeta = open(meta, "x")
         me = vars.traktApi('me')
+        slug = re.sub(" ", "-", library)
         writeMeta.write(
             f'''
 collections:
   Returning Soon {library}:
-    trakt_list: https://trakt.tv/users/{me}/lists/returning-soon-{library}
+    trakt_list: https://trakt.tv/users/{me}/lists/returning-soon-{slug}
     collection_order: custom
     visible_home: true
     visible_shared: true
