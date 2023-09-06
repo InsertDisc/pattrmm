@@ -20,52 +20,6 @@ import logging
 
 # Main variables file
 var_path = 'vars.py'
-# Plex Meta Manager config file path
-config_path = '../config.yml'
-# overlay folder path
-overlay_path = '../overlays'
-# data folder for created files
-data = "data"
-# logs folder
-
-log_path = "logs"
-
-# If Logs folder doesn't exist, create it
-
-isLogs = os.path.exists(log_path)
-if not isLogs:
-    print("Creating logs folder...")
-    os.makedirs(log_path)
-else:
-    print("Logs folder present...")
-
-log_file = "logs/pattrmm.log"
-isLogFile = os.path.exists(log_file)
-if not isLogFile:
-    print("Creating log file..")
-    writeLogs = open(log_file, "x")
-    writeLogs.close()
-
-logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-
-
-# preferences folder
-pref = "preferences"
-# settings file for pattrmm
-settings = "preferences/settings.yml"
-# assign YAML variable
-yaml = YAML()
-yaml.preserve_quotes = True
-
-# Check if PMM config file can be found. If not, inform and exit.
-isConfig = os.path.exists(config_path)
-if not isConfig:
-    print("Plex Meta Manager Config file could not be located.")
-    print("Please ensure PATTRMM is in a subfolder of the Plex Meta Manager config directory.")
-    exit()
-else:
-    print("PMM config file found.")
-
 # Check for vars file and create if not present
 isVars = os.path.exists(var_path)
 if not isVars:
@@ -427,6 +381,54 @@ def plexGet(identifier):
     writeVars.close()
 else:
     print("Vars module found.")
+
+# Plex Meta Manager config file path
+config_path = '../config.yml'
+# overlay folder path
+overlay_path = '../overlays'
+# data folder for created files
+data = "data"
+# logs folder
+
+log_path = "logs"
+
+# If Logs folder doesn't exist, create it
+
+isLogs = os.path.exists(log_path)
+if not isLogs:
+    print("Creating logs folder...")
+    os.makedirs(log_path)
+else:
+    print("Logs folder present...")
+
+log_file = "logs/pattrmm.log"
+isLogFile = os.path.exists(log_file)
+if not isLogFile:
+    print("Creating log file..")
+    writeLogs = open(log_file, "x")
+    writeLogs.close()
+
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
+
+# preferences folder
+pref = "preferences"
+# settings file for pattrmm
+settings = "preferences/settings.yml"
+# assign YAML variable
+yaml = YAML()
+yaml.preserve_quotes = True
+
+# Check if PMM config file can be found. If not, inform and exit.
+isConfig = os.path.exists(config_path)
+if not isConfig:
+    print("Plex Meta Manager Config file could not be located.")
+    print("Please ensure PATTRMM is in a subfolder of the Plex Meta Manager config directory.")
+    exit()
+else:
+    print("PMM config file found.")
+
+
 
 import vars
 from vars import Plex
