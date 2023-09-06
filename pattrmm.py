@@ -1225,10 +1225,10 @@ overlays:
                     'trakt-api-version': '2',
                     'trakt-api-key': '' + traktapi + ''
                     }
-
+    slug = re.sub(" ", "-", library)
     traktListUrl = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
-    traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library + ""
-    traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library + "/items"
+    traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + ""
+    traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + "/items"
     traktListData = f'''
 {{
     "name": "Returning Soon {library}",
