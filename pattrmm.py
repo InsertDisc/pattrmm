@@ -597,7 +597,7 @@ for library in loadSettings['library_name']:
         writeMeta.write(
             f'''
 collections:
-  Returning Soon {library}:
+  Returning Soon:
     trakt_list: https://trakt.tv/users/{me}/lists/returning-soon-{slug}
     collection_order: custom
     visible_home: true
