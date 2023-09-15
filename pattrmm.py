@@ -14,8 +14,106 @@ import requests
 import os.path
 import os
 from ruamel.yaml import YAML
+# assign YAML variable
+yaml = YAML()
+yaml.preserve_quotes = True
+
 import xml.etree.ElementTree as ET
 import logging
+import sys
+
+
+
+print("Verifying files.")
+# data folder for created files
+data = "data"
+# If data folder doesn't exist, create it
+isData = os.path.exists(data)
+if not isData:
+    print("Creating data folder...")
+    os.makedirs(data)
+else:
+    print("Data folder present...")
+
+
+# logs folder
+log_path = "data/logs"
+# If Logs folder doesn't exist, create it
+isLogs = os.path.exists(log_path)
+if not isLogs:
+    print("Creating logs folder...")
+    os.makedirs(log_path)
+else:
+    print("Logs folder present...")
+
+log_file = "data/logs/pattrmm.log"
+isLogFile = os.path.exists(log_file)
+if not isLogFile:
+    print("Creating log file..")
+    writeLogs = open(log_file, "x")
+    writeLogs.close()
+
+logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
+
+# preferences folder
+pref = "preferences"
+# If preferences folder doesn't exist, create it
+isPref = os.path.exists(pref)
+if not isPref:
+    print("Creating preferences folder...")
+    os.makedirs(pref)
+else:
+    print("Preference folder present...")
+
+
+# settings file for pattrmm
+settings = "preferences/settings.yml"
+# If settings file doesn't exist, create it
+if os.path.isfile(settings) == False:
+    print("Creating settings file..")
+    writeSettings = open(settings, "x")
+    writeSettings.write(
+        '''
+library_name:
+  - TV Shows                         # Plex Libraries to read from. Can enter multiple libraries.
+days_ahead: 30
+overlay_prefix: "RETURNING"          # Text to display before the dates.
+leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
+returning_soon_bgcolor: "#81007F"
+returning_soon_fontcolor: "#FFFFFF"
+extra_overlays:
+  new:
+    use: True
+    bgcolor: "#008001"
+    font_color: "#FFFFFF"
+    text: "N E W  S E R I E S"
+  airing:
+    use: True
+    bgcolor: "#343399"
+    font_color: "#FFFFFF"
+    text: "A I R I N G"
+  returning:
+    use: True
+    bgcolor: "#81007F"
+    font_color: "#FFFFFF"
+    text: "R E T U R N I N G"
+  ended:
+    use: True
+    bgcolor: "#000000"
+    font_color: "#FFFFFF"
+    text: "E N D E D"
+  canceled:
+    use: True
+    bgcolor: "#CF142B"
+    font_color: "#FFFFFF"
+    text: "C A N C E L E D"
+''')
+    writeSettings.close()
+    print("Settings file created. Please configure preferences/settings.yml and rerun PATTRMM.")
+    exit()
+if os.path.isfile(settings) == True:
+    print("Settings file present.")
 
 
 # Main variables file
@@ -33,12 +131,24 @@ import xml.etree.ElementTree as ET
 import requests
 import json
 import re
+import os
+library = ""
+
+is_docker = os.environ.get('PATTRMM_DOCKER', "False")
+
+if is_docker == "True":
+    configPathPrefix = "./config/"
+    
+
+if is_docker == "False":
+    configPathPrefix = "../"
+
 import logging
-log_file = "logs/pattrmm.log"
+log_file = "data/logs/pattrmm.log"
 logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
 
-config_path = '../config.yml'
+config_path = configPathPrefix + 'config.yml'
 settings_path = 'preferences/settings.yml'
 
 class Plex:
@@ -376,60 +486,36 @@ def plexGet(identifier):
                 key = directory.get('key')
                 title = directory.get('title')
         return key
-'''
-        )
-    writeVars.close()
-else:
-    print("Vars module found.")
+''')
+
+
+# Check if this is a Docker Build to format PMM config folder directory
+is_docker = os.environ.get('PATTRMM_DOCKER', "False")
+
+if is_docker == "True":
+    configPathPrefix = "./config/"
+
+if is_docker == "False":
+    configPathPrefix = "../"
 
 # Plex Meta Manager config file path
-config_path = '../config.yml'
+config_path = configPathPrefix + 'config.yml'
 # overlay folder path
-overlay_path = '../overlays'
-# data folder for created files
-data = "data"
-# logs folder
-
-log_path = "logs"
-
-# If Logs folder doesn't exist, create it
-
-isLogs = os.path.exists(log_path)
-if not isLogs:
-    print("Creating logs folder...")
-    os.makedirs(log_path)
-else:
-    print("Logs folder present...")
-
-log_file = "logs/pattrmm.log"
-isLogFile = os.path.exists(log_file)
-if not isLogFile:
-    print("Creating log file..")
-    writeLogs = open(log_file, "x")
-    writeLogs.close()
-
-logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+overlay_path = configPathPrefix + 'overlays'
 
 
-# preferences folder
-pref = "preferences"
-# settings file for pattrmm
-settings = "preferences/settings.yml"
-# assign YAML variable
-yaml = YAML()
-yaml.preserve_quotes = True
 
 # Check if PMM config file can be found. If not, inform and exit.
 isConfig = os.path.exists(config_path)
 if not isConfig:
     print("Plex Meta Manager Config file could not be located.")
-    print("Please ensure PATTRMM is in a subfolder of the Plex Meta Manager config directory.")
-    exit()
+    print("Please ensure config directory is bound to the Plex Meta Manager config directory.")
+    sys.exit()
 else:
     print("PMM config file found.")
 
 
-
+# Import the vars module
 import vars
 from vars import Plex
 plex_method_url = vars.plexApi('url')
@@ -437,80 +523,14 @@ plex_method_token = vars.plexApi('token')
 tmdb_method_api_key = vars.tmdbApi('token')
 plex = Plex(plex_method_url, plex_method_token, tmdb_method_api_key)
 
-# If data folder doesn't exist, create it
-isData = os.path.exists(data)
-if not isData:
-    print("Creating data folder...")
-    os.makedirs(data)
-else:
-    print("data folder present...")
 
-
-
-# If overlay folder cannot be found, stop
+# If PMM overlay folder cannot be found, stop
 isOvPath = os.path.exists(overlay_path)
 if not isOvPath:
     print("Plex Meta Manager Overlay folder could not be located.")
     print("Please ensure PATTRMM is in a subfolder of the PMM config directory.")
     exit()
 
-# If preferences folder doesn't exist, create it
-isPref = os.path.exists(pref)
-if not isPref:
-    print("Creating preferences folder...")
-    os.makedirs(pref)
-else:
-    print("Preference folder present...")
-
-
-
-# If settings file doesn't exist, create it
-isSettings = os.path.exists(settings)
-if not isSettings:
-    print("Creating settings file..")
-    writeSettings = open(settings, "x")
-    writeSettings.write(
-        '''
-library_name:
-  - TV Shows                         # Plex Libraries to read from. Can enter multiple libraries.
-days_ahead: 30
-overlay_prefix: "RETURNING"          # Text to display before the dates.
-leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
-returning_soon_bgcolor: "#81007F"
-returning_soon_fontcolor: "#FFFFFF"
-extra_overlays:
-  new:
-    use: True
-    bgcolor: "#008001"
-    font_color: "#FFFFFF"
-    text: "N E W  S E R I E S"
-  airing:
-    use: True
-    bgcolor: "#343399"
-    font_color: "#FFFFFF"
-    text: "A I R I N G"
-  returning:
-    use: True
-    bgcolor: "#81007F"
-    font_color: "#FFFFFF"
-    text: "R E T U R N I N G"
-  ended:
-    use: True
-    bgcolor: "#000000"
-    font_color: "#FFFFFF"
-    text: "E N D E D"
-  canceled:
-    use: True
-    bgcolor: "#CF142B"
-    font_color: "#FFFFFF"
-    text: "C A N C E L E D"
-'''
-        )
-    writeSettings.close()
-    print("Settings file created. Please configure preferences/settings.yml and rerun PATTRMM.")
-    exit()
-else:
-    print("Settings file present.")
 
 #check for days_ahead assignment
 try:
@@ -520,37 +540,40 @@ try:
 except KeyError:
     days_ahead = 30
 
-# Start sequencing through defined Libraries
+##############################################
+# Start sequencing through defined Libraries #
 openSettings = open(settings, "r")
 loadSettings = yaml.load(openSettings)
 for library in loadSettings['library_name']:
     
 
     # keys file for ratingKey and tmdb pairs
-    keys = "data/" + library + "-keys.json"
+    keys = "./data/" + library + "-keys.json"
     keys = re.sub(" ", "-", keys)
 
     # cache file for tmdb details
-    cache = "data/" + library + "-tmdb-cache.json"
+    cache = "./data/" + library + "-tmdb-cache.json"
     cache = re.sub(" ", "-", cache)
     
     # returning-soon metadata file for collection
-    meta = "../" + library + "-returning-soon.yml"
+    meta = "./config/" + library + "-returning-soon.yml"
     meta = re.sub(" ", "-", meta)
     # generated overlay file path
-    rso = "../overlays/" + library + "-returning-soon-overlay.yml"
+    rso = "./config/overlays/" + library + "-returning-soon-overlay.yml"
     rso = re.sub(" ", "-", rso)
     # overlay template path
-    overlay_temp = "preferences/" + library + "-returning-soon-template.yml"
+    overlay_temp = "./preferences/" + library + "-returning-soon-template.yml"
     overlay_temp = re.sub(" ", "-", overlay_temp)
     
 
-    # Info display
+    # Just some information
     print("Checking folder structure for " + library + ".")
     logging.info('Checking folder structure for ' + library + '.')
 
     print("Checking " + library + " files...")
     logging.info("Checking " + library + " files...")
+
+
     # If keys file doesn't exist, create it
     isKeys = os.path.exists(keys)
     if not isKeys:
@@ -583,9 +606,6 @@ for library in loadSettings['library_name']:
         print(library + " cache file present.")
         logging.info(library + " cache file present.")
 
-
-
-
     # If returning-soon metadata file doesn't exist, create it
     isMeta = os.path.exists(meta)
     if not isMeta:
@@ -610,6 +630,7 @@ collections:
         print(library + " metadata file present.")
         logging.info(library + " metadata file present.")
 
+    
     # If overlay template doesn't exist, create it
     isTemplate = os.path.exists(overlay_temp)
     if not isTemplate:
@@ -644,6 +665,7 @@ templates:
         print(library + " template file found.")
         logging.info(library + " template file found.")
 
+    
     # If overlay file doesn't exist, create it
     isOverlay = os.path.exists(rso)
     if not isOverlay:
@@ -655,9 +677,6 @@ templates:
     else:
         print(library + " overlay file present.")
         logging.info(library + " overlay file present.")
-
-
-
 
     # declare date formats
     date_format = '%Y-%m-%d'
@@ -737,7 +756,7 @@ templates:
     titlesInPlex = get_count(series['MediaContainer']['Metadata'])
     count = 1
     for this in series['MediaContainer']['Metadata']:
-        print("\rAdding to list " + "(" + str(count) + "/" + get_count(series['MediaContainer']['Metadata']) + ")", end="")
+        
         try:
             Search.append(Plex_Item(this['title'],this['originallyAvailableAt'], this['ratingKey']))
         except KeyError:
@@ -746,13 +765,15 @@ templates:
             logging.warning("Caution " + this['title'] + " does not have an originally available at date. May not be able to match.")
             Search.append(Plex_Item(this['title'],"null", this['ratingKey']))
         count += 1
-        #time.sleep(.004)
-
+        
+    print("Found " + get_count(series['MediaContainer']['Metadata']) + " entries...")
 
     # search for tmdb id of each entry, will update to use stored keys to reduce unnecessary searches
     refreshSearch = Search
     Search = json.loads(dict_ToJson(Search))
 
+    
+    # No need to run a full lookup on subsequent runs
     if firstRun == False:
         keyFile = open(keys, "r")
         keyData = json.load(keyFile)
@@ -773,6 +794,8 @@ templates:
 
         updatedKeys = dict_ToJson(cleanedKeysList)
 
+
+        # Check for existing data for remaining Plex entries.
         rfSearch = 0
         newSearch = Search
         print("")
@@ -781,11 +804,13 @@ templates:
                 newSearch.remove(eachItem)
                 #print("Key data exists for " + eachItem['title'] + ". Removed from search list")
                 rfSearch += 1
-                print("\rFound existing data for " + str(rfSearch) + " titles. Removing from search list.", end="")
-                #time.sleep(.004)       
-        #time.sleep(2.5)
+                
+        # Output how many entries have existing data                   
+        print("Found existing data for " + str(rfSearch) + " titles. Removing from search list.")
         logging.info("Found existing data for " + str(rfSearch) + " titles. Removing from search list.")
         print("")
+
+        # Search for new and missing data
         for remainingItem in newSearch:
             print("No key entry found for " + remainingItem['title'] + ". Searching for details...")
             logging.info("No key entry found for " + remainingItem['title'] + ". Searching for details...")
@@ -806,7 +831,7 @@ templates:
 
 
 
-
+    # Start searching for missing data. Look for TMDB ID first.
     count = 1
     for query in Search:
         # display search progress
@@ -826,7 +851,7 @@ templates:
         # increment progress after a successful match 
         count += 1
     
-
+    # Get details using the TMDB IDs.
     for d in json.loads(dict_ToJson(key_pairs)):
 
         tmdbUrl = "https://api.themoviedb.org/3/tv/" + str(d['tmdb_id'])
@@ -839,14 +864,16 @@ templates:
 
         tmdb_request = requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams)
         
+        # If the page does not return successful
         if tmdb_request.status_code != 200:
-            print("There was a problem accessing the resouce for TMDB ID " + str(d['tmdb_id']))
+            print("There was a problem accessing the resource for TMDB ID " + str(d['tmdb_id']))
             if tmdb_request.status_code == 34:
                 print("This ID has been removed from TMDB, or is no longer accessible.")
                 print("Try refreshing the metadata for " + d['title'])
             
             continue
-            
+
+        # If the page returns successful, get details.    
         tmdb = json.loads(prettyJson(tmdb_request.json()))
 
         print("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
@@ -925,10 +952,18 @@ templates:
                 tmdbParams = {
                 "language": "en-US", "api_key": vars.tmdbApi('token')
                 }
-        
-                tmdb = json.loads(prettyJson(requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams).json()))
 
-                print("\033[KRefreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )", end="\r")
+                tmdbSubRequest = requests.get(tmdbUrl,headers=tmdbHeaders, params=tmdbParams)
+                if tmdbSubRequest.status_code != 200:
+                    print("There was a problem accessing the resource for TMDB ID " + str(u['tmdb_id']))
+                if tmdbSubRequest.status_code == 34:
+                    print("This ID has been removed from TMDB, or is no longer accessible.")
+                    print("Try refreshing the metadata for " + u['title'])
+                    continue
+                
+                tmdb = json.loads(prettyJson(tmdbSubRequest.json()))
+
+                print("Refreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
 
                 if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
                     lastAir = tmdb['last_air_date']
