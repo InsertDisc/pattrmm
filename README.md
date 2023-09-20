@@ -33,7 +33,8 @@ Recent changes require updating your settings.yml (or deleting it) and deleting 
 
 Settings file changes are as such...
     
-    library_name:
-      - Your Library
-    days_ahead: 30 # Can be any number of days between 30 and 90 to be considered 'Returning Soon'
+    libraries:
+      Your Library:
+        refresh: 14 # Sets a full data refresh schedule
+        days_ahead: 30 # Can be any number of days between 30 and 90 to be considered 'Returning Soon'
 
