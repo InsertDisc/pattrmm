@@ -32,8 +32,12 @@ services:
       - ./pmm/config:/config
     restart: unless-stopped  
 ```
+If using the docker version, you can initialize the settings file with this command.
+```
+docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:latest --run
+```
 What now:
-    
+
     Add the ?-returning-soon.yml under the appropriate metadata section of the corresponding library you are having it scan.
     Add the overlays/?-returning-soon-overlay.yml under the appropriate overlay section of the same library.
 
