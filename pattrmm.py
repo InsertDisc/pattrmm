@@ -6,6 +6,7 @@ start_time = time.time()
 from datetime import date
 from datetime import timedelta
 from datetime import datetime
+today = date.today()
 import platform
 import json
 import re
@@ -34,6 +35,12 @@ if not isData:
     os.makedirs(data)
 else:
     print("Data folder present...")
+
+# history folder for timestamps
+statsDir = "./data/history"
+isStatsDir = os.path.exists(statsDir)
+if not isStatsDir:
+    os.makedirs(statsDir)
 
 
 # logs folder
@@ -75,9 +82,10 @@ if os.path.isfile(settings) == False:
     writeSettings = open(settings, "x")
     writeSettings.write(
         '''
-library_name:
-  - TV Shows                         # Plex Libraries to read from. Can enter multiple libraries.
-days_ahead: 30
+libraries:
+  TV Shows:                          # Plex Libraries to read from. Can enter multiple libraries.
+    status_refresh: 30               # Full-refresh delay for library          
+    days_ahead: 30                   # How far ahead to consider 'Returning Soon'
 overlay_prefix: "RETURNING"          # Text to display before the dates.
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
 returning_soon_bgcolor: "#81007F"
@@ -131,6 +139,8 @@ import xml.etree.ElementTree as ET
 import requests
 import json
 import re
+import datetime
+today = datetime.datetime.today()
 import os
 library = ""
 
@@ -374,25 +384,63 @@ if __name__ == "__main__":
     if plex_url and plex_token and tmdb_api_key:
         plex = Plex(plex_url, plex_token, tmdb_api_key)
 
+def history(library, stat):
+        stats = "./data/history/" + library + "-history.json"
+        stats = re.sub(" ", "-", stats)
+        statsFile = open(stats, "r")
+        try:
+            statsData = json.load(statsFile)
+            statsFile.close()
+            if stat == "lastFull":
+                lastRefresh = statsData['lastRefresh']
+        except:
+            lastRefresh = today
+        return lastRefresh
+
+def librarySetting(library, value):
+
+        yaml = YAML()
+        settings = settings_path
+        with open(settings) as sf:
+            pref = yaml.load(sf)
+            if value == 'refresh':
+                try:
+                    entry = pref['libraries'][library]['refresh']
+                except KeyError:
+                    entry = 15
+            if value == 'days':
+                try:
+                    entry = pref['libraries'][library]['days_ahead']
+                    if entry > 90:
+                        entry = 90
+                except:
+                    entry = 30
+        return entry
+
 def setting(value):
         yaml = YAML()
         settings = settings_path
         with open(settings) as sf:
             pref = yaml.load(sf)
-            if value == 'library':
-                entry = pref['library_name']
-            if value == 'days':
-                 entry = pref['days_ahead']
+        
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
             if value == 'rsfont_color':
                 entry = pref['returning_soon_fontcolor']
             if value == 'prefix':
                 entry = pref['overlay_prefix']
+            if value == 'dateStyle':
+                entry = pref['date_style']
             if value == 'zeros':
-                entry = pref['leading_zeros']
+                try:
+                    entry = pref['leading_zeros']
+                except:
+                    entry = True
             if value == 'ovNew':
-                 entry = pref['extra_overlays']['new']['use']
+                try:
+                    entry = pref['extra_overlays']['new']['use']
+                except:
+                    entry = False
             if value == 'ovNewColor':
                  entry = pref['extra_overlays']['new']['bgcolor']
             if value == 'ovNewFontColor':
@@ -400,7 +448,10 @@ def setting(value):
             if value == 'ovNewText':
                  entry = pref['extra_overlays']['new']['text']
             if value == 'ovReturning':
-                 entry = pref['extra_overlays']['returning']['use']
+                try:
+                    entry = pref['extra_overlays']['returning']['use']
+                except:
+                    entry = False
             if value == 'ovReturningColor':
                  entry = pref['extra_overlays']['returning']['bgcolor']
             if value == 'ovReturningFontColor':
@@ -408,7 +459,10 @@ def setting(value):
             if value == 'ovReturningText':
                  entry = pref['extra_overlays']['returning']['text']
             if value == 'ovAiring':
-                 entry = pref['extra_overlays']['airing']['use']
+                try:
+                    entry = pref['extra_overlays']['airing']['use']
+                except:
+                    entry = False
             if value == 'ovAiringColor':
                  entry = pref['extra_overlays']['airing']['bgcolor']
             if value == 'ovAiringFontColor':
@@ -416,7 +470,10 @@ def setting(value):
             if value == 'ovAiringText':
                  entry = pref['extra_overlays']['airing']['text']
             if value == 'ovEnded':
-                 entry = pref['extra_overlays']['ended']['use']
+                try:
+                    entry = pref['extra_overlays']['ended']['use']
+                except:
+                    entry = False
             if value == 'ovEndedColor':
                  entry = pref['extra_overlays']['ended']['bgcolor']
             if value == 'ovEndedFontColor':
@@ -424,7 +481,10 @@ def setting(value):
             if value == 'ovEndedText':
                  entry = pref['extra_overlays']['ended']['text']
             if value == 'ovCanceled':
-                 entry = pref['extra_overlays']['canceled']['use']
+                try:
+                    entry = pref['extra_overlays']['canceled']['use']
+                except:
+                    entry = False
             if value == 'ovCanceledColor':
                  entry = pref['extra_overlays']['canceled']['bgcolor']
             if value == 'ovCanceledFontColor':
@@ -532,20 +592,44 @@ if not isOvPath:
     exit()
 
 
-#check for days_ahead assignment
-try:
-    days_ahead = vars.setting('days')
-    if days_ahead > 90:
-        days_ahead = 90
-except KeyError:
-    days_ahead = 30
+
+
 
 ##############################################
 # Start sequencing through defined Libraries #
 openSettings = open(settings, "r")
 loadSettings = yaml.load(openSettings)
-for library in loadSettings['library_name']:
+for library in loadSettings['libraries']:
     
+    # check for days_ahead assignment
+    days_ahead = vars.librarySetting(library, 'days')
+
+    # Set stats file
+    stats = "./data/history/" + library + "-history.json"
+    stats = re.sub(" ", "-", stats)
+    isStats = os.path.exists(stats)
+    if not isStats:
+        writeStats = open(stats, "x")
+        writeStats.write(f'''
+{{
+    "lastRefresh": "{today}"
+}}''')
+        writeStats.close()
+
+    statsFile = open(stats, "r")
+    statsData = json.load(statsFile)
+    statsFile.close()
+
+
+    # Check for last run of this library
+    refreshDays = vars.librarySetting(library, 'refresh')
+    refreshHist = vars.history(library, 'lastFull')
+    refreshHist = datetime.strptime(refreshHist, "%Y-%m-%d")
+    delay = refreshHist + timedelta(days=refreshDays)
+    if today >= delay.date():
+        refresh = True
+    if today < delay.date():    
+        refresh = False
 
     # keys file for ratingKey and tmdb pairs
     keys = "./data/" + library + "-keys.json"
@@ -592,7 +676,15 @@ for library in loadSettings['library_name']:
             print(library + " keys file is empty. Initiating first run.")
             logging.info(library + " keys file is empty. Initiating first run.")
         if os.stat(keys).st_size != 0:
-            firstRun = False
+
+            ## Has the refresh status delay passed for this library ##
+            if refresh == False:
+                print("Keys data refresh delay for " + library + " not yet met.")
+                logging.info("Keys data refresh delay for " + library + " not yet met. Skipping status renewal.")
+                firstRun = False
+            if refresh == True:
+                firstRun = True
+                print("Keys data has expired. Rebuilding...")
 
     # If cache file doesn't exist, create it
     isCache = os.path.exists(cache)
@@ -997,6 +1089,30 @@ templates:
         updatedwriteKeys.write(updated_key_string)
         updatedwriteKeys.close()
 
+    # update history timestamp
+    if refresh == True:
+        try:
+            # Read the JSON file
+            with open(stats, 'r') as sh:
+                statsData = json.load(sh)
+
+            # Update the 'lastRefresh' field with the current date
+            now = date.today().strftime("%Y-%m-%d")
+            statsData['lastRefresh'] = now
+
+            # Write the updated data back to the JSON file
+            with open(stats, 'w') as sh:
+                json.dump(statsData, sh, indent=4)
+
+            print("Timestamp updated successfully.")
+
+        except Exception as e:
+            print(f"An error occurred updating the timestamp: {str(e)}")
+
+
+
+    
+
 
     listResults = prettyJson(sortedList(json.loads(dict_ToJson(tmdb_details)), 'nextAir'))
 
@@ -1023,20 +1139,40 @@ templates:
     # Generate Overlay body
     # define date ranges
     dayCounter = 1
-    today = date.today()
     lastAirDate = date.today() - timedelta(days=45)
     last_episode_aired = lastAirDate.strftime("%m/%d/%Y")
     nextAirDate = date.today() + timedelta(days=int(days_ahead))
     thisDayTemp = date.today() + timedelta(days=int(dayCounter))
     thisDay = thisDayTemp.strftime("%m/%d/%Y")
-    thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
+    
+    try:
+        dateStyle = vars.setting('dateStyle')
+    except:
+        dateStyle = 1
+    if dateStyle == 1:
+        thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
+    if dateStyle == 2:
+        thisDayDisplay = thisDayTemp.strftime("%d/%m/%Y")
+
     if vars.setting('zeros') == True or vars.setting('zeros') != False:
-        thisDayDisplayText = thisDayTemp.strftime("%m/%d")
+        if dateStyle == 1:
+            thisDayDisplayText = thisDayTemp.strftime("%m/%d")
+        if dateStyle == 2:
+            thisDayDisplayText = thisDayTemp.strftime("%d/%m")
+    
     if vars.setting('zeros') == False:
         if platform.system() == "Windows":
-            thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
+            if dateStyle == 1:
+                thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
+            if dateStyle == 2:
+                thisDayDisplayText = thisDayTemp.strftime("%#d/%m")
+
         if platform.system() == "Linux" or platform.system() == "Darwin":
-            thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
+            if dateStyle == 1:
+                thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
+            if dateStyle == 2:
+                thisDayDisplayText = thisDayTemp.strftime("%-d/%m")
+
     prefix = vars.setting('prefix')
 
     print("Generating " + library + " overlay body.")
