@@ -16,7 +16,7 @@ For stand-alone setup:
     preferences/*-returning-soon-template.yml files. Run the script again after you make your changes to initiate a full cycle.
 
 Docker Compose:
-
+```
 services:
   pattrmm:
     image: ghcr.io/insertdisc/pattrmm:latest
@@ -31,7 +31,7 @@ services:
       - ./pattrmm/preferences:/preferences
       - ./pmm/config:/config
     restart: unless-stopped  
-
+```
 What now:
     
     Add the ?-returning-soon.yml under the appropriate metadata section of the corresponding library you are having it scan.
