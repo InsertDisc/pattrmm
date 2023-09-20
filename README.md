@@ -8,12 +8,29 @@ Requirements:
     The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed.
     If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
 
-Installation/Use:
+For stand-alone setup:
     
     Just drop pattrymm.py in a subfolder of your Plex Meta Manager config folder and run it. A settings file will be created in
     the new preferences folder. The script will stop so you can fill in the appropriate settings in preferences/settings.yml.
     You can modify the appearance of the generated overlays file using the
     preferences/*-returning-soon-template.yml files. Run the script again after you make your changes to initiate a full cycle.
+
+Docker Compose:
+
+services:
+  pattrmm:
+    image: ghcr.io/insertdisc/pattrmm:latest
+    container_name: pattrmm
+    environment:
+      - PUID=1000
+      - GUID=1000
+      - TZ=America/New_York
+      - PATTRMM_TIME=02:00
+    volumes:
+      - ./pattrmm/data:/data
+      - ./pattrmm/preferences:/preferences
+      - ./pmm/config:/config
+    restart: unless-stopped  
 
 What now:
     
@@ -27,6 +44,8 @@ When to run:
     updated upon following runs. Any series that loses it's 'Returning Series' status will be updated accordingly and removed
     from further searches. This greatly speeds up the process of daily executions.
 
+    Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
+
 Update notes:
 
 Recent changes require updating your settings.yml (or deleting it) and deleting your vars.py file.
@@ -37,4 +56,5 @@ Settings file changes are as such...
       Your Library:
         refresh: 14 # Sets a full data refresh schedule
         days_ahead: 30 # Can be any number of days between 30 and 90 to be considered 'Returning Soon'
+    date_style: 1  # 1 or 2 This is a new setting, sets overlay text date to either mm/dd or dd/mm
 
