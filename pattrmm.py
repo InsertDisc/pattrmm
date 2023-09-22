@@ -87,7 +87,6 @@ libraries:
     status_refresh: 30               # Full-refresh delay for library          
     days_ahead: 30                   # How far ahead to consider 'Returning Soon'
 overlay_prefix: "RETURNING"          # Text to display before the dates.
-date_style: 1                        # 1 for mm/dd 2 for dd/mm
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
 returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
@@ -1347,15 +1346,39 @@ overlays:
         dayCounter += 1
         thisDayTemp = date.today() + timedelta(days=int(dayCounter))
         thisDay = thisDayTemp.strftime("%m/%d/%Y")
-        thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
+
+        if dateStyle == 1:
+            thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
+        if dateStyle == 2:
+            thisDayDisplay = thisDayTemp.strftime("%d/%m/%Y")
+
+        
         if vars.setting('zeros') == True or vars.setting('zeros') != False:
-            thisDayDisplayText = thisDayTemp.strftime("%m/%d")
+            if dateStyle == 1:
+                thisDayDisplayText = thisDayTemp.strftime("%m/%d")
+            if dateStyle == 2:
+                thisDayDisplayText = thisDayTemp.strftime("%d/%m")
+
+
+
         if vars.setting('zeros') == False:
             if platform.system() == "Windows":
-                thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
+                if dateStyle == 1:
+                    thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
+                if dateStyle == 2:
+                    thisDayDisplayText = thisDayTemp.strftime("%#d/%m")
+
             if platform.system() == "Linux" or platform.system() == "Darwin":
-                thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
+                if dateStyle == 1:
+                    thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
+                if dateStyle == 2:
+                    thisDayDisplayText = thisDayTemp.strftime("%-d/%m")
+        
+        
         overlay_base = overlay_base + overlay_gen
+            
+
+
     
     print(library + " overlay body generated. Writing to file.")
     logging.info(library + " overlay body generated. Writing to file.")
