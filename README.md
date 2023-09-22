@@ -3,7 +3,7 @@ PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that au
 
 Requirements:
     
-    Trakt MUST be setup in your PMM installation to post 'returning soon' series to.
+    If using stand alone version, Trakt MUST be setup in your PMM installation to post 'returning soon' series to.
     This is also what the *-returning-soon.yml will pull from.
     The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed.
     If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
