@@ -640,10 +640,10 @@ for library in loadSettings['libraries']:
     cache = re.sub(" ", "-", cache)
     
     # returning-soon metadata file for collection
-    meta = "./config/" + library + "-returning-soon.yml"
+    meta = configPathPrefix + library + "-returning-soon.yml"
     meta = re.sub(" ", "-", meta)
     # generated overlay file path
-    rso = "./config/overlays/" + library + "-returning-soon-overlay.yml"
+    rso = configPathPrefix + "overlays/" + library + "-returning-soon-overlay.yml"
     rso = re.sub(" ", "-", rso)
     # overlay template path
     overlay_temp = "./preferences/" + library + "-returning-soon-template.yml"
