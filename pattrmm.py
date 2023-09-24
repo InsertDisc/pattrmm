@@ -386,7 +386,7 @@ if __name__ == "__main__":
 
 def history(library, stat):
         stats = "./data/history/" + library + "-history.json"
-        stats = re.sub(" ", "-", stats)
+        stats = re.sub(r'[^\w]+', '-', stats)
         statsFile = open(stats, "r")
         try:
             statsData = json.load(statsFile)
@@ -606,7 +606,7 @@ for library in loadSettings['libraries']:
 
     # Set stats file
     stats = "./data/history/" + library + "-history.json"
-    stats = re.sub(" ", "-", stats)
+    stats = re.sub(r'[^\w]+', '-', stats)
     isStats = os.path.exists(stats)
     if not isStats:
         writeStats = open(stats, "x")
@@ -633,21 +633,21 @@ for library in loadSettings['libraries']:
 
     # keys file for ratingKey and tmdb pairs
     keys = "./data/" + library + "-keys.json"
-    keys = re.sub(" ", "-", keys)
+    keys = re.sub(r'[^\w]+', '-', keys)
 
     # cache file for tmdb details
     cache = "./data/" + library + "-tmdb-cache.json"
-    cache = re.sub(" ", "-", cache)
+    cache = re.sub(r'[^\w]+', '-', cache)
     
     # returning-soon metadata file for collection
     meta = configPathPrefix + library + "-returning-soon.yml"
-    meta = re.sub(" ", "-", meta)
+    meta = re.sub(r'[^\w]+', '-', meta)
     # generated overlay file path
     rso = configPathPrefix + "overlays/" + library + "-returning-soon-overlay.yml"
-    rso = re.sub(" ", "-", rso)
+    rso = re.sub(r'[^\w]+', '-', rso)
     # overlay template path
     overlay_temp = "./preferences/" + library + "-returning-soon-template.yml"
-    overlay_temp = re.sub(" ", "-", overlay_temp)
+    overlay_temp = re.sub(r'[^\w]+', '-', overlay_temp)
     
 
     # Just some information
@@ -705,7 +705,7 @@ for library in loadSettings['libraries']:
         logging.info("Creating " + library + " metadata collection file..")
         writeMeta = open(meta, "x")
         me = vars.traktApi('me')
-        slug = re.sub(" ", "-", library)
+        slug = re.sub(r'[^\w]+', '-', library)
         writeMeta.write(
             f'''
 collections:
@@ -1420,7 +1420,7 @@ overlays:
                     'trakt-api-version': '2',
                     'trakt-api-key': '' + traktapi + ''
                     }
-    slug = re.sub(" ", "-", library)
+    slug = re.sub(r'[^\w]+', '-', library)
     traktListUrl = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
     traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + ""
     traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + "/items"
