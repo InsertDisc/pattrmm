@@ -1059,6 +1059,8 @@ templates:
                 tmdbSubRequest = requests.get(tmdbUrl,headers=tmdbHeaders, params=tmdbParams)
                 if tmdbSubRequest.status_code != 200:
                     print("There was a problem accessing the resource for TMDB ID " + str(u['tmdb_id']))
+                    print(u['title'] + '( ' + str(u['tmdb_id']) + ' ) may have been removed.')
+                    continue
                 if tmdbSubRequest.status_code == 34:
                     print("This ID has been removed from TMDB, or is no longer accessible.")
                     print("Try refreshing the metadata for " + u['title'])
