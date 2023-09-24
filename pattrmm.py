@@ -172,8 +172,13 @@ class Plex:
     def show(self):
         self.context = 'show'
         return self  # Return self to allow method chaining
+    
+    @property
+    def movie(self):
+        self.context = 'movie'
+        return self  # Return self to allow method chaining
 
-    def id(self, show_name):
+    def id(self, name):
         if self.context == 'show':
             try:
                 # Replace with the correct section ID and library URL
@@ -186,13 +191,20 @@ class Plex:
                 if response.status_code == 200:
                     data = response.json()
                     for item in data['MediaContainer']['Metadata']:
-                        if item['type'] == 'show' and item['title'] == show_name:
-                            return f"ID for show '{show_name}': {item['ratingKey']}"
-                    return f"Show '{show_name}' not found"
+                        if item['type'] == 'show' and item['title'] == name:
+                            return f"ID for show '{name}': {item['ratingKey']}"
+                    return f"Show '{name}' not found"
                 else:
                     return f"Error: {response.status_code} - {response.text}"
             except Exception as e:
                 return f"Error: {str(e)}"
+            
+        if self.context == 'movie':
+            try:
+                num = 1 + 1 # get movie id here
+
+            except Exception as e:
+                return f"Error: {str(e)}"    
 
     def tmdb_id(self, rating_key):
         # Attempt to retrieve TMDB ID from Plex
@@ -384,9 +396,8 @@ if __name__ == "__main__":
     if plex_url and plex_token and tmdb_api_key:
         plex = Plex(plex_url, plex_token, tmdb_api_key)
 
-def history(library, stat):
-        stats = "./data/history/" + library + "-history.json"
-        stats = re.sub(r'[^\w]+', '-', stats)
+def history(libraryCleanPath, stat):
+        stats = "./data/history/" + libraryCleanPath + "-history.json"
         statsFile = open(stats, "r")
         try:
             statsData = json.load(statsFile)
@@ -546,6 +557,10 @@ def plexGet(identifier):
                 key = directory.get('key')
                 title = directory.get('title')
         return key
+
+def cleanPath(string):
+        cleanedPath = re.sub(r'[^\w]+', '-', string)
+        return cleanedPath
 ''')
 
 
@@ -600,13 +615,14 @@ if not isOvPath:
 openSettings = open(settings, "r")
 loadSettings = yaml.load(openSettings)
 for library in loadSettings['libraries']:
+
+    libraryCleanPath = vars.cleanPath(library)
     
     # check for days_ahead assignment
     days_ahead = vars.librarySetting(library, 'days')
 
     # Set stats file
-    stats = "./data/history/" + library + "-history.json"
-    stats = re.sub(r'[^\w]+', '-', stats)
+    stats = "./data/history/" + libraryCleanPath + "-history.json"
     isStats = os.path.exists(stats)
     if not isStats:
         writeStats = open(stats, "x")
@@ -623,7 +639,7 @@ for library in loadSettings['libraries']:
 
     # Check for last run of this library
     refreshDays = vars.librarySetting(library, 'refresh')
-    refreshHist = vars.history(library, 'lastFull')
+    refreshHist = vars.history(libraryCleanPath, 'lastFull')
     refreshHist = datetime.strptime(refreshHist, "%Y-%m-%d")
     delay = refreshHist + timedelta(days=refreshDays)
     if today >= delay.date():
@@ -632,22 +648,17 @@ for library in loadSettings['libraries']:
         refresh = False
 
     # keys file for ratingKey and tmdb pairs
-    keys = "./data/" + library + "-keys.json"
-    keys = re.sub(r'[^\w]+', '-', keys)
+    keys = "./data/" + libraryCleanPath + "-keys.json"
 
     # cache file for tmdb details
-    cache = "./data/" + library + "-tmdb-cache.json"
-    cache = re.sub(r'[^\w]+', '-', cache)
+    cache = "./data/" + libraryCleanPath + "-tmdb-cache.json"
     
     # returning-soon metadata file for collection
-    meta = configPathPrefix + library + "-returning-soon.yml"
-    meta = re.sub(r'[^\w]+', '-', meta)
+    meta = configPathPrefix + libraryCleanPath + "-returning-soon.yml"
     # generated overlay file path
-    rso = configPathPrefix + "overlays/" + library + "-returning-soon-overlay.yml"
-    rso = re.sub(r'[^\w]+', '-', rso)
+    rso = configPathPrefix + "overlays/" + libraryCleanPath + "-returning-soon-overlay.yml"
     # overlay template path
-    overlay_temp = "./preferences/" + library + "-returning-soon-template.yml"
-    overlay_temp = re.sub(r'[^\w]+', '-', overlay_temp)
+    overlay_temp = "./preferences/" + libraryCleanPath + "-returning-soon-template.yml"
     
 
     # Just some information
@@ -705,7 +716,7 @@ for library in loadSettings['libraries']:
         logging.info("Creating " + library + " metadata collection file..")
         writeMeta = open(meta, "x")
         me = vars.traktApi('me')
-        slug = re.sub(r'[^\w]+', '-', library)
+        slug = libraryCleanPath
         writeMeta.write(
             f'''
 collections:
@@ -1420,7 +1431,7 @@ overlays:
                     'trakt-api-version': '2',
                     'trakt-api-key': '' + traktapi + ''
                     }
-    slug = re.sub(r'[^\w]+', '-', library)
+    slug = libraryCleanPath
     traktListUrl = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
     traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + ""
     traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + "/items"
