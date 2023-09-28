@@ -10,7 +10,7 @@ Requirements:
 
 For stand-alone setup:
     
-    Just drop pattrymm.py in a subfolder of your Plex Meta Manager config folder and run it. A settings file will be created in
+    Just drop pattrymm.py in a subfolder of your Plex Meta Manager config folder (i.e. Plex-meta-manager/config/pattrmm/pattrmm.py) and run it. A settings file will be created in
     the newly created preferences folder. The script will stop so you can fill in the appropriate settings in preferences/settings.yml.
     You can modify the appearance of the generated overlays file using the
     preferences/*-returning-soon-template.yml files. Run the script again after you make your changes to initiate a full cycle.
