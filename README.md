@@ -11,7 +11,7 @@ Requirements:
 For stand-alone setup:
     
     Just drop pattrymm.py in a subfolder of your Plex Meta Manager config folder and run it. A settings file will be created in
-    the new preferences folder. The script will stop so you can fill in the appropriate settings in preferences/settings.yml.
+    the newly created preferences folder. The script will stop so you can fill in the appropriate settings in preferences/settings.yml.
     You can modify the appearance of the generated overlays file using the
     preferences/*-returning-soon-template.yml files. Run the script again after you make your changes to initiate a full cycle.
 
@@ -43,7 +43,7 @@ What now:
 
 When to run:
     
-    I've tried my best to optimize how PATTRMM runs, meaning, you can run it on a daily basis. After the initial full cycle,
+    I've tried my best to optimize how PATTRMM runs, meaning, you can run it on a daily basis using whatever scheduling service your OS utilizes. After the initial full cycle,
     only new entries in Plex will get detailed searches. Any series that are not considered a returning series will not be
     updated upon following runs. Any series that loses it's 'Returning Series' status will be updated accordingly and removed
     from further searches. This greatly speeds up the process of daily executions.
