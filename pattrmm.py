@@ -384,7 +384,7 @@ class Plex:
 
 def read_config():
     config_file = config_path
-    with open(config_file, "r") as yaml_file:
+    with open(config_file, 'rb') as yaml_file:
         config = yaml.load(yaml_file)
         plex_url = config['plex']['url']
         plex_token = config['plex']['token']
@@ -507,7 +507,7 @@ def setting(value):
 def traktApi(type):
         yaml = YAML()
         config = config_path
-        with open(config) as fp:
+        with open(config, 'rb') as fp:
             trakt = yaml.load(fp)
             if type == 'token':
                 key = trakt['trakt']['authorization']['access_token']
@@ -530,7 +530,7 @@ def traktApi(type):
 def tmdbApi(var):
         yaml = YAML()
         config = config_path
-        with open(config) as fp:
+        with open(config, 'rb') as fp:
             tmdb = yaml.load(fp)
             if var == 'token':
                 key = tmdb['tmdb']['apikey']
@@ -539,7 +539,7 @@ def tmdbApi(var):
 def plexApi(vix):
         yaml = YAML()
         config = config_path
-        with open(config) as fp:
+        with open(config, 'rb') as fp:
             plex = yaml.load(fp)
             if vix == 'url':
                 key = plex['plex']['url']
