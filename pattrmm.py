@@ -84,9 +84,10 @@ if os.path.isfile(settings) == False:
         '''
 libraries:
   TV Shows:                          # Plex Libraries to read from. Can enter multiple libraries.
-    status_refresh: 30               # Full-refresh delay for library          
+    refresh: 30               # Full-refresh delay for library          
     days_ahead: 30                   # How far ahead to consider 'Returning Soon'
 overlay_prefix: "RETURNING"          # Text to display before the dates.
+date_style: 1                        # 1 for mm/dd, 2 for dd/mm
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
 returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
