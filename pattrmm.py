@@ -1440,29 +1440,50 @@ templates:
         dateStyle = vars.setting('dateStyle')
     except:
         dateStyle = 1
-    if dateStyle == 1:
-        thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
-    if dateStyle == 2:
-        thisDayDisplay = thisDayTemp.strftime("%d/%m/%Y")
 
-    if vars.setting('zeros') == True or vars.setting('zeros') != False:
-        if dateStyle == 1:
-            thisDayDisplayText = thisDayTemp.strftime("%m/%d")
-        if dateStyle == 2:
-            thisDayDisplayText = thisDayTemp.strftime("%d/%m")
+    try:
+        delimiter = vars.setting('delimiter')
+        allowedDelimiterTypes = ['/', '-', '.', '_']  # - . should not be in yaml key
+        if delimiter not in allowedDelimiterTypes:
+            delimiter = "/"
+    except:
+        delimiter = "/"
+
     
+    if vars.setting('zeros') == True or vars.setting('zeros') != False:
+        dayFormatCode = "%d"
+        monthFormatCode = "%m"
+        
     if vars.setting('zeros') == False:
         if platform.system() == "Windows":
-            if dateStyle == 1:
-                thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
-            if dateStyle == 2:
-                thisDayDisplayText = thisDayTemp.strftime("%#d/%m")
-
+            monthFormatCode = "%#m"
+            dayFormatCode = "%#d"
+            
         if platform.system() == "Linux" or platform.system() == "Darwin":
-            if dateStyle == 1:
-                thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
-            if dateStyle == 2:
-                thisDayDisplayText = thisDayTemp.strftime("%-d/%m")
+            monthFormatCode = "%-m"
+            dayFormatCode = "%-d"
+
+    if dateStyle == 1:
+        monthDayFormat = "%m/%d"
+        monthDayFormatText = monthFormatCode + delimiter + dayFormatCode
+        
+    if dateStyle == 2:
+        monthDayFormat = "%d/%m"
+        monthDayFormatText = dayFormatCode + delimiter + monthFormatCode
+        
+
+    if vars.setting('year') == True or vars.setting('year') != False:
+        yearFormatCode = "%Y"
+        dateFormat = monthDayFormat + "/" + yearFormatCode
+        dateFormatText = monthDayFormatText + delimiter + yearFormatCode
+        
+    if vars.setting('year') == False:
+        dateFormat = monthDayFormat + "/" + yearFormatCode
+        dateFormatText = monthDayFormatText
+    
+    thisDayDisplay = thisDayTemp.strftime(dateFormat)
+    thisDayDisplayText = thisDayTemp.strftime(dateFormatText)
+            
 
     prefix = vars.setting('prefix')
 
@@ -1638,32 +1659,8 @@ overlays:
         thisDayTemp = date.today() + timedelta(days=int(dayCounter))
         thisDay = thisDayTemp.strftime("%m/%d/%Y")
 
-        if dateStyle == 1:
-            thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
-        if dateStyle == 2:
-            thisDayDisplay = thisDayTemp.strftime("%d/%m/%Y")
-
-        
-        if vars.setting('zeros') == True or vars.setting('zeros') != False:
-            if dateStyle == 1:
-                thisDayDisplayText = thisDayTemp.strftime("%m/%d")
-            if dateStyle == 2:
-                thisDayDisplayText = thisDayTemp.strftime("%d/%m")
-
-
-
-        if vars.setting('zeros') == False:
-            if platform.system() == "Windows":
-                if dateStyle == 1:
-                    thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
-                if dateStyle == 2:
-                    thisDayDisplayText = thisDayTemp.strftime("%#d/%m")
-
-            if platform.system() == "Linux" or platform.system() == "Darwin":
-                if dateStyle == 1:
-                    thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
-                if dateStyle == 2:
-                    thisDayDisplayText = thisDayTemp.strftime("%-d/%m")
+        thisDayDisplay = thisDayTemp.strftime(dateFormat)
+        thisDayDisplayText = thisDayTemp.strftime(dateFormatText)
         
         
         overlay_base = overlay_base + overlay_gen
