@@ -1,5 +1,6 @@
 from ruamel.yaml import YAML
 yaml = YAML()
+yaml.preserve_quotes = True
 import xml.etree.ElementTree as ET
 import requests
 import json
@@ -26,6 +27,115 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s -
 config_path = configPathPrefix + 'config.yml'
 settings_path = 'preferences/settings.yml'
 
+def date_within_range(item_date, start_date, end_date):
+    if (start_date.month, start_date.day) <= (end_date.month, end_date.day):
+        return (
+            (start_date.month, start_date.day) <= 
+            (item_date.month, item_date.day) <= 
+            (end_date.month, end_date.day)
+        )
+    else:
+        return (
+            (item_date.month, item_date.day) >= 
+            (start_date.month, start_date.day) 
+            or 
+            (item_date.month, item_date.day) <= 
+            (end_date.month, end_date.day)
+        )
+
+class LibraryList:
+    def __init__(self, title, date, ratingKey):
+        self.title = title
+        self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+        self.ratingKey = ratingKey
+
+class itemBase:
+    def __init__(self, title, date, details):
+        self.title = re.sub("\s\(.*?\)","", title)
+        self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+        self.details = details
+        
+
+class itemDetails:
+    def __init__(self, ratingKey, imdb, tmdb, tvdb):
+        self.ratingKey = ratingKey
+        self.imdb = imdb
+        self.tmdb = tmdb
+        self.tvdb = tvdb
+
+class Extensions:
+    def __init__(self, extension_library):
+        self.extension_library = extension_library
+
+    @property
+    def in_history(self):
+        self.context = 'in_history'
+        return self
+
+    def settings(self):
+        if self.context == 'in_history':
+            settings = settings_path
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            me = traktApi('me')
+            slug = cleanPath(self.extension_library)
+            self.slug = slug
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/in-history-{slug}"
+            try:
+                range = pref['libraries'][self.extension_library]['extensions']['in-history']['range']
+                range_lower = range.lower()
+                self.range = range_lower
+            except KeyError:
+                self.range = 'day'        
+            try:
+                self.save_folder = pref['libraries'][self.extension_library]['extensions']['in-history']['save_folder']
+            except KeyError:
+                self.save_folder = ''
+            try:
+                self.collection_title = pref['libraries'][self.extension_library]['extensions']['in-history']['collection_title']
+            except KeyError:
+                self.collection_title = 'This {{range}} in history'
+            if "{{range}}" in self.collection_title:
+                self.collection_title = self.collection_title.replace("{{range}}", self.range)
+            if "{{Range}}" in self.collection_title:
+                self.collection_title = self.collection_title.replace("{{Range}}", self.range.capitalize())
+            try:
+                self.starting = pref['libraries'][self.extension_library]['extensions']['in-history']['starting']
+            except KeyError:
+                self.starting = 0
+            try:
+                self.ending = pref['libraries'][self.extension_library]['extensions']['in-history']['ending']
+            except KeyError:
+                self.ending = today.year
+            try:
+                self.increment = pref['libraries'][self.extension_library]['extensions']['in-history']['increment']
+            except KeyError:
+                self.increment = 1
+            try:
+                try:
+                    options = {
+                    key: value
+                    for key, value in pref['libraries'][self.extension_library]['extensions']['in-history']['meta'].items()
+                        }
+                    if "sort_title" in options:
+                        options['sort_title'] = '"' + options['sort_title'] + '"'
+                except KeyError:
+                    options = {}
+                self.meta = {}
+                self.meta['collections'] = {}
+                self.meta['collections'][self.collection_title] = {}
+                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+                self.meta['collections'][self.collection_title]['visible_home'] = 'true'
+                self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
+                self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
+                self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
+                self.meta['collections'][self.collection_title].update(options)
+                
+            except Exception as e:
+                return f"Error: {str(e)}"
+        return self
+                
+
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
         self.plex_url = plex_url
@@ -34,16 +144,126 @@ class Plex:
         self.context = None
 
     @property
+    def library(self):
+        self.context = 'library'
+        return self  # Return self to allow method chaining
+    
+    @property
+    def collection(self):
+        self.context = 'collection'
+        return self  # Return self to allow method chaining
+    
+    @property
+    def item(self):
+        self.context = 'item'
+        return self  # Return self to allow method chaining
+
+    @property
     def show(self):
         self.context = 'show'
+        return self  # Return self to allow method chaining
+    
+    @property
+    def shows(self):
+        self.context = 'shows'
         return self  # Return self to allow method chaining
     
     @property
     def movie(self):
         self.context = 'movie'
         return self  # Return self to allow method chaining
+    
+    @property
+    def movies(self):
+        self.context = 'movies'
+        return self  # Return self to allow method chaining
+        
+    
+    def type(self, library):
+        library_details_url = f"{self.plex_url}/library/sections"
+        library_details_url = re.sub("0//", "0/", library_details_url)
+        headers = {"X-Plex-Token": self.plex_token,
+                "accept": "application/json"}
+        response = requests.get(library_details_url, headers=headers)
+        data = response.json()
+        for section in data['MediaContainer']['Directory']:
+            if section["title"] == library:
+                library_type = section["type"]
 
-    def id(self, name):
+        return library_type
+
+
+    
+    def info(self, ratingKey):
+        
+        if self.context == 'item':
+            movie_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
+            movie_details_url = re.sub("0//", "0/", movie_details_url)
+            headers = {"X-Plex-Token": self.plex_token,
+                "accept": "application/json"}
+            response = requests.get(movie_details_url, headers=headers)
+            if response.status_code == 200:
+                imdbID = "Null"
+                tmdbID = "Null"
+                tvdbID = "Null"
+                
+                data = response.json()
+                extendedDetails = response.json()
+                try:
+                    data = data['MediaContainer']['Metadata']
+                    for item in data:
+                        title = item.get('title')
+                        if item.get('originallyAvailableAt'):
+                            date = item.get('originallyAvailableAt')
+                        else:
+                            date = "Null"
+                        key = item.get('ratingKey')
+                except:
+                    None
+                try:
+                    dataDetails = extendedDetails['MediaContainer']['Metadata'][0]['Guid']
+                    for guid_item in dataDetails:
+                        guid_id = guid_item.get('id')
+                        if guid_id.startswith("tmdb://"):
+                            tmdbID = guid_item.get('id')[7:]
+                        if guid_id.startswith("imdb://"):
+                            imdbID = guid_item.get('id')[7:]
+                        if guid_id.startswith("tvdb://"):
+                            tvdbID = guid_item.get('id')[7:]
+                except KeyError:
+                    return itemBase(title=title, date=date, details=itemDetails(key, imdbID, tmdbID, tvdbID))
+                return itemBase(title=title, date=date, details=itemDetails(key, imdbID, tmdbID, tvdbID))
+                    
+    
+    def list(self, library):
+            try:
+                # Replace with the correct section ID and library URL
+                section_id = plexGet(library)  # Replace with the correct section ID
+                library_url = f"{self.plex_url}/library/sections/{section_id}/all"
+                library_url = re.sub("0//", "0/", library_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(library_url, headers=headers)
+                library_list = []
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data['MediaContainer']['Metadata']:
+                        try:
+                            check_if_has_date = item['originallyAvailableAt']
+
+                            library_list.append(LibraryList(title=item['title'],ratingKey=item['ratingKey'], date=item['originallyAvailableAt']))
+                        except KeyError:
+                            print(f"{item['title']} has no 'Originally Available At' date. Ommitting title.")
+                            continue
+                    return library_list
+                else:
+                    return f"Error: {response.status_code} - {response.text}"
+            except Exception as e:
+                return f"Error: {str(e)}"
+            
+
+    def id(self, name, library_id=None):
         if self.context == 'show':
             try:
                 # Replace with the correct section ID and library URL
@@ -69,7 +289,41 @@ class Plex:
                 num = 1 + 1 # get movie id here
 
             except Exception as e:
-                return f"Error: {str(e)}"    
+                return f"Error: {str(e)}"
+            
+        if self.context == 'collection':
+            try:
+                section_id = library_id
+                collection_name = name
+                collection_url = f"{self.plex_url}/library/sections/{section_id}/collections"
+                collection_url = re.sub("0//", "0/", collection_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(collection_url, headers=headers)
+                if response.status_code == 200:
+                    collections_data = response.json()
+                for collection in collections_data['MediaContainer']['Metadata']:
+                    if collection['title'] == collection_name:
+                        collection_id = collection['ratingKey']
+                return collection_id
+            except Exception as e:
+                return f"Error: {str(e)}"
+
+    def delete(self, key):
+        if self.context == 'collection':
+            try:
+                collection_id = key
+                collection_delete_url = f"{self.plex_url}/library/collections/{collection_id}"
+                collection_delete_url = re.sub("0//", "0/", collection_delete_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.delete(collection_delete_url, headers=headers)
+                if response.status_code == 200:
+                    return True
+                elif response.status_code != 200:
+                    return False
+            except Exception as e:
+                return f"Error: {str(e)}"
 
     def tmdb_id(self, rating_key):
         # Attempt to retrieve TMDB ID from Plex
@@ -279,6 +533,14 @@ def librarySetting(library, value):
         settings = settings_path
         with open(settings) as sf:
             pref = yaml.load(sf)
+            if value == 'returning-soon':
+                try:
+                    entry = pref['libraries'][library]['returning-soon']
+                except KeyError:
+                    entry = True
+                if entry not in (True, False):
+                    print(f"Invalid setting returning-soon: '{entry}' for {library}, defaulting to True")
+                    entry = True
             if value == 'refresh':
                 try:
                     entry = pref['libraries'][library]['refresh']
