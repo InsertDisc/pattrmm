@@ -82,6 +82,10 @@ class Extensions:
             self.slug = slug
             trakt_list_meta = f"https://trakt.tv/users/{me}/lists/in-history-{slug}"
             try:
+                self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['in-history']['trakt_list_privacy']
+            except KeyError:
+                self.trakt_list_privacy = 'private'
+            try:
                 range = pref['libraries'][self.extension_library]['extensions']['in-history']['range']
                 range_lower = range.lower()
                 self.range = range_lower
@@ -553,6 +557,19 @@ def librarySetting(library, value):
                         entry = 90
                 except:
                     entry = 30
+
+            if value == 'save_folder':
+                try:
+                    entry = pref['libraries'][library]['save_folder']
+                except KeyError:
+                    entry = ''
+
+            if value == 'trakt_list_privacy':
+                try:
+                    entry = pref['libraries'][library]['trakt_list_privacy']
+                except KeyError:
+                    entry = 'private'
+
         return entry
 
 def setting(value):
@@ -560,11 +577,36 @@ def setting(value):
         settings = settings_path
         with open(settings) as sf:
             pref = yaml.load(sf)
-        
+
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
             if value == 'rsfont_color':
                 entry = pref['returning_soon_fontcolor']
+
+            if value == 'rs_vertical_align':
+                try:
+                    entry = pref['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'rs_horizontal_align':
+                try:
+                    entry = pref['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'rs_horizontal_offset':
+                try:
+                    entry = pref['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'rs_vertical_offset':
+                try:
+                    entry = pref['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
             if value == 'prefix':
                 entry = pref['overlay_prefix']
             if value == 'dateStyle':
@@ -584,6 +626,55 @@ def setting(value):
                     entry = pref['year_in_dates']
                 except:
                     entry = False
+
+
+            if value == 'ovUpcoming':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['use']
+                except:
+                    entry = False
+            if value == 'ovUpcomingColor':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['bgcolor']
+                except KeyError:
+                    entry = "#fc4e03"
+            if value == 'ovUpcomingFontColor':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
+            if value == 'ovUpcomingText':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['text']
+                except KeyError:
+                    entry = "U P C O M I N G"
+
+            if value == 'ovUpcoming_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'ovUpcoming_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'ovUpcoming_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovUpcoming_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
             if value == 'ovNew':
                 try:
                     entry = pref['extra_overlays']['new']['use']
@@ -595,6 +686,35 @@ def setting(value):
                  entry = pref['extra_overlays']['new']['font_color']
             if value == 'ovNewText':
                  entry = pref['extra_overlays']['new']['text']
+
+            if value == 'ovNew_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['new']['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'ovNew_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['new']['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'ovNew_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['new']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovNew_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['new']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+                 
+            
             if value == 'ovReturning':
                 try:
                     entry = pref['extra_overlays']['returning']['use']
@@ -606,6 +726,34 @@ def setting(value):
                  entry = pref['extra_overlays']['returning']['font_color']
             if value == 'ovReturningText':
                  entry = pref['extra_overlays']['returning']['text']
+
+            if value == 'ovReturning_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['returning']['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'ovReturning_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['returning']['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'ovReturning_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['returning']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovReturning_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['returning']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+
             if value == 'ovAiring':
                 try:
                     entry = pref['extra_overlays']['airing']['use']
@@ -617,6 +765,34 @@ def setting(value):
                  entry = pref['extra_overlays']['airing']['font_color']
             if value == 'ovAiringText':
                  entry = pref['extra_overlays']['airing']['text']
+
+            if value == 'ovAiring_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['airing']['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'ovAiring_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['airing']['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'ovAiring_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['airing']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovAiring_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['airing']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+
             if value == 'ovEnded':
                 try:
                     entry = pref['extra_overlays']['ended']['use']
@@ -628,6 +804,34 @@ def setting(value):
                  entry = pref['extra_overlays']['ended']['font_color']
             if value == 'ovEndedText':
                  entry = pref['extra_overlays']['ended']['text']
+
+            if value == 'ovEnded_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['ended']['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'ovEnded_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['ended']['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'ovEnded_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['ended']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovEnded_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['ended']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+
             if value == 'ovCanceled':
                 try:
                     entry = pref['extra_overlays']['canceled']['use']
@@ -638,7 +842,32 @@ def setting(value):
             if value == 'ovCanceledFontColor':
                  entry = pref['extra_overlays']['canceled']['font_color']
             if value == 'ovCanceledText':
-                 entry = pref['extra_overlays']['canceled']['text']   
+                 entry = pref['extra_overlays']['canceled']['text']
+
+            if value == 'ovCanceled_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['canceled']['horizontal_align']
+                except KeyError:
+                    entry = 'Center'
+
+            if value == 'ovCanceled_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['canceled']['vertical_align']
+                except KeyError:
+                    entry = 'Top'
+
+            if value == 'ovCanceled_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['canceled']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovCanceled_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['canceled']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
         return entry
 
 def traktApi(type):
