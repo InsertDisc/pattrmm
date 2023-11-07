@@ -1480,7 +1480,7 @@ templates:
         dateFormatText = monthDayFormatText + delimiter + yearFormatCode
         
     if vars.setting('year') == False:
-        dateFormat = monthDayFormat + "/" + yearFormatCode
+        dateFormat = monthDayFormat + "/%Y"
         dateFormatText = monthDayFormatText
     
     thisDayDisplay = thisDayTemp.strftime(dateFormat)
