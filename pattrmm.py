@@ -1792,8 +1792,8 @@ overlays:
         upcoming_horizontal_offset = vars.setting('ovUpcoming_horizontal_offset')
         upcoming_vertical_offset = vars.setting('ovUpcoming_vertical_offset')
         ovUpcoming = f'''
-  # New
-  TV_Top_TextCenter_New:
+  # Upcoming
+  TV_Top_TextCenter_Upcoming:
     template:
       - name: TV_Top_TextCenter
         weight: 90
