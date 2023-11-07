@@ -1,0 +1,15 @@
+collections:
+
+  New Shows:
+    sync_mode: sync
+    collection_order: release.desc
+    builder_level: show
+    plex_all: true
+    filters:
+       tmdb_status:
+         - returning
+         - planned
+         - production
+         - ended
+         - canceled
+       first_episode_aired: 45
