@@ -87,8 +87,10 @@ libraries:
           collection_order: critic_rating.desc
           summary: Movies released this {{range}} in history
 date_style: 1                        # 1 for mm/dd, 2 for dd/mm
-overlay_prefix: "RETURNING"
+overlay_prefix: "RETURNING"          # Text to display before the dates.
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
+date_delimiter: "/"                  # Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
+year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. True or False
 returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
 

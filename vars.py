@@ -574,6 +574,16 @@ def setting(value):
                     entry = pref['leading_zeros']
                 except:
                     entry = True
+            if value == 'delimiter':
+                try:
+                    entry = pref['date_delimiter']
+                except:
+                    entry = "/"
+            if value == 'year':
+                try:
+                    entry = pref['year_in_dates']
+                except:
+                    entry = False
             if value == 'ovNew':
                 try:
                     entry = pref['extra_overlays']['new']['use']

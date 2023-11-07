@@ -92,6 +92,8 @@ libraries:
 date_style: 1                        # 1 for mm/dd, 2 for dd/mm
 overlay_prefix: "RETURNING"          # Text to display before the dates.
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
+date_delimiter: "/"                  # Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
+year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. True or False
 returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
 extra_overlays:
@@ -1440,29 +1442,50 @@ templates:
         dateStyle = vars.setting('dateStyle')
     except:
         dateStyle = 1
-    if dateStyle == 1:
-        thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
-    if dateStyle == 2:
-        thisDayDisplay = thisDayTemp.strftime("%d/%m/%Y")
 
-    if vars.setting('zeros') == True or vars.setting('zeros') != False:
-        if dateStyle == 1:
-            thisDayDisplayText = thisDayTemp.strftime("%m/%d")
-        if dateStyle == 2:
-            thisDayDisplayText = thisDayTemp.strftime("%d/%m")
+    try:
+        delimiter = vars.setting('delimiter')
+        allowedDelimiterTypes = ['/', '-', '.', '_']
+        if delimiter not in allowedDelimiterTypes:
+            delimiter = "/"
+    except:
+        delimiter = "/"
+
     
+    if vars.setting('zeros') == True or vars.setting('zeros') != False:
+        dayFormatCode = "%d"
+        monthFormatCode = "%m"
+        
     if vars.setting('zeros') == False:
         if platform.system() == "Windows":
-            if dateStyle == 1:
-                thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
-            if dateStyle == 2:
-                thisDayDisplayText = thisDayTemp.strftime("%#d/%m")
-
+            monthFormatCode = "%#m"
+            dayFormatCode = "%#d"
+            
         if platform.system() == "Linux" or platform.system() == "Darwin":
-            if dateStyle == 1:
-                thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
-            if dateStyle == 2:
-                thisDayDisplayText = thisDayTemp.strftime("%-d/%m")
+            monthFormatCode = "%-m"
+            dayFormatCode = "%-d"
+
+    if dateStyle == 1:
+        monthDayFormat = "%m/%d"
+        monthDayFormatText = monthFormatCode + delimiter + dayFormatCode
+        
+    if dateStyle == 2:
+        monthDayFormat = "%d/%m"
+        monthDayFormatText = dayFormatCode + delimiter + monthFormatCode
+        
+
+    if vars.setting('year') == True or vars.setting('year') != False:
+        yearFormatCode = "%Y"
+        dateFormat = monthDayFormat + "/" + yearFormatCode
+        dateFormatText = monthDayFormatText + delimiter + yearFormatCode
+        
+    if vars.setting('year') == False:
+        dateFormat = monthDayFormat + "/%Y"
+        dateFormatText = monthDayFormatText
+    
+    thisDayDisplay = thisDayTemp.strftime(dateFormat)
+    thisDayDisplayText = thisDayTemp.strftime(dateFormatText)
+            
 
     prefix = vars.setting('prefix')
 
@@ -1473,9 +1496,6 @@ templates:
 
 overlays:
     '''
-
-
-
 
     if vars.setting('ovNew') == True:
         logging.info('"New" Overlay enabled, generating body...')
@@ -1638,32 +1658,8 @@ overlays:
         thisDayTemp = date.today() + timedelta(days=int(dayCounter))
         thisDay = thisDayTemp.strftime("%m/%d/%Y")
 
-        if dateStyle == 1:
-            thisDayDisplay = thisDayTemp.strftime("%m/%d/%Y")
-        if dateStyle == 2:
-            thisDayDisplay = thisDayTemp.strftime("%d/%m/%Y")
-
-        
-        if vars.setting('zeros') == True or vars.setting('zeros') != False:
-            if dateStyle == 1:
-                thisDayDisplayText = thisDayTemp.strftime("%m/%d")
-            if dateStyle == 2:
-                thisDayDisplayText = thisDayTemp.strftime("%d/%m")
-
-
-
-        if vars.setting('zeros') == False:
-            if platform.system() == "Windows":
-                if dateStyle == 1:
-                    thisDayDisplayText = thisDayTemp.strftime("%#m/%d")
-                if dateStyle == 2:
-                    thisDayDisplayText = thisDayTemp.strftime("%#d/%m")
-
-            if platform.system() == "Linux" or platform.system() == "Darwin":
-                if dateStyle == 1:
-                    thisDayDisplayText = thisDayTemp.strftime("%-m/%d")
-                if dateStyle == 2:
-                    thisDayDisplayText = thisDayTemp.strftime("%-d/%m")
+        thisDayDisplay = thisDayTemp.strftime(dateFormat)
+        thisDayDisplayText = thisDayTemp.strftime(dateFormatText)
         
         
         overlay_base = overlay_base + overlay_gen
