@@ -1,8 +1,13 @@
-# pattrmm-develop
+# pattrmm:develop
 ![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
 
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in Plex Meta Manager.
 Extensions have been added to further PATTRMM's capabilities.
+
+NOTE !! : The latest update changes the *-returning-soon.yml to *-returning-soon-metadata.yml.
+Make sure to update your pmm config file with the new filename if you've updated your script.
+If you want to use the new alignment options then you will also need to delete your old
+'pattrmm/preferences/' template files.
 
 Requirements:    
     Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to.
@@ -21,6 +26,8 @@ For stand-alone setup:
     You can modify the appearance of the generated overlays file using the
     preferences/*-returning-soon-template.yml files. 
     Run the script again after you make your changes to initiate a full cycle.
+
+    UPDATING: To update the stand-alone version, you need to delete OR replace vars.py and replace pattrmm.py.
 
 Docker Compose:
 ```
@@ -56,15 +63,21 @@ Settings
 
 ```
 libraries:                
-  Anime:                          
+  Anime:
+    save_folder: metadata/anime/
+    trakt_list_privacy: private                          
     refresh: 7     
     days_ahead: 90 
   Series:
+    save_folder: metadata/series/
+    trakt_list_privacy: public
     refresh: 30
     returning-soon: False
     days_ahead: 45
     extensions:
       in-history:
+        trakt_list_privacy: public
+        save_folder: metadata/series/
         range: week
         collection_title: This {{range}} in history.
         starting: 1990
@@ -75,6 +88,7 @@ libraries:
         range: month
         collection_title: Released This {{Range}} In History
         save_folder: collections/
+        trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
         starting: 1975
         ending: 2020
         increment: 10
@@ -88,6 +102,10 @@ libraries:
           summary: Movies released this {{range}} in history
 date_style: 1                        # 1 for mm/dd, 2 for dd/mm
 overlay_prefix: "RETURNING"          # Text to display before the dates.
+horizontal_align: center
+vertical_align: top
+horizontal_offset: 0
+vertical_offset: 0
 leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
 date_delimiter: "/"                  # Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
 year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. True or False
@@ -100,6 +118,18 @@ extra_overlays:
     bgcolor: "#008001"
     font_color: "#FFFFFF"
     text: "N E W  S E R I E S"
+    horizontal_align: center
+    vertical_align: top
+    horizontal_offset: 0
+    vertical_offset: 0
+    
+  upcoming:
+    use: True
+    bgcolor: "#fc4e03"
+    font_color: "#FFFFFF"
+    text: "U P C O M I N G"
+    horizontal_align: center
+    vertical_align: top
   airing:
     use: True
     bgcolor: "#343399"
@@ -123,29 +153,49 @@ extra_overlays:
 ```
 Standard library options:
 ```
+save_folder: collections/
+        Specify a location to write the returning soon metadata file to. Your PMM config folder
+        (where your config.yml is), will always be the BASE location.
+        So, a save_folder of 'collections/'
+        would put your file in a 'collections' sub-folder. If this directory does not exist
+        PATTRMM will ATTEMPT to create it.
+        Default location is beside your config.yml and does not need specified.
+
+trakt_list_privacy: private
+        Specify public/private trakt list privacy for returning soon list. Can be set per library.
+        Default is private and does not need specified.
+
 refresh: 30
-Invterval in days to do a full refresh of the libraries airing status.
-Sometimes things change.
-This makes sure you stay up to date.
+        Invterval in days to do a full refresh of the libraries airing status.
+        Sometimes things change.
+        This makes sure you stay up to date.
 
 days_ahead: 45
-How far ahead a title should still be considered 'Returning Soon'.
-For example, 45, would consider any title that has a 'Returning' status
-and airs again within the next 45 days to be 'Returning Soon'.
+        How far ahead a title should still be considered 'Returning Soon'.
+        For example, 45, would consider any title that has a 'Returning' status
+        and airs again within the next 45 days to be 'Returning Soon'.
 
 returning-soon: False
-For those that would like to only run extensions on a 'show' library.
-This will disable PATTRMM's default 'Returning Soon' operations on this library.
-The default setting is True and does not need declared.
+        For those that would like to only run extensions on a 'show' library.
+        This will disable PATTRMM's default 'Returning Soon' operations on this library.
+        The default setting is True and does not need declared.
 ```
 Standard PATTRMM options
 ```
 date_style: 1
-This changes how the dates are formatted in the generated overlay files.
-  1
-    Will display dates as mm/dd (12/31) for December 31st
-  2
-    Will display dates as dd/mm (31/12) for December 31st
+        This changes how the dates are formatted in the generated overlay files.
+          1
+            Will display dates as mm/dd (12/31) for December 31st
+          2
+            Will display dates as dd/mm (31/12) for December 31st
+
+date_delimiter: "/"
+        Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
+        Default is '/'
+
+year_in_dates: False
+        Show year in dates: 01/14/22 vs 01/14. True or False
+        Default is False
 
 extra_overlays:
 Included here are various settings used to customize additional 'airing status' overlays
@@ -203,6 +253,10 @@ Enables the 'In History' extension for a library.
         So, a save_folder of 'collections/'
         would put your file in a 'collections' sub-folder. If this directory does not exist
         PATTRMM will ATTEMPT to create it.
+
+  trakt_list_privacy: private
+        Specify public/private trakt list privacy for this extension list. Can be set per library.
+        Default is private and does not need specified.
 
   collection_title: Released this {{range}} in history.
         Title for the collection in the generated metadata yml file.
@@ -292,5 +346,4 @@ When to run:
     This greatly speeds up the process of daily executions.
 
     Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
-
 
