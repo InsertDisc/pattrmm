@@ -86,6 +86,7 @@ libraries:
   TV Shows:                          # Plex Libraries to read from. Can enter multiple libraries.
     trakt_list_privacy: private
     save_folder: "metadata/"
+    overlay_save_folder: "overlays/"
     refresh: 30                      # Full-refresh delay for library          
     days_ahead: 30                   # How far ahead to consider 'Returning Soon'
     extensions:
@@ -723,6 +724,12 @@ def librarySetting(library, value):
                 except KeyError:
                     entry = ''
 
+            if value == 'overlay_save_folder':
+                try:
+                    entry = pref['libraries'][library]['overlay_save_folder']
+                except KeyError:
+                    entry = 'overlays/'
+
             if value == 'trakt_list_privacy':
                 try:
                     entry = pref['libraries'][library]['trakt_list_privacy']
@@ -1103,7 +1110,7 @@ if is_docker == "False":
 # Plex Meta Manager config file path
 config_path = configPathPrefix + 'config.yml'
 # overlay folder path
-overlay_path = configPathPrefix + 'overlays'
+default_overlay_path = configPathPrefix + 'overlays'
 
 
 
@@ -1128,7 +1135,7 @@ plex = Plex(plex_method_url, plex_method_token, tmdb_method_api_key)
 
 
 # If PMM overlay folder cannot be found, stop
-isOvPath = os.path.exists(overlay_path)
+isOvPath = os.path.exists(default_overlay_path)
 if not isOvPath:
     print("Plex Meta Manager Overlay folder could not be located.")
     print("Please ensure PATTRMM is in a subfolder of the PMM config directory.")
@@ -1207,11 +1214,32 @@ for library in loadSettings['libraries']:
             except Exception as sf:
                 print(f"Exception: {str(sf)}")
                 logging.warning(f"Exception: {str(sf)}")
-    
+
     # returning-soon metadata file for collection
     meta = save_folder + libraryCleanPath + "-returning-soon-metadata.yml"
+
+    # returning soon overlay save folder
+    overlay_save_folder = vars.librarySetting(library, 'overlay_save_folder')
+    save_folder = configPathPrefix + overlay_save_folder
+    if save_folder != '':
+        is_save_folder = os.path.exists(save_folder)
+        if not is_save_folder:
+            subfolder_display_path = f"config/{overlay_save_folder}"
+            print(f"Sub-folder {subfolder_display_path} not found.")
+            print(f"Attempting to create.")
+            logging.info(f"Sub-folder {subfolder_display_path} not found.")
+            logging.info(f"Attempting to create.")
+            try:
+                os.makedirs(save_folder)
+                print(f"{subfolder_display_path} created successfully.")
+                logging.info(f"{subfolder_display_path} created successfully.")
+            except Exception as sf:
+                print(f"Exception: {str(sf)}")
+                logging.warning(f"Exception: {str(sf)}")
+    
     # generated overlay file path
-    rso = configPathPrefix + "overlays/" + libraryCleanPath + "-returning-soon-overlay.yml"
+    rso = save_folder + libraryCleanPath + "-returning-soon-overlay.yml"
+    
     # overlay template path
     overlay_temp = "./preferences/" + libraryCleanPath + "-returning-soon-template.yml"
     
