@@ -564,6 +564,12 @@ def librarySetting(library, value):
                 except KeyError:
                     entry = ''
 
+            if value == 'overlay_save_folder':
+                try:
+                    entry = pref['libraries'][library]['overlay_save_folder']
+                except KeyError:
+                    entry = 'overlays/'
+
             if value == 'trakt_list_privacy':
                 try:
                     entry = pref['libraries'][library]['trakt_list_privacy']
