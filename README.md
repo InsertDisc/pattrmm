@@ -1,4 +1,6 @@
 # pattrmm:develop
+[Join our Discord](https://discord.com/invite/7yUYdqgxkn)
+
 ![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
 
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in Plex Meta Manager.
