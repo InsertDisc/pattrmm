@@ -169,7 +169,7 @@ overlay_save_folder: overlay-files/
         So, a save_folder of 'overlay-files/'
         would put your file in a 'overlay-files' sub-folder. If this directory does not exist
         PATTRMM will ATTEMPT to create it.
-        Default location is inside the default PMM 'overlays' folder and does not need specified.
+        Default location is the default PMM 'overlays' folder and does not need specified.
 
 trakt_list_privacy: private
         Specify public/private trakt list privacy for returning soon list. Can be set per library.
