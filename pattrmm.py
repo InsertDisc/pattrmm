@@ -746,13 +746,13 @@ def setting(value):
                 try:
                     entry = pref['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'rs_horizontal_align':
                 try:
                     entry = pref['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'rs_horizontal_offset':
                 try:
@@ -812,13 +812,13 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['upcoming']['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'ovUpcoming_vertical_align':
                 try:
                     entry = pref['extra_overlays']['upcoming']['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'ovUpcoming_horizontal_offset':
                 try:
@@ -850,13 +850,13 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['new']['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'ovNew_vertical_align':
                 try:
                     entry = pref['extra_overlays']['new']['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'ovNew_horizontal_offset':
                 try:
@@ -890,13 +890,13 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['returning']['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'ovReturning_vertical_align':
                 try:
                     entry = pref['extra_overlays']['returning']['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'ovReturning_horizontal_offset':
                 try:
@@ -929,13 +929,13 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['airing']['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'ovAiring_vertical_align':
                 try:
                     entry = pref['extra_overlays']['airing']['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'ovAiring_horizontal_offset':
                 try:
@@ -968,13 +968,13 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['ended']['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'ovEnded_vertical_align':
                 try:
                     entry = pref['extra_overlays']['ended']['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'ovEnded_horizontal_offset':
                 try:
@@ -1007,13 +1007,13 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['canceled']['horizontal_align']
                 except KeyError:
-                    entry = 'Center'
+                    entry = 'center'
 
             if value == 'ovCanceled_vertical_align':
                 try:
                     entry = pref['extra_overlays']['canceled']['vertical_align']
                 except KeyError:
-                    entry = 'Top'
+                    entry = 'top'
 
             if value == 'ovCanceled_horizontal_offset':
                 try:
