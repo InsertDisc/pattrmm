@@ -297,6 +297,7 @@ class Extensions:
                         options['sort_title'] = '"' + options['sort_title'] + '"'
                 except KeyError:
                     options = {}
+                poster_url = f'"https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20{self.range.capitalize()}%20in%20History.jpg"'
                 self.meta = {}
                 self.meta['collections'] = {}
                 self.meta['collections'][self.collection_title] = {}
@@ -305,7 +306,7 @@ class Extensions:
                 self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
                 self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
                 self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
-                self.meta['collections'][self.collection_title]['url_poster'] = 'https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20' + self.range.capitalize() + '%20in%20History.jpg'
+                self.meta['collections'][self.collection_title]['url_poster'] = poster_url
                 self.meta['collections'][self.collection_title].update(options)
                 
             except Exception as e:
