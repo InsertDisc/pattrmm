@@ -146,6 +146,7 @@ class Extensions:
                 self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
                 self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
                 self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
+                self.meta['collections'][self.collection_title]['url_poster'] = 'https://github.com/meisnate12/Plex-Meta-Manager-Images/blob/master/chart/This%20' + self.range.capitalize() + '%20in%20History.jpg'
                 self.meta['collections'][self.collection_title].update(options)
                 
             except Exception as e:
