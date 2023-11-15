@@ -60,6 +60,10 @@ Extensions Available:
     This extension uses the Originally Available At date within Plex to create Trakt lists
     based on a specified range per library and a corresponding 'in-history' metadata file
     for use with that library.
+  by_size
+    This extension uses information available within Plex to approximate Movie sizes, without
+    needing access to the filesystem, to create an ordered and filtered trakt list and accompanying
+    'by-size' metadata file for use with each corresponding 'Movie' library.
 ```
 Settings
 
@@ -98,12 +102,27 @@ libraries:
         increment: 10
         meta:
           sort_title: "!!020"
-          collection_mode: visible
+          collection_mode: hide
           visible_home: true
           visible_shared: true
           sync_mode: sync
           collection_order: critic_rating.desc
           summary: Movies released this {{range}} in history
+      by_size:
+        minimum: 25                # Size in GB
+        maximum: 90
+        order_by: size.desc
+        collection_title: Movies sorted by size
+        save_folder: collections/
+        trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
+        meta:
+          sort_title: "!!010"
+          collection_mode: hide
+          visible_home: true
+          visible_shared: true
+          sync_mode: sync
+          collection_order: custom
+          summary: Movies sorted by size between 25 and 90 GB
 date_style: 1                        # 1 for mm/dd, 2 for dd/mm
 overlay_prefix: "RETURNING"          # Text to display before the dates.
 horizontal_align: center
@@ -332,7 +351,105 @@ Enables the 'In History' extension for a library.
             sort_title: "!+007"
 
         Note:
-        As of now, only 'sort_title' will correctly carry over the " around the values.      
+        As of now, only 'sort_title' will correctly carry over the " around the values.
+
+in-history:
+Enables the 'In History' extension for a library.
+![this_month_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/71575460-c575-4b12-9e77-77ec6a8a59e5)
+![this_week_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/f412f703-1d81-4bd1-9a0b-87b10789f271)
+
+```
+  By Size specific settings
+  ![sorted_by_size](https://github.com/InsertDisc/pattrmm/assets/31751462/e53b748e-8ffc-461f-88b3-b752289f7b3e)
+
+```
+  minimum: 25
+      This sets the minimum filesize to be included in the filtered list.
+      The default value is 0 and does not need specified.
+
+  maximum: 90
+      This sets the maximum filesize to be included in the filtered list.
+      The default value has no upper limit. To use this extension with no
+      top limit, leave out this setting.
+        
+  order_by: size.desc
+      Further sorting of the filtered list is possible with this option.
+      The default value is size.desc and does not need specified.
+      Available options are:
+        size, title, added (date added to Plex), released (Movie release date)
+      Each option is compatible with two sort directions but are not required.
+        asc - Sort items by ascending order
+        desc - Sort items by descending order
+        Default sort direction is 'desc' for everything but 'title'.
+        
+        For example, to sort by a Movie's 'added to plex' date, with the oldest appearing first
+        order_by: added.asc
+
+  save_folder: collections/
+        Specify a location to write the extension metadata file to. Your PMM config folder
+        (where your config.yml is), will always be the BASE location.
+        So, a save_folder of 'collections/'
+        would put your file in a 'collections' sub-folder. If this directory does not exist
+        PATTRMM will ATTEMPT to create it.
+
+  trakt_list_privacy: private
+        Specify public/private trakt list privacy for this extension list. Can be set per library.
+        Default is private and does not need specified.
+
+  collection_title: Sorted by size
+        Title for the collection in the generated metadata yml file.
+        
+
+  meta:
+        Here's where you can apply your 'touch'.
+
+        A default generated metadata yml, with no meta options might look something like:
+
+        collections:
+          Sorted by size:
+            trakt_list: https://trakt.tv/users/username/lists/Sorted-by-size-Movies
+            visible_home: true
+            visible_shared: true
+            collection_order: custom
+            sync_mode: sync
+
+        Any of the options under 'Sorted by size'
+        can be overwritten with meta options.
+        meta:
+          visible_home: false
+          collection_order: critic_rating.desc
+
+        Would generate:
+
+        collections:
+          Sorted by size:
+            trakt_list: https://trakt.tv/users/username/lists/Sorted-by-size-Movies
+            visible_home: false
+            visible_shared: true
+            collection_order: critic_rating.desc
+            sync_mode: sync
+
+        Notice how the two options were overwritten. Take care not to overwrite your trakt_list.
+        You can also use meta to ADD any additional in-line options.
+
+        meta:
+          visible_home: false
+          collection_order: critic_rating.desc
+          sort_title: "!+007"
+
+        Generates:
+
+        collections:
+          Sorted by size:
+            trakt_list: https://trakt.tv/users/username/lists/Sorted-by-size-Movies
+            visible_home: false
+            visible_shared: true
+            collection_order: critic_rating.desc
+            sync_mode: sync
+            sort_title: "!+007"
+
+        Note:
+        As of now, only 'sort_title' will correctly carry over the " around the values.     
           
 Each extension can only be used within a library ONCE, otherwise an error will occur.
 In-History supports ONE range per library.
