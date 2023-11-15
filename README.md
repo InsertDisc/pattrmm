@@ -359,10 +359,12 @@ Enables the 'In History' extension for a library.
 ![this_week_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/f412f703-1d81-4bd1-9a0b-87b10789f271)
 
 ```
-  By Size specific settings
-  ![sorted_by_size](https://github.com/InsertDisc/pattrmm/assets/31751462/e53b748e-8ffc-461f-88b3-b752289f7b3e)
-
+by_size:
+Enables the 'By Size' extension for a library.
+![sorted_by_size](https://github.com/InsertDisc/pattrmm/assets/31751462/e53b748e-8ffc-461f-88b3-b752289f7b3e)
 ```
+  By Size specific settings
+
   minimum: 25
       This sets the minimum filesize to be included in the filtered list.
       The default value is 0 and does not need specified.
