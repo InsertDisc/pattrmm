@@ -155,8 +155,7 @@ vars_file_exists = os.path.exists(vars_file)
 if not vars_file_exists:
     print("Creating vars module file..")
     writeVars = open(vars_file, "x")
-    writeVars.write(
-        '''
+    writeVars.write("""
 from ruamel.yaml import YAML
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -208,6 +207,14 @@ class LibraryList:
         self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
         self.ratingKey = ratingKey
 
+class ExtendedLibraryList:
+    def __init__(self, ratingKey, title, added, released, size):
+        self.ratingKey = ratingKey
+        self.title = title
+        self.added = added
+        self.released = released
+        self.size = size
+
 class itemBase:
     def __init__(self, title, date, details):
         self.title = re.sub("\s\(.*?\)","", title)
@@ -229,6 +236,11 @@ class Extensions:
     @property
     def in_history(self):
         self.context = 'in_history'
+        return self
+    
+    @property
+    def by_size(self):
+        self.context = 'by_size'
         return self
 
     def settings(self):
@@ -284,6 +296,7 @@ class Extensions:
                         options['sort_title'] = '"' + options['sort_title'] + '"'
                 except KeyError:
                     options = {}
+                poster_url = f'"https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20{self.range.capitalize()}%20in%20History.jpg"'
                 self.meta = {}
                 self.meta['collections'] = {}
                 self.meta['collections'][self.collection_title] = {}
@@ -292,13 +305,99 @@ class Extensions:
                 self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
                 self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
                 self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
-                self.meta['collections'][self.collection_title]['url_poster'] = 'https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20' + self.range.capitalize() + '%20in%20History.jpg'
+                self.meta['collections'][self.collection_title]['url_poster'] = poster_url
+                self.meta['collections'][self.collection_title].update(options)
+                
+            except Exception as e:
+                return f"Error: {str(e)}"
+            return self
+                
+        if self.context == 'by_size':
+            settings = settings_path
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            me = traktApi('me')
+            slug = cleanPath(self.extension_library)
+            self.slug = slug
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
+            try:
+                self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['by_size']['trakt_list_privacy']
+            except KeyError:
+                self.trakt_list_privacy = 'private'
+            try:
+                minimum = pref['libraries'][self.extension_library]['extensions']['by_size']['minimum']
+                self.minimum = minimum
+            except KeyError:
+                self.minimum = 0
+
+            try:
+                maximum = pref['libraries'][self.extension_library]['extensions']['by_size']['maximum']
+                self.maximum = maximum
+            except KeyError:
+                self.maximum = None
+
+            try:
+                self.save_folder = pref['libraries'][self.extension_library]['extensions']['by_size']['save_folder']
+            except KeyError:
+                self.save_folder = ''
+            try:
+                self.collection_title = pref['libraries'][self.extension_library]['extensions']['by_size']['collection_title']
+            except KeyError:
+                self.collection_title = 'Sorted by size'
+            try:
+                default_order_by = 'size.desc'
+                order_by = pref['libraries'][self.extension_library]['extensions']['by_size']['order_by']
+                possible_filters = ('size.desc', 'size.asc', 'title.desc', 'title.asc', 'added.asc', 'added.desc', 'released.desc', 'released.asc')
+                possible_fields = ('size', 'title', 'added', 'released')
+                if order_by in possible_filters:
+                    self.order_by = order_by
+                if order_by not in possible_filters:
+                    if order_by in possible_fields:
+                        invalid_order_by = order_by
+                        if order_by == 'title':
+                            order_by = order_by + '.asc'
+                        else:
+                            order_by = order_by + '.desc'
+                    print(f'''Invalid order by setting "{invalid_order_by}".
+                          Order by field '{invalid_order_by}' found. Using '{order_by}'.''')
+                    logging.warning(f'''Invalid order by setting "{order_by}", falling back to default {default_order_by}''')
+                    if order_by not in possible_fields:
+                        print(f'''{order_by} is not a valid option. Using default.''')
+                        self.order_by = default_order_by
+            except KeyError:
+                print(f'''No list order setting found. Using default '{default_order_by}'.''')
+                logging.info(f'''No list order setting found. Using default '{default_order_by}'.''')
+                self.order_by = default_order_by
+            
+            self.order_by_field, self.order_by_direction = self.order_by.split('.')
+            if self.order_by_direction == 'desc':
+                self.reverse = True
+            if self.order_by_direction == 'asc':
+                self.reverse = False
+
+            try:
+                try:
+                    options = {
+                    key: value
+                    for key, value in pref['libraries'][self.extension_library]['extensions']['by_size']['meta'].items()
+                        }
+                    if "sort_title" in options:
+                        options['sort_title'] = '"' + options['sort_title'] + '"'
+                except KeyError:
+                    options = {}
+                self.meta = {}
+                self.meta['collections'] = {}
+                self.meta['collections'][self.collection_title] = {}
+                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+                self.meta['collections'][self.collection_title]['visible_home'] = 'true'
+                self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
+                self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
+                self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
                 self.meta['collections'][self.collection_title].update(options)
                 
             except Exception as e:
                 return f"Error: {str(e)}"
         return self
-                
 
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
@@ -425,7 +524,46 @@ class Plex:
                     return f"Error: {response.status_code} - {response.text}"
             except Exception as e:
                 return f"Error: {str(e)}"
-            
+                
+    def extended_list(self, library):
+            try:
+                # Replace with the correct section ID and library URL
+                section_id = plexGet(library)  # Replace with the correct section ID
+                library_url = f"{self.plex_url}/library/sections/{section_id}/all"
+                library_url = re.sub("0//", "0/", library_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(library_url, headers=headers)
+                extended_library_list = []
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data['MediaContainer']['Metadata']:
+                        try:
+                            title = item['title']
+                            ratingKey = item['ratingKey']
+                            released = item['originallyAvailableAt']
+                            added_at_timestamp = item['addedAt']
+                            added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
+                            added_at = added_dt_object.strftime('%Y-%m-%d')
+                            duration_ms = item["Media"][0]["duration"]
+                            bitrate_kbps = item["Media"][0]["bitrate"]
+                            file_size_gb = (duration_ms * bitrate_kbps) / (8 * 1000 * 1024 * 1024)
+                            extended_library_list.append(ExtendedLibraryList(**{
+                            'ratingKey': ratingKey,
+                            'title': title,
+                            'added': added_at,
+                            'released': released,
+                            'size': file_size_gb
+                            }))
+                        except KeyError:
+                            print(f"{item['title']} has no 'Originally Available At' date. Ommitting title.")
+                            continue
+                    return extended_library_list
+                else:
+                    return f"Error: {response.status_code} - {response.text}"
+            except Exception as e:
+                return f"Error: {str(e)}"        
 
     def id(self, name, library_id=None):
         if self.context == 'show':
@@ -1095,7 +1233,7 @@ def cleanPath(string):
         return cleanedPath
 
 
-''')
+""")
 
 
 # Check if this is a Docker Build to format PMM config folder directory
@@ -2417,6 +2555,204 @@ Attempting to remove unused collection.''')
                 if postItems.status_code == 201:
                     print(f"Successfully posted This {range} In History items for {thisLibrary}")
                     logging.info(f"Successfully posted This {range} In History items for {thisLibrary}")
+
+            if extension_item == 'by_size' and plex.library.type(thisLibrary) == 'movie':
+                print(f'''
+==================================================''')
+                print(f'''
+Extension setting found. Running 'Sort by size' on {thisLibrary}
+''')
+                logging.info(f"Extension setting found. Running 'Sort by size' on {thisLibrary}")
+
+
+                extension = vars.Extensions(thisLibrary).by_size.settings()
+                save_folder = configPathPrefix + extension.save_folder
+                if save_folder != '':
+                    is_save_folder = os.path.exists(save_folder)
+                    if not is_save_folder:
+                        subfolder_display_path = f"config/{extension.save_folder}"
+                        print(f"Sub-folder {subfolder_display_path} not found.")
+                        print(f"Attempting to create.")
+                        logging.info(f"Sub-folder {subfolder_display_path} not found.")
+                        logging.info(f"Attempting to create.")
+                        try:
+                            os.makedirs(save_folder)
+                            print(f"{subfolder_display_path} created successfully.")
+                            logging.info(f"{subfolder_display_path} created successfully.")
+                        except Exception as sf:
+                            print(f"Exception: {str(sf)}")
+                            logging.warning(f"Exception: {str(sf)}")
+                me = vars.traktApi('me')
+                slug = vars.cleanPath(extension.slug)
+                collection_title = extension.collection_title
+                by_size_meta = extension.meta
+                try:
+                    output_stream = StringIO()
+                    yaml.dump(by_size_meta, output_stream)
+                    by_size_meta_str = output_stream.getvalue()
+                    output_stream.close()
+                    by_size_meta_str = by_size_meta_str.replace("'","")
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+                bySize = f"{configPathPrefix}{extension.save_folder}{slug}-by-size.yml"
+                isBySize = os.path.exists(bySize)
+
+                if not isBySize:
+                    try:
+                        print(f"Creating {thisLibrary} 'By Size' metadata file..")
+                        logging.info(f"Creating {thisLibrary} 'By Size' metadata file..")
+                        writeBySize = open(bySize, "x")
+                        writeBySize.write(by_size_meta_str)
+                        writeBySize.close()
+                        print(f"File created")
+                        logging.info(f"File created")
+                        file_location = f"config/{extension.save_folder}{slug}-by-size.yml"
+                        print(f"{file_location}")
+                        logging.info(f"{file_location}")
+                    except Exception as e:
+                        print(f"An error occurred: {e}")
+
+
+                if isBySize:
+                    print(f"Updating {thisLibrary} 'By Size' metadata file..")
+                    logging.info(f"Updating {thisLibrary} 'By Size' metadata file..")
+                    file_location = f"config/{extension.save_folder}{slug}-by-size.yml"
+                    print(f"{file_location}")
+                    logging.info(f"{file_location}")
+    
+                    with open(bySize, "r") as bySize_file:
+                        check_BySize_Title = yaml.load(bySize_file)
+                        
+                        
+                        
+                        for key, value in check_BySize_Title['collections'].items():
+                            if key != collection_title:
+                                print(f'''Collection for {thisLibrary} has been changed from {key} ==> {collection_title}
+Attempting to remove unused collection.''')
+                                logging.info(f'''Collection for {thisLibrary} has been changed from {key} ==> {collection_title}
+Attempting to remove unused collection.''')
+                                library_id = vars.plexGet(thisLibrary)
+                                old_collection_id = plex.collection.id(key, library_id)
+                                delete_old_collection = plex.collection.delete(old_collection_id)
+                                if delete_old_collection == True:
+                                    print(f"Successfully removed old '{key}' collection.")
+                                    logging.info(f"Successfully removed old '{key}' collection.")
+                                if delete_old_collection == False:
+                                    print(f"Could not remove deprecated '{key}' collection.")
+                                    logging.warning(f"Could not remove deprecated '{key}' collection.")
+
+                    with open(bySize, "w") as write_bySize:
+                        write_bySize.write(by_size_meta_str)
+                        print('')
+                        print(f'''{by_size_meta_str}''')
+                        logging.info('')
+                        logging.info(f'''{by_size_meta_str}''')
+
+                movies_list = plex.library.extended_list(thisLibrary)
+                sort_key = extension.order_by_field
+                reverse_value = extension.reverse
+                minimum = extension.minimum
+                maximum =  extension.maximum
+                movies_list = sorted(movies_list, key=lambda x: getattr(x, sort_key), reverse=reverse_value)
+                movies_list = [
+                    movie for movie in movies_list
+                    if (
+                        minimum <= movie.size and
+                        (maximum is None or movie.size <= maximum)
+                    )
+                ]
+
+                print(f'''Sorting {thisLibrary} by '{extension.order_by_field}.{extension.order_by_direction}'.''')
+
+                slug = vars.cleanPath(thisLibrary)
+                me = vars.traktApi('me')
+                traktaccess = vars.traktApi('token')
+                traktapi = vars.traktApi('client')
+                traktHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + traktaccess + '',
+    'trakt-api-version': '2',
+    'trakt-api-key': '' + traktapi + ''
+    }
+                traktListUrl = f"https://api.trakt.tv/users/{me}/lists"
+                traktListUrlPost = f"https://api.trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
+                traktListUrlPostItems = f"https://api.trakt.tv/users/{me}/lists/sorted-by-size-{slug}/items"
+                traktListData = f'''
+{{
+    "name": "Sorted by size {thisLibrary}",
+    "description": "{thisLibrary}, sorted by size.",
+    "privacy": "private",
+    "display_numbers": true,
+    "allow_comments": true,
+    "sort_by": "rank",
+    "sort_how": "asc"
+}}
+    '''
+                print("Clearing " + thisLibrary + " trakt list...")
+                logging.info("Clearing " + thisLibrary + " trakt list...")
+                traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
+                if traktDeleteList.status_code == 201 or 200 or 204:
+                    print("List cleared")
+                    time.sleep(1.25)
+                traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
+                if traktMakeList.status_code == 201 or 200 or 204:
+                    print("Initialization successful.")
+                    time.sleep(1.25)
+
+                description_identifier = plex.library.type(thisLibrary)
+                if description_identifier == 'show':
+                    description_type = 'Shows'
+                    trakt_type = 'shows'
+                if description_identifier == 'movie':
+                    description_type = 'Movies'
+                    trakt_type = 'movies'
+
+                traktListItems = '''
+{'''
+                traktListItems += f'''
+    "{trakt_type}": [
+        '''
+
+                for movie_info in movies_list:
+
+    
+                    print(f'''Adding '{movie_info.title}'.''')
+
+                    movie_by_size = plex.item.info(movie_info.ratingKey)
+                    traktListItems += f'''
+    {{
+    "ids": {{'''
+                
+                    if movie_by_size.details.tmdb != 'Null':
+                        traktListItems += f'''
+    "tmdb": "{movie_by_size.details.tmdb}",'''
+                    if movie_by_size.details.tvdb != 'Null':
+                        traktListItems += f'''
+    "tvdb": "{movie_by_size.details.tvdb}",'''
+                    if movie_by_size.details.imdb != 'Null':
+                        traktListItems += f'''
+    "imdb": "{movie_by_size.details.imdb}",'''
+                        
+                    traktListItems = traktListItems.rstrip(",")
+                                    
+                    traktListItems += f'''
+            }}
+    }},'''
+        
+        
+                traktListItems = traktListItems.rstrip(",")
+                traktListItems += '''
+]
+}
+'''
+
+                postItems = requests.post(traktListUrlPostItems, headers=traktHeaders, data=traktListItems)
+                if postItems.status_code == 201:
+                    print(f"Successfully posted Sorted by size items for {thisLibrary}")
+                    logging.info(f"Successfully Sorted by size items for {thisLibrary}")
+
+            if extension_item == 'by_size' and plex.library.type(thisLibrary) != 'movie':
+                print(f'''The 'By Size' extension is only valid for Movie libraries. {thisLibrary} is not compatible and will be skipped.''')
 
                     
     except KeyError:

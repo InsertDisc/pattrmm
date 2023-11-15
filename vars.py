@@ -49,6 +49,14 @@ class LibraryList:
         self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
         self.ratingKey = ratingKey
 
+class ExtendedLibraryList:
+    def __init__(self, ratingKey, title, added, released, size):
+        self.ratingKey = ratingKey
+        self.title = title
+        self.added = added
+        self.released = released
+        self.size = size
+
 class itemBase:
     def __init__(self, title, date, details):
         self.title = re.sub("\s\(.*?\)","", title)
@@ -70,6 +78,11 @@ class Extensions:
     @property
     def in_history(self):
         self.context = 'in_history'
+        return self
+    
+    @property
+    def by_size(self):
+        self.context = 'by_size'
         return self
 
     def settings(self):
@@ -125,6 +138,7 @@ class Extensions:
                         options['sort_title'] = '"' + options['sort_title'] + '"'
                 except KeyError:
                     options = {}
+                poster_url = f'"https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20{self.range.capitalize()}%20in%20History.jpg"'
                 self.meta = {}
                 self.meta['collections'] = {}
                 self.meta['collections'][self.collection_title] = {}
@@ -133,13 +147,99 @@ class Extensions:
                 self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
                 self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
                 self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
-                self.meta['collections'][self.collection_title]['url_poster'] = 'https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20' + self.range.capitalize() + '%20in%20History.jpg'
+                self.meta['collections'][self.collection_title]['url_poster'] = poster_url
+                self.meta['collections'][self.collection_title].update(options)
+                
+            except Exception as e:
+                return f"Error: {str(e)}"
+            return self
+                
+        if self.context == 'by_size':
+            settings = settings_path
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            me = traktApi('me')
+            slug = cleanPath(self.extension_library)
+            self.slug = slug
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
+            try:
+                self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['by_size']['trakt_list_privacy']
+            except KeyError:
+                self.trakt_list_privacy = 'private'
+            try:
+                minimum = pref['libraries'][self.extension_library]['extensions']['by_size']['minimum']
+                self.minimum = minimum
+            except KeyError:
+                self.minimum = 0
+
+            try:
+                maximum = pref['libraries'][self.extension_library]['extensions']['by_size']['maximum']
+                self.maximum = maximum
+            except KeyError:
+                self.maximum = None
+
+            try:
+                self.save_folder = pref['libraries'][self.extension_library]['extensions']['by_size']['save_folder']
+            except KeyError:
+                self.save_folder = ''
+            try:
+                self.collection_title = pref['libraries'][self.extension_library]['extensions']['by_size']['collection_title']
+            except KeyError:
+                self.collection_title = 'Sorted by size'
+            try:
+                default_order_by = 'size.desc'
+                order_by = pref['libraries'][self.extension_library]['extensions']['by_size']['order_by']
+                possible_filters = ('size.desc', 'size.asc', 'title.desc', 'title.asc', 'added.asc', 'added.desc', 'released.desc', 'released.asc')
+                possible_fields = ('size', 'title', 'added', 'released')
+                if order_by in possible_filters:
+                    self.order_by = order_by
+                if order_by not in possible_filters:
+                    if order_by in possible_fields:
+                        invalid_order_by = order_by
+                        if order_by == 'title':
+                            order_by = order_by + '.asc'
+                        else:
+                            order_by = order_by + '.desc'
+                    print(f'''Invalid order by setting "{invalid_order_by}".
+                          Order by field '{invalid_order_by}' found. Using '{order_by}'.''')
+                    logging.warning(f'''Invalid order by setting "{order_by}", falling back to default {default_order_by}''')
+                    if order_by not in possible_fields:
+                        print(f'''{order_by} is not a valid option. Using default.''')
+                        self.order_by = default_order_by
+            except KeyError:
+                print(f'''No list order setting found. Using default '{default_order_by}'.''')
+                logging.info(f'''No list order setting found. Using default '{default_order_by}'.''')
+                self.order_by = default_order_by
+            
+            self.order_by_field, self.order_by_direction = self.order_by.split('.')
+            if self.order_by_direction == 'desc':
+                self.reverse = True
+            if self.order_by_direction == 'asc':
+                self.reverse = False
+
+            try:
+                try:
+                    options = {
+                    key: value
+                    for key, value in pref['libraries'][self.extension_library]['extensions']['by_size']['meta'].items()
+                        }
+                    if "sort_title" in options:
+                        options['sort_title'] = '"' + options['sort_title'] + '"'
+                except KeyError:
+                    options = {}
+                self.meta = {}
+                self.meta['collections'] = {}
+                self.meta['collections'][self.collection_title] = {}
+                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+                self.meta['collections'][self.collection_title]['visible_home'] = 'true'
+                self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
+                self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
+                self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
                 self.meta['collections'][self.collection_title].update(options)
                 
             except Exception as e:
                 return f"Error: {str(e)}"
         return self
-                
 
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
@@ -266,7 +366,46 @@ class Plex:
                     return f"Error: {response.status_code} - {response.text}"
             except Exception as e:
                 return f"Error: {str(e)}"
-            
+                
+    def extended_list(self, library):
+            try:
+                # Replace with the correct section ID and library URL
+                section_id = plexGet(library)  # Replace with the correct section ID
+                library_url = f"{self.plex_url}/library/sections/{section_id}/all"
+                library_url = re.sub("0//", "0/", library_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(library_url, headers=headers)
+                extended_library_list = []
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data['MediaContainer']['Metadata']:
+                        try:
+                            title = item['title']
+                            ratingKey = item['ratingKey']
+                            released = item['originallyAvailableAt']
+                            added_at_timestamp = item['addedAt']
+                            added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
+                            added_at = added_dt_object.strftime('%Y-%m-%d')
+                            duration_ms = item["Media"][0]["duration"]
+                            bitrate_kbps = item["Media"][0]["bitrate"]
+                            file_size_gb = (duration_ms * bitrate_kbps) / (8 * 1000 * 1024 * 1024)
+                            extended_library_list.append(ExtendedLibraryList(**{
+                            'ratingKey': ratingKey,
+                            'title': title,
+                            'added': added_at,
+                            'released': released,
+                            'size': file_size_gb
+                            }))
+                        except KeyError:
+                            print(f"{item['title']} has no 'Originally Available At' date. Ommitting title.")
+                            continue
+                    return extended_library_list
+                else:
+                    return f"Error: {response.status_code} - {response.text}"
+            except Exception as e:
+                return f"Error: {str(e)}"        
 
     def id(self, name, library_id=None):
         if self.context == 'show':
