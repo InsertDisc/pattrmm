@@ -202,8 +202,10 @@ class Extensions:
                             order_by = order_by + '.desc'
                     print(f'''Invalid order by setting "{invalid_order_by}".
                           Order by field '{invalid_order_by}' found. Using '{order_by}'.''')
-                    logging.warning(f'''Invalid order by setting" {order_by}", falling back to default {default_order_by}''')
-                    self.order_by = 'size.desc'
+                    logging.warning(f'''Invalid order by setting "{order_by}", falling back to default {default_order_by}''')
+                    if order_by not in possible_fields:
+                        print(f'''{order_by} is not a valid option. Using default.''')
+                        self.order_by = default_order_by
             except KeyError:
                 print(f'''No list order setting found. Using default '{default_order_by}'.''')
                 logging.info(f'''No list order setting found. Using default '{default_order_by}'.''')
