@@ -24,60 +24,59 @@ import logging
 import sys
 
 
+# functions
+def verify_or_create_folder(folder_path, folder_name_for_logging):
+    """Function verifying if a folder exists and creating the folder if it doesn't."""
+
+    folder_exists = os.path.exists(folder_path)
+    if not folder_exists:
+        print("Creating " + folder_name_for_logging + " folder...")
+        os.makedirs(folder_path)
+    else:
+        print(folder_name_for_logging.capitalize() + "folder present...")
+
+
+# def verify_or_create_file(file_path, file_name_for_logging):
+#     """Function verifying if a file exists and creating the file if it doesn't."""
+
+#     folder_exists = os.path.isfile(file_path)
+#     if not folder_exists:
+#         print("Creating " + file_name_for_logging + " file...")
+#         write_file = open(file_path, "x")
+#         write_file.close()
+#     else:
+#         print(file_name_for_logging.capitalize() + "file present...")
+
+
 
 print("Verifying files.")
+
 # data folder for created files
-data = "data"
-# If data folder doesn't exist, create it
-isData = os.path.exists(data)
-if not isData:
-    print("Creating data folder...")
-    os.makedirs(data)
-else:
-    print("Data folder present...")
+verify_or_create_folder("data", "data")
 
 # history folder for timestamps
-statsDir = "./data/history"
-isStatsDir = os.path.exists(statsDir)
-if not isStatsDir:
-    os.makedirs(statsDir)
-
+verify_or_create_folder("./data/history", "stats")
 
 # logs folder
-log_path = "data/logs"
-# If Logs folder doesn't exist, create it
-isLogs = os.path.exists(log_path)
-if not isLogs:
-    print("Creating logs folder...")
-    os.makedirs(log_path)
-else:
-    print("Logs folder present...")
+verify_or_create_folder("data/logs", "logs")
 
+# pattrmm log file
 log_file = "data/logs/pattrmm.log"
-isLogFile = os.path.exists(log_file)
-if not isLogFile:
+log_file_exists = os.path.exists(log_file)
+if not log_file_exists:
     print("Creating log file..")
     writeLogs = open(log_file, "x")
     writeLogs.close()
 
 logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
-
 # preferences folder
-pref = "preferences"
-# If preferences folder doesn't exist, create it
-isPref = os.path.exists(pref)
-if not isPref:
-    print("Creating preferences folder...")
-    os.makedirs(pref)
-else:
-    print("Preference folder present...")
-
+verify_or_create_folder("preferences", "preferences")
 
 # settings file for pattrmm
 settings = "preferences/settings.yml"
 # If settings file doesn't exist, create it
-if os.path.isfile(settings) == False:
+if not os.path.isfile(settings):
     print("Creating settings file..")
     writeSettings = open(settings, "x")
     writeSettings.write(
@@ -145,17 +144,17 @@ extra_overlays:
     writeSettings.close()
     print("Settings file created. Please configure preferences/settings.yml and rerun PATTRMM.")
     exit()
-if os.path.isfile(settings) == True:
+else:
     print("Settings file present.")
 
 
 # Main variables file
-var_path = 'vars.py'
+vars_file = 'vars.py'
 # Check for vars file and create if not present
-isVars = os.path.exists(var_path)
-if not isVars:
+vars_file_exists = os.path.exists(vars_file)
+if not vars_file_exists:
     print("Creating vars module file..")
-    writeVars = open(var_path, "x")
+    writeVars = open(vars_file, "x")
     writeVars.write(
         '''
 from ruamel.yaml import YAML
@@ -1102,22 +1101,18 @@ def cleanPath(string):
 # Check if this is a Docker Build to format PMM config folder directory
 is_docker = os.environ.get('PATTRMM_DOCKER', "False")
 
-if is_docker == "True":
-    configPathPrefix = "./config/"
+if is_docker:
+    pmm_config_path_prefix = "./config/"
+else:
+    pmm_config_path_prefix = "../"
 
-if is_docker == "False":
-    configPathPrefix = "../"
 
 # Plex Meta Manager config file path
-config_path = configPathPrefix + 'config.yml'
-# overlay folder path
-default_overlay_path = configPathPrefix + 'overlays'
-
-
+pmm_config_folder = pmm_config_path_prefix + 'config.yml'
 
 # Check if PMM config file can be found. If not, inform and exit.
-isConfig = os.path.exists(config_path)
-if not isConfig:
+pmm_config_folder_exists = os.path.exists(pmm_config_folder)
+if not pmm_config_folder_exists:
     print("Plex Meta Manager Config file could not be located.")
     print("Please ensure config directory is bound to the Plex Meta Manager config directory.")
     sys.exit()
@@ -1134,10 +1129,12 @@ plex_method_token = vars.plexApi('token')
 tmdb_method_api_key = vars.tmdbApi('token')
 plex = Plex(plex_method_url, plex_method_token, tmdb_method_api_key)
 
+# overlay folder path
+pmm_overlay_folder = pmm_config_path_prefix + 'overlays'
 
 # If PMM overlay folder cannot be found, stop
-isOvPath = os.path.exists(default_overlay_path)
-if not isOvPath:
+pmm_overlay_folder_exits = os.path.exists(pmm_overlay_folder)
+if not pmm_overlay_folder_exits:
     print("Plex Meta Manager Overlay folder could not be located.")
     print("Please ensure PATTRMM is in a subfolder of the PMM config directory.")
     exit()
@@ -1199,7 +1196,7 @@ for library in loadSettings['libraries']:
 
     # returning soon metadata save folder
     metadata_save_folder = vars.librarySetting(library, 'save_folder')
-    save_folder = configPathPrefix + metadata_save_folder
+    save_folder = pmm_config_path_prefix + metadata_save_folder
     if save_folder != '':
         is_save_folder = os.path.exists(save_folder)
         if not is_save_folder:
@@ -1221,7 +1218,7 @@ for library in loadSettings['libraries']:
 
     # returning soon overlay save folder
     overlay_save_folder = vars.librarySetting(library, 'overlay_save_folder')
-    save_folder = configPathPrefix + overlay_save_folder
+    save_folder = pmm_config_path_prefix + overlay_save_folder
     if save_folder != '':
         is_save_folder = os.path.exists(save_folder)
         if not is_save_folder:
@@ -2195,7 +2192,7 @@ Extension setting found. Running 'In History' on {thisLibrary}
 ''')
                 logging.info(f"Extension setting found. Running 'In History' on {thisLibrary}")
                 extension = vars.Extensions(thisLibrary).in_history.settings()
-                save_folder = configPathPrefix + extension.save_folder
+                save_folder = pmm_config_path_prefix + extension.save_folder
                 if save_folder != '':
                     is_save_folder = os.path.exists(save_folder)
                     if not is_save_folder:
@@ -2228,7 +2225,7 @@ Extension setting found. Running 'In History' on {thisLibrary}
                     print(f"An error occurred: {e}")
 
 
-                inHistory = f"{configPathPrefix}{extension.save_folder}{slug}-in-history.yml"
+                inHistory = f"{pmm_config_path_prefix}{extension.save_folder}{slug}-in-history.yml"
                 isInHistory = os.path.exists(inHistory)
 
                 if not isInHistory:
