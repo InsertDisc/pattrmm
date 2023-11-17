@@ -33,7 +33,7 @@ def verify_or_create_folder(folder_path, folder_name_for_logging):
         print("Creating " + folder_name_for_logging + " folder...")
         os.makedirs(folder_path)
     else:
-        print(folder_name_for_logging.capitalize() + "folder present...")
+        print(folder_name_for_logging.capitalize() + " folder present...")
 
 
 def verify_or_create_file(file_path, file_name_for_logging):
@@ -45,11 +45,11 @@ def verify_or_create_file(file_path, file_name_for_logging):
         create_file = open(file_path, "x")
         create_file.close()
     else:
-        print(file_name_for_logging.capitalize() + "file present...")
+        print(file_name_for_logging.capitalize() + " file present...")
 
 
 
-print("Verifying files.")
+print("Verifying files...")
 
 # data folder for created files
 verify_or_create_folder("data", "data")
@@ -623,17 +623,17 @@ class Plex:
             except Exception as e:
                 return f"Error: {str(e)}"
 
-    def tmdb_id(self, rating_key):
+    def tmdb_id(self, ratingKey):
         # Attempt to retrieve TMDB ID from Plex
-        plex_tmdb_id = self.get_tmdb_id_from_plex(rating_key)
+        plex_tmdb_id = self.get_tmdb_id_from_plex(ratingKey)
         
         if plex_tmdb_id is not None:
             return plex_tmdb_id
         
         # If not found in Plex, search TMDB
         if plex_tmdb_id == None:
-            show_name = self.get_show_name(rating_key)
-            year = self.year(rating_key)
+            show_name = self.get_show_name(ratingKey)
+            year = self.year(ratingKey)
             if year != None:
                 print("")
                 print("No TMDB ID found locally: Searching for " + show_name + " with year " + str(year))
@@ -666,9 +666,9 @@ class Plex:
             
 
 
-    def get_tmdb_id_from_plex(self, rating_key):
+    def get_tmdb_id_from_plex(self, ratingKey):
         try:
-            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
+            show_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token}
             response = requests.get(show_details_url, headers=headers)
@@ -687,9 +687,9 @@ class Plex:
             return f"Error: {str(e)}"
 
 
-    def get_show_name(self, rating_key):
+    def get_show_name(self, ratingKey):
         try:
-            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
+            show_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"
@@ -724,10 +724,10 @@ class Plex:
         return "null"
         
 
-    def year(self, rating_key):
+    def year(self, ratingKey):
         try:
             # Get the originally available year from Plex
-            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
+            show_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"}
@@ -777,10 +777,10 @@ class Plex:
             return e
 
 
-    def episodes(self, rating_key):
+    def episodes(self, ratingKey):
         try:
             # Retrieve a list of episodes for a show based on rating key
-            episodes_url = f"{self.plex_url}/library/metadata/{rating_key}/allLeaves"
+            episodes_url = f"{self.plex_url}/library/metadata/{ratingKey}/allLeaves"
             episodes_url = re.sub("0//", "0/", episodes_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"}
@@ -1231,12 +1231,14 @@ def cleanPath(string):
 
 """)
     create_vars_file.close()
+else:
+    print("Vars module file present.")
 
 
 # Check if this is a Docker Build to format PMM config folder directory
 is_docker = os.environ.get('PATTRMM_DOCKER', "False")
 
-if is_docker:
+if is_docker == "True":
     pmm_config_path_prefix = "./config/"
 else:
     pmm_config_path_prefix = "../"
@@ -1527,18 +1529,18 @@ templates:
 
     # strip (words) and url format plex title #
     class PlexItem:
-        def __init__(self, title, year, rating_key):
+        def __init__(self, title, year, ratingKey):
             self.title = re.sub("\s\(.*?\)","", title)
             if year != "null":
                 self.year = datetime.strptime(year, '%Y-%m-%d').year
             else:
                 self.year = year
-            self.rating_key = rating_key
+            self.ratingKey = ratingKey
 
     class TMDBSearch:
-        def __init__(self, title, rating_key, tmdb_id, status):
+        def __init__(self, title, ratingKey, tmdb_id, status):
             self.title = title
-            self.rating_key = rating_key
+            self.ratingKey = ratingKey
             self.tmdb_id = tmdb_id
             self.status = status
 
@@ -1654,11 +1656,11 @@ templates:
     for query_plex_item in search_list:
         # display search progress
         print("\rSearching... " + "(" + str(missing_data_counter) + "/" + get_count(search_list) + ")", end="")
-        rating_key = query_plex_item['ratingKey']
+        ratingKey = query_plex_item['ratingKey']
         search_year = True
         if query_plex_item['year'] == "null":
             search_year = False
-        id = plex.show.tmdb_id(rating_key)
+        id = plex.show.tmdb_id(ratingKey)
         if id != "null" and search_year:
             key_pairs_list.append(TMDBSearch(query_plex_item['title'], query_plex_item['ratingKey'], id, "null"))
                     # info for found match
@@ -1838,7 +1840,7 @@ templates:
             print(f"An error occurred updating the timestamp: {str(e)}")
 
 
-    next_air_dates_list = pretty_json(sorted_list(json.loads(dict_to_json(tmdb_details_list)), 'nextAir'))
+    next_air_dates_list = pretty_json(sorted_list(json.loads(dict_to_json(tmdb_details_list)), 'next_air_date'))
 
 
     ## write tmdb details to file ##
@@ -2214,14 +2216,14 @@ overlays:
     series_rs_list = filter(
         lambda x: (
             x['status'] == "Returning Series" and
-            x['nextAir'] != "null" and
-            x['nextAir'] < str(next_air_date) and
-            x['nextAir'] > str(today) and
-            x['lastAir'] < str(last_air_date)),
+            x['next_air_date'] != "null" and
+            x['next_air_date'] < str(next_air_date) and
+            x['next_air_date'] > str(today) and
+            x['last_air_date'] < str(last_air_date)),
             loaded_cache_json)
     print("Sorting " + library + "...")
     logging.info("Sorting " + library + "...")
-    series_rs_sorted_list = sorted_list(series_rs_list, 'nextAir')
+    series_rs_sorted_list = sorted_list(series_rs_list, 'next_air')
 
     trakt_access = vars.traktApi('token')
     trakt_api = vars.traktApi('client')
