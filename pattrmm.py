@@ -36,16 +36,16 @@ def verify_or_create_folder(folder_path, folder_name_for_logging):
         print(folder_name_for_logging.capitalize() + "folder present...")
 
 
-# def verify_or_create_file(file_path, file_name_for_logging):
-#     """Function verifying if a file exists and creating the file if it doesn't."""
+def verify_or_create_file(file_path, file_name_for_logging):
+    """Function verifying if a file exists and creating the file if it doesn't."""
 
-#     folder_exists = os.path.isfile(file_path)
-#     if not folder_exists:
-#         print("Creating " + file_name_for_logging + " file...")
-#         write_file = open(file_path, "x")
-#         write_file.close()
-#     else:
-#         print(file_name_for_logging.capitalize() + "file present...")
+    file_exists = os.path.isfile(file_path)
+    if not file_exists:
+        print("Creating " + file_name_for_logging + " file...")
+        create_file = open(file_path, "x")
+        create_file.close()
+    else:
+        print(file_name_for_logging.capitalize() + "file present...")
 
 
 
@@ -62,11 +62,7 @@ verify_or_create_folder("data/logs", "logs")
 
 # pattrmm log file
 log_file = "data/logs/pattrmm.log"
-log_file_exists = os.path.exists(log_file)
-if not log_file_exists:
-    print("Creating log file..")
-    writeLogs = open(log_file, "x")
-    writeLogs.close()
+verify_or_create_file(log_file, "log")
 
 logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
@@ -74,12 +70,12 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s -
 verify_or_create_folder("preferences", "preferences")
 
 # settings file for pattrmm
-settings = "preferences/settings.yml"
+settings_file = "preferences/settings.yml"
 # If settings file doesn't exist, create it
-if not os.path.isfile(settings):
+if not os.path.isfile(settings_file):
     print("Creating settings file..")
-    writeSettings = open(settings, "x")
-    writeSettings.write(
+    create_settings_file = open(settings_file, "x")
+    create_settings_file.write(
         '''
 libraries:
   TV Shows:                          # Plex Libraries to read from. Can enter multiple libraries.
@@ -141,7 +137,7 @@ extra_overlays:
     font_color: "#FFFFFF"
     text: "C A N C E L E D"
 ''')
-    writeSettings.close()
+    create_settings_file.close()
     print("Settings file created. Please configure preferences/settings.yml and rerun PATTRMM.")
     exit()
 else:
@@ -154,8 +150,8 @@ vars_file = 'vars.py'
 vars_file_exists = os.path.exists(vars_file)
 if not vars_file_exists:
     print("Creating vars module file..")
-    writeVars = open(vars_file, "x")
-    writeVars.write("""
+    create_vars_file = open(vars_file, "x")
+    create_vars_file.write("""
 from ruamel.yaml import YAML
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -1234,6 +1230,7 @@ def cleanPath(string):
 
 
 """)
+    create_vars_file.close()
 
 
 # Check if this is a Docker Build to format PMM config folder directory
@@ -1283,9 +1280,9 @@ if not pmm_overlay_folder_exits:
 
 ##############################################
 # Start sequencing through defined Libraries #
-openSettings = open(settings, "r")
-loadSettings = yaml.load(openSettings)
-for library in loadSettings['libraries']:
+read_settings_file = open(settings_file, "r")
+loaded_settings_yaml = yaml.load(read_settings_file)
+for library in loaded_settings_yaml['libraries']:
 
     if plex.library.type(library) != 'show':
         print(f"{library} is not compatible with the 'Returning Soon' method. Skipping.")
@@ -1295,89 +1292,89 @@ for library in loadSettings['libraries']:
         print(f"'Returning Soon' disabled for {library}. Skipping.")
         continue
 
-    libraryCleanPath = vars.cleanPath(library)
+    library_clean_path = vars.cleanPath(library)
     
     # check for days_ahead assignment
     days_ahead = vars.librarySetting(library, 'days')
 
     # Set stats file
-    stats = "./data/history/" + libraryCleanPath + "-history.json"
-    isStats = os.path.exists(stats)
-    if not isStats:
-        writeStats = open(stats, "x")
-        writeStats.write(f'''
+    stats_file = "./data/history/" + library_clean_path + "-history.json"
+    stats_file_exists = os.path.exists(stats_file)
+    if not stats_file_exists:
+        create_stats_file = open(stats_file, "x")
+        create_stats_file.write(f'''
 {{
     "lastRefresh": "{today}"
 }}''')
-        writeStats.close()
+        create_stats_file.close()
 
-    statsFile = open(stats, "r")
-    statsData = json.load(statsFile)
-    statsFile.close()
+    read_stats_file = open(stats_file, "r")
+    loaded_stats_json = json.load(read_stats_file)
+    read_stats_file.close()
 
 
     # Check for last run of this library
-    refreshDays = vars.librarySetting(library, 'refresh')
-    refreshHist = vars.history(libraryCleanPath, 'lastFull')
-    refreshHist = datetime.strptime(refreshHist, "%Y-%m-%d")
-    delay = refreshHist + timedelta(days=refreshDays)
+    refresh_days = vars.librarySetting(library, 'refresh')
+    refresh_history = vars.history(library_clean_path, 'lastFull')
+    refresh_history = datetime.strptime(refresh_history, "%Y-%m-%d")
+    delay = refresh_history + timedelta(days=refresh_days)
     if today >= delay.date():
-        refresh = True
-    if today < delay.date():    
-        refresh = False
+        should_be_refreshed = True
+    else:    
+        should_be_refreshed = False
 
     # keys file for ratingKey and tmdb pairs
-    keys = "./data/" + libraryCleanPath + "-keys.json"
+    keys_file = "./data/" + library_clean_path + "-keys.json"
 
     # cache file for tmdb details
-    cache = "./data/" + libraryCleanPath + "-tmdb-cache.json"
+    cache_file = "./data/" + library_clean_path + "-tmdb-cache.json"
 
     # returning soon metadata save folder
-    metadata_save_folder = vars.librarySetting(library, 'save_folder')
-    save_folder = pmm_config_path_prefix + metadata_save_folder
-    if save_folder != '':
-        is_save_folder = os.path.exists(save_folder)
-        if not is_save_folder:
-            subfolder_display_path = f"config/{metadata_save_folder}"
-            print(f"Sub-folder {subfolder_display_path} not found.")
+    rs_metadata_folder = vars.librarySetting(library, 'save_folder')
+    pmm_rs_metadata_folder = pmm_config_path_prefix + rs_metadata_folder
+    if pmm_rs_metadata_folder != '':
+        pmm_rs_metadata_folder_exists = os.path.exists(pmm_rs_metadata_folder)
+        if not pmm_rs_metadata_folder_exists:
+            rs_metadata_subfolder_path = f"config/{rs_metadata_folder}"
+            print(f"Sub-folder {rs_metadata_subfolder_path} not found.")
             print(f"Attempting to create.")
-            logging.info(f"Sub-folder {subfolder_display_path} not found.")
+            logging.info(f"Sub-folder {rs_metadata_subfolder_path} not found.")
             logging.info(f"Attempting to create.")
             try:
-                os.makedirs(save_folder)
-                print(f"{subfolder_display_path} created successfully.")
-                logging.info(f"{subfolder_display_path} created successfully.")
+                os.makedirs(pmm_rs_metadata_folder)
+                print(f"{rs_metadata_subfolder_path} created successfully.")
+                logging.info(f"{rs_metadata_subfolder_path} created successfully.")
             except Exception as sf:
                 print(f"Exception: {str(sf)}")
                 logging.warning(f"Exception: {str(sf)}")
 
     # returning-soon metadata file for collection
-    meta = save_folder + libraryCleanPath + "-returning-soon-metadata.yml"
+    rs_metadata_file = pmm_rs_metadata_folder + library_clean_path + "-returning-soon-metadata.yml"
 
     # returning soon overlay save folder
-    overlay_save_folder = vars.librarySetting(library, 'overlay_save_folder')
-    save_folder = pmm_config_path_prefix + overlay_save_folder
-    if save_folder != '':
-        is_save_folder = os.path.exists(save_folder)
-        if not is_save_folder:
-            subfolder_display_path = f"config/{overlay_save_folder}"
-            print(f"Sub-folder {subfolder_display_path} not found.")
+    rs_overlay_folder = vars.librarySetting(library, 'overlay_save_folder')
+    pmm_rs_overlay_folder = pmm_config_path_prefix + rs_overlay_folder
+    if pmm_rs_overlay_folder != '':
+        pmm_rs_overlay_folder_exists = os.path.exists(pmm_rs_overlay_folder)
+        if not pmm_rs_overlay_folder_exists:
+            rs_overlay_subfolder_path = f"config/{rs_overlay_folder}"
+            print(f"Sub-folder {rs_overlay_subfolder_path} not found.")
             print(f"Attempting to create.")
-            logging.info(f"Sub-folder {subfolder_display_path} not found.")
+            logging.info(f"Sub-folder {rs_overlay_subfolder_path} not found.")
             logging.info(f"Attempting to create.")
             try:
-                os.makedirs(save_folder)
-                print(f"{subfolder_display_path} created successfully.")
-                logging.info(f"{subfolder_display_path} created successfully.")
+                os.makedirs(rs_overlay_subfolder_path)
+                print(f"{rs_overlay_subfolder_path} created successfully.")
+                logging.info(f"{rs_overlay_subfolder_path} created successfully.")
             except Exception as sf:
                 print(f"Exception: {str(sf)}")
                 logging.warning(f"Exception: {str(sf)}")
     
     # generated overlay file path
-    rso = save_folder + libraryCleanPath + "-returning-soon-overlay.yml"
+    rs_overlay_file = pmm_rs_overlay_folder + library_clean_path + "-returning-soon-overlay.yml"
     
     # overlay template path
-    overlay_temp = "./preferences/" + libraryCleanPath + "-returning-soon-template.yml"
+    rs_overlay_template_file = "./preferences/" + library_clean_path + "-returning-soon-template.yml"
     
 
     # Just some information
@@ -1389,58 +1386,58 @@ for library in loadSettings['libraries']:
 
 
     # If keys file doesn't exist, create it
-    isKeys = os.path.exists(keys)
-    if not isKeys:
+    keys_file_exists = os.path.exists(keys_file)
+    if not keys_file_exists:
         print("Creating " + library + " keys file..")
         logging.info("Creating " + library + " keys file..")
-        writeKeys = open(keys, "x")
-        writeKeys.close()
-        firstRun = True
+        create_keys_file = open(keys_file, "x")
+        create_keys_file.close()
+        is_first_run = True
     else:
         print(library + " keys file found.")
         logging.info(library + " keys file found.")
         print("Checking " + library + " data...")
         logging.info("Checking " + library + " data...")
-        if os.stat(keys).st_size == 0:
-            firstRun = True
+        if os.stat(keys_file).st_size == 0:
+            is_first_run = True
             print(library + " keys file is empty. Initiating first run.")
             logging.info(library + " keys file is empty. Initiating first run.")
-        if os.stat(keys).st_size != 0:
+        if os.stat(keys_file).st_size != 0:
 
             ## Has the refresh status delay passed for this library ##
-            if refresh == False:
+            if should_be_refreshed:
+                is_first_run = True
+                print("Keys data has expired. Rebuilding...")
+            else:
                 print("Keys data refresh delay for " + library + " not yet met.")
                 logging.info("Keys data refresh delay for " + library + " not yet met. Skipping status renewal.")
-                firstRun = False
-            if refresh == True:
-                firstRun = True
-                print("Keys data has expired. Rebuilding...")
+                is_first_run = False
+            
 
     # If cache file doesn't exist, create it
-    isCache = os.path.exists(cache)
-    if not isCache:
+    cache_file_exists = os.path.exists(cache_file)
+    if not cache_file_exists:
         print("Creating " + library + " cache file..")
         logging.info("Creating " + library + " cache file..")
-        writeCache = open(cache, "x")
-        writeCache.write('tmdbDataCache')
-        writeCache.close()
+        creata_cache_file = open(cache_file, "x")
+        creata_cache_file.write('tmdbDataCache')
+        creata_cache_file.close()
     else:
         print(library + " cache file present.")
         logging.info(library + " cache file present.")
 
     # If returning-soon metadata file doesn't exist, create it
-    isMeta = os.path.exists(meta)
-    if not isMeta:
+    rs_metadata_file_exists = os.path.exists(rs_metadata_file)
+    if not rs_metadata_file_exists:
         print("Creating " + library + " metadata collection file..")
         logging.info("Creating " + library + " metadata collection file..")
-        writeMeta = open(meta, "x")
-        me = vars.traktApi('me')
-        slug = libraryCleanPath
-        writeMeta.write(
+        create_rs_metadata_file = open(rs_metadata_file, "x")
+        trakt_user_name = vars.traktApi('me')
+        create_rs_metadata_file.write(
             f'''
 collections:
   Returning Soon:
-    trakt_list: https://trakt.tv/users/{me}/lists/returning-soon-{slug}
+    trakt_list: https://trakt.tv/users/{trakt_user_name}/lists/returning-soon-{library_clean_path}
     url_poster: https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/Returning%20Soon.jpg
     collection_order: custom
     visible_home: true
@@ -1448,19 +1445,19 @@ collections:
     sync_mode: sync
     '''
         )
-        writeMeta.close()
+        create_rs_metadata_file.close()
     else:
         print(library + " metadata file present.")
         logging.info(library + " metadata file present.")
 
     
     # If overlay template doesn't exist, create it
-    isTemplate = os.path.exists(overlay_temp)
-    if not isTemplate:
+    rs_overlay_template_file_exists = os.path.exists(rs_overlay_template_file)
+    if not rs_overlay_template_file_exists:
         print("Generating " + library + " template file..")
         logging.info("Generating " + library + " template file..")
-        writeTemp = open(overlay_temp, "x")
-        writeTemp.write(
+        create_rs_overlay_template_file = open(rs_overlay_template_file, "x")
+        create_rs_overlay_template_file.write(
         '''
 templates:
   # TEXT CENTER
@@ -1489,35 +1486,32 @@ templates:
       vertical_offset: 0
 '''
     )
-        writeTemp.close()
+        create_rs_overlay_template_file.close()
     else:
         print(library + " template file found.")
         logging.info(library + " template file found.")
 
     
     # If overlay file doesn't exist, create it
-    isOverlay = os.path.exists(rso)
-    if not isOverlay:
+    rs_overlay_file_exists = os.path.exists(rs_overlay_file)
+    if not rs_overlay_file_exists:
         print("Creating empty " + library + " Overlay file..")
         logging.info("Creating empty " + library + " Overlay file..")
-        writeRSO = open(rso, "x")
-        writeRSO.write('')
-        writeRSO.close()
+        create_rs_overlay_file = open(rs_overlay_file, "x")
+        create_rs_overlay_file.write('')
+        create_rs_overlay_file.close()
     else:
         print(library + " overlay file present.")
         logging.info(library + " overlay file present.")
 
-    # declare date formats
-    date_format = '%Y-%m-%d'
-
     # define classes and definitions
-    def sortedList(list, field):
+    def sorted_list(list, field):
         return sorted(list, key=lambda k: k[field], reverse=False)
 
-    def prettyJson(value):
+    def pretty_json(value):
         return json.dumps(value, indent=4, sort_keys=False)
 
-    def dict_ToJson(value):
+    def dict_to_json(value):
         return json.dumps([ob.__dict__ for ob in value], indent=4, sort_keys=False)
 
     # function to count a list #
@@ -1529,47 +1523,47 @@ templates:
 
     # strip date to just year #
     def get_year(date):
-        return datetime.strptime(date, date_format).year
+        return datetime.strptime(date, '%Y-%m-%d').year
 
     # strip (words) and url format plex title #
-    class Plex_Item:
-        def __init__(self, title, year, ratingKey):
+    class PlexItem:
+        def __init__(self, title, year, rating_key):
             self.title = re.sub("\s\(.*?\)","", title)
             if year != "null":
-                self.year = datetime.strptime(year, date_format).year
+                self.year = datetime.strptime(year, '%Y-%m-%d').year
             else:
                 self.year = year
-            self.ratingKey = ratingKey
+            self.rating_key = rating_key
 
-    class tmdb_search:
-        def __init__(self, title, ratingKey, tmdb_id, status):
+    class TMDBSearch:
+        def __init__(self, title, rating_key, tmdb_id, status):
             self.title = title
-            self.ratingKey = ratingKey
+            self.rating_key = rating_key
             self.tmdb_id = tmdb_id
             self.status = status
 
-    class tmdbDetails:
-        def __init__(self, id, title, firstAir, lastAir, nextAir, status, pop):
+    class TMDBDetails:
+        def __init__(self, id, title, first_air_date, last_air_date, next_air_date, status, pop):
             self.id = id
             self.title = title
-            self.firstAir = firstAir
-            self.lastAir = lastAir
-            self.nextAir = nextAir
+            self.first_air_date = first_air_date
+            self.last_air_date = last_air_date
+            self.next_air_date = next_air_date
             self.status = status
             self.pop = pop
 
     # declare lists
-    Search = []
-    key_pairs = []
-    status_key_pairs = []
-    tmdb_details = []
+    search_list = []
+    key_pairs_list = []
+    status_key_pairs_list = []
+    tmdb_details_list = []
 
 
 
     # create access variables 
     #library = vars.setting('library')
-    plexCall = vars.plexApi('url') + '/library/sections/' + vars.plexGet(library) + '/all'
-    plex_url = re.sub("//lib", "/lib", plexCall)
+    plex_call = vars.plexApi('url') + '/library/sections/' + vars.plexGet(library) + '/all'
+    plex_url = re.sub("//lib", "/lib", plex_call)
     plex_headers = {
         "accept": "application/json"
     }
@@ -1581,269 +1575,262 @@ templates:
     logging.info("Gathering Plex entries...")
     
 
-    series = json.loads(prettyJson(requests.get(plex_url, headers=plex_headers, params=plex_token).json()))
-    titlesInPlex = get_count(series['MediaContainer']['Metadata'])
-    count = 1
-    for this in series['MediaContainer']['Metadata']:
-        
+    loaded_plex_series_json = json.loads(pretty_json(requests.get(plex_url, headers=plex_headers, params=plex_token).json()))
+    plex_number_of_series = get_count(loaded_plex_series_json['MediaContainer']['Metadata'])
+    missing_data_counter = 1
+    for plex_series_entry in loaded_plex_series_json['MediaContainer']['Metadata']:
         try:
-            Search.append(Plex_Item(this['title'],this['originallyAvailableAt'], this['ratingKey']))
+            search_list.append(PlexItem(plex_series_entry['title'],plex_series_entry['originallyAvailableAt'], plex_series_entry['ratingKey']))
         except KeyError:
             print("")
-            print("Caution " + this['title'] + " does not have an originally available at date. May not be able to match.")
-            logging.warning("Caution " + this['title'] + " does not have an originally available at date. May not be able to match.")
-            Search.append(Plex_Item(this['title'],"null", this['ratingKey']))
-        count += 1
+            print("Caution " + plex_series_entry['title'] + " does not have an originally available at date. May not be able to match.")
+            logging.warning("Caution " + plex_series_entry['title'] + " does not have an originally available at date. May not be able to match.")
+            search_list.append(PlexItem(plex_series_entry['title'],"null", plex_series_entry['ratingKey']))
+        missing_data_counter += 1
         
-    print("Found " + get_count(series['MediaContainer']['Metadata']) + " entries...")
+    print("Found " + get_count(loaded_plex_series_json['MediaContainer']['Metadata']) + " entries...")
 
     # search for tmdb id of each entry, will update to use stored keys to reduce unnecessary searches
-    refreshSearch = Search
-    Search = json.loads(dict_ToJson(Search))
+    refresh_search_list = search_list
+    search_list = json.loads(dict_to_json(search_list))
 
     
     # No need to run a full lookup on subsequent runs
-    if firstRun == False:
-        keyFile = open(keys, "r")
-        keyData = json.load(keyFile)
-        keyFile.close()
+    if not is_first_run:
+        read_keys_file = open(keys_file, "r")
+        loaded_keys_json = json.load(read_keys_file)
+        read_keys_file.close()
 
-        cleanedKeysList = []
-        compareSearch = dict_ToJson(refreshSearch)
+        cleaned_keys_list = []
+        compare_search_json = dict_to_json(refresh_search_list)
 
         # Find if any entries were removed from Plex and remove from Key data
-        for existingKey in keyData[:]:
-            if (existingKey['ratingKey'] not in compareSearch):
-                keyData.remove(existingKey)
+        for existing_key in loaded_keys_json[:]:
+            if (existing_key['ratingKey'] not in compare_search_json):
+                loaded_keys_json.remove(existing_key)
                 print("")
-                print(existingKey['title'] + " was no longer found in Plex. Removing from Keys.")
+                print(existing_key['title'] + " was no longer found in Plex. Removing from Keys.")
                 time.sleep(.6)
-        for cleanedKey in keyData:
-            cleanedKeysList.append(tmdb_search(cleanedKey['title'], cleanedKey['ratingKey'], cleanedKey['tmdb_id'], cleanedKey['status']))
+        for cleaned_key in loaded_keys_json:
+            cleaned_keys_list.append(TMDBSearch(cleaned_key['title'], cleaned_key['ratingKey'], cleaned_key['tmdb_id'], cleaned_key['status']))
 
-        updatedKeys = dict_ToJson(cleanedKeysList)
+        updated_keys_json = dict_to_json(cleaned_keys_list)
 
 
         # Check for existing data for remaining Plex entries.
-        rfSearch = 0
-        newSearch = Search
+        refresh_search_counter = 0
+        new_search_list = search_list
         print("")
-        for eachItem in newSearch[:]:
-            if (eachItem['ratingKey'] in updatedKeys):
-                newSearch.remove(eachItem)
-                #print("Key data exists for " + eachItem['title'] + ". Removed from search list")
-                rfSearch += 1
+        for plex_item in new_search_list[:]:
+            if (plex_item['ratingKey'] in updated_keys_json):
+                new_search_list.remove(plex_item)
+                #print("Key data exists for " + plex_item['title'] + ". Removed from search list")
+                refresh_search_counter += 1
                 
         # Output how many entries have existing data                   
-        print("Found existing data for " + str(rfSearch) + " titles. Removing from search list.")
-        logging.info("Found existing data for " + str(rfSearch) + " titles. Removing from search list.")
+        print("Found existing data for " + str(refresh_search_counter) + " titles. Removing from search list.")
+        logging.info("Found existing data for " + str(refresh_search_counter) + " titles. Removing from search list.")
         print("")
 
         # Search for new and missing data
-        for remainingItem in newSearch:
-            print("No key entry found for " + remainingItem['title'] + ". Searching for details...")
-            logging.info("No key entry found for " + remainingItem['title'] + ". Searching for details...")
-        if len(newSearch) < 1:
-            message = False
+        for remaining_plex_item in new_search_list:
+            print("No key entry found for " + remaining_plex_item['title'] + ". Searching for details...")
+            logging.info("No key entry found for " + remaining_plex_item['title'] + ". Searching for details...")
+        if len(new_search_list) > 0:
+            found_series_to_update = True
+            search_list = new_search_list
+        else:
+            found_series_to_update = False
             print("Nothing new to search for. Proceeding...")
             logging.info("Nothing new to search for. Proceeding...")
-        if len(newSearch) > 0:
-            message = True
-            Search = newSearch
 
         # Hold list to append searches
-        status_key_pairs = cleanedKeysList
-
-
-
-
+        status_key_pairs_list = cleaned_keys_list
 
 
 
     # Start searching for missing data. Look for TMDB ID first.
-    count = 1
-    for query in Search:
+    missing_data_counter = 1
+    for query_plex_item in search_list:
         # display search progress
-        print("\rSearching... " + "(" + str(count) + "/" + get_count(Search) + ")", end="")
-        ratingKey = query['ratingKey']
-        searchYear = True
-        if query['year'] == "null":
-            searchYear = False
-        id = plex.show.tmdb_id(ratingKey)
-        if id != "null" and searchYear != False:
-            key_pairs.append(tmdb_search(query['title'], query['ratingKey'], id, "null"))
+        print("\rSearching... " + "(" + str(missing_data_counter) + "/" + get_count(search_list) + ")", end="")
+        rating_key = query_plex_item['ratingKey']
+        search_year = True
+        if query_plex_item['year'] == "null":
+            search_year = False
+        id = plex.show.tmdb_id(rating_key)
+        if id != "null" and search_year:
+            key_pairs_list.append(TMDBSearch(query_plex_item['title'], query_plex_item['ratingKey'], id, "null"))
                     # info for found match
-            print(" Found ID ==> " + str(id) + " for " + '"' + query['title'] + '"')
-            logging.info(" Found ID ==> " + str(id) + " for " + '"' + query['title'] + '"')
+            print(" Found ID ==> " + str(id) + " for " + '"' + query_plex_item['title'] + '"')
+            logging.info(" Found ID ==> " + str(id) + " for " + '"' + query_plex_item['title'] + '"')
             # end adding to the list after the first match is found, else duplicate entries occur
                 
-        # increment progress after a successful match 
-        count += 1
+        # increment progress after a successful match
+        missing_data_counter += 1
     
     # Get details using the TMDB IDs.
-    for d in json.loads(dict_ToJson(key_pairs)):
+    for key_pair_item in json.loads(dict_to_json(key_pairs_list)):
 
-        tmdbUrl = "https://api.themoviedb.org/3/tv/" + str(d['tmdb_id'])
-        tmdbHeaders = {
+        tmdb_url = "https://api.themoviedb.org/3/tv/" + str(key_pair_item['tmdb_id'])
+        tmdb_headers = {
         "accept": "application/json"
         }
-        tmdbParams = {
+        tmdb_parameters = {
             "language": "en-US", "api_key": vars.tmdbApi('token')
         }
 
-        tmdb_request = requests.get(tmdbUrl, headers=tmdbHeaders, params=tmdbParams)
+        tmdb_request = requests.get(tmdb_url, headers=tmdb_headers, params=tmdb_parameters)
         
         # If the page does not return successful
         if tmdb_request.status_code != 200:
-            print("There was a problem accessing the resource for TMDB ID " + str(d['tmdb_id']))
+            print("There was a problem accessing the resource for TMDB ID " + str(key_pair_item['tmdb_id']))
 
 
             if tmdb_request.status_code == 34:
                 print("This ID has been removed from TMDB, or is no longer accessible.")
-                print("Try refreshing the metadata for " + d['title'])
+                print("Try refreshing the metadata for " + key_pair_item['title'])
             
             continue
 
         # If the page returns successful, get details.    
-        tmdb = json.loads(prettyJson(tmdb_request.json()))
+        tmdb_series_entry = json.loads(pretty_json(tmdb_request.json()))
 
-        print("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
-        logging.info("Found details for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
+        print("Found details for " + tmdb_series_entry['name'] + " ( " + str(tmdb_series_entry['id']) + " )")
+        logging.info("Found details for " + tmdb_series_entry['name'] + " ( " + str(tmdb_series_entry['id']) + " )")
 
-        if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
-            lastAir = tmdb['last_air_date']
-        if tmdb['last_air_date'] == None or tmdb['last_air_date'] == "":
-            lastAir = "null"
+        if tmdb_series_entry['last_air_date'] is not None and tmdb_series_entry['last_air_date'] != "" :
+            last_air_date = tmdb_series_entry['last_air_date']
+        else:
+            last_air_date = "null"
 
-        if tmdb['next_episode_to_air'] != None and tmdb['next_episode_to_air']['air_date'] != None:
-            nextAir = tmdb['next_episode_to_air']['air_date']
-        if tmdb['next_episode_to_air'] == None or tmdb['next_episode_to_air'] == "":
-            nextAir = "null"
+        if tmdb_series_entry['next_episode_to_air'] is not None and tmdb_series_entry['next_episode_to_air']['air_date'] is not None:
+            next_air_date = tmdb_series_entry['next_episode_to_air']['air_date']
+        else:
+            next_air_date = "null"
 
-        if tmdb['first_air_date'] != None and tmdb['first_air_date'] != "":
-            firstAir = tmdb['first_air_date']
-        if tmdb['first_air_date'] == None or tmdb['first_air_date'] == "":
-            firstAir = "null"
+        if tmdb_series_entry['first_air_date'] is not None and tmdb_series_entry['first_air_date'] != "":
+            first_air_date = tmdb_series_entry['first_air_date']
+        else:
+            first_air_date = "null"
 
-        status_key_pairs.append(
-            tmdb_search(
-                d['title'],
-                d['ratingKey'],
-                d['tmdb_id'],
-                tmdb['status']
+        status_key_pairs_list.append(
+            TMDBSearch(
+                key_pair_item['title'],
+                key_pair_item['ratingKey'],
+                key_pair_item['tmdb_id'],
+                tmdb_series_entry['status']
+            )
+        )
+
+        if is_first_run:
+            if tmdb_series_entry['status'] == "Returning Series":
+                tmdb_details_list.append(
+                    TMDBDetails(
+                        tmdb_series_entry['id'],
+                        tmdb_series_entry['name'],
+                        first_air_date,
+                        last_air_date,
+                        next_air_date,
+                        tmdb_series_entry['status'],
+                        tmdb_series_entry['popularity']
+                    )
                 )
-                )
 
 
-
-
-        if firstRun == True:
-            if tmdb['status'] == "Returning Series":
-                tmdb_details.append(
-                    tmdbDetails(
-                        tmdb['id'],
-                        tmdb['name'],
-                        firstAir,
-                        lastAir,
-                        nextAir,
-                        tmdb['status'],
-                        tmdb['popularity']
-                        )
-                        )
-                
-
-    key_string = dict_ToJson(status_key_pairs)
-    writeKeys = open(keys, "w")
-    writeKeys.write(key_string)
-    writeKeys.close()
-    if firstRun == True:
+    new_keys_file_content = dict_to_json(status_key_pairs_list)
+    write_keys_file = open(keys_file, "w")
+    write_keys_file.write(new_keys_file_content)
+    write_keys_file.close()
+    if is_first_run:
         print(library + " Keys updated...")
         logging.info(library + " Keys updated...")
-    if firstRun == False:
-        if message == True:
+    else:
+        if found_series_to_update:
             print(library + " Keys updated...")
             logging.info(library + " Keys updated...")
             print("Updating data for Returning " + library + ".")
             logging.info("Updating data for Returning " + library + ".")
 
-    if firstRun == False:
-        updateMe = []
-        keyFile = open(keys, "r")
-        keyData = json.load(keyFile)
+        series_to_update_list = []
+        read_keys_file = open(keys_file, "r")
+        loaded_keys_json = json.load(read_keys_file)
         
-        for u in keyData:
+        for update_key in loaded_keys_json:
 
-            if u['status'] != "Returning Series":
-                updateMe.append(tmdb_search(u['title'], u['ratingKey'], u['tmdb_id'], u['status']))
-            if u['status'] == "Returning Series":
-                tmdbUrl = "https://api.themoviedb.org/3/tv/" + str(u['tmdb_id'])
-                tmdbHeaders = {
-                "accept": "application/json"
+            if update_key['status'] != "Returning Series":
+                series_to_update_list.append(TMDBSearch(update_key['title'], update_key['ratingKey'], update_key['tmdb_id'], update_key['status']))
+            else:
+                tmdb_url = "https://api.themoviedb.org/3/tv/" + str(update_key['tmdb_id'])
+                tmdb_headers = {
+                    "accept": "application/json"
                 }
-                tmdbParams = {
-                "language": "en-US", "api_key": vars.tmdbApi('token')
+                tmdb_parameters = {
+                    "language": "en-US", "api_key": vars.tmdbApi('token')
                 }
 
-                tmdbSubRequest = requests.get(tmdbUrl,headers=tmdbHeaders, params=tmdbParams)
-                if tmdbSubRequest.status_code != 200:
-                    print("There was a problem accessing the resource for TMDB ID " + str(u['tmdb_id']))
-                    print(u['title'] + '( ' + str(u['tmdb_id']) + ' ) may have been removed.')
+                tmdb_sub_request = requests.get(tmdb_url,headers=tmdb_headers, params=tmdb_parameters)
+                if tmdb_sub_request.status_code != 200:
+                    print("There was a problem accessing the resource for TMDB ID " + str(update_key['tmdb_id']))
+                    print(update_key['title'] + '( ' + str(update_key['tmdb_id']) + ' ) may have been removed.')
                     continue
-                if tmdbSubRequest.status_code == 34:
+                if tmdb_sub_request.status_code == 34:
                     print("This ID has been removed from TMDB, or is no longer accessible.")
-                    print("Try refreshing the metadata for " + u['title'])
+                    print("Try refreshing the metadata for " + update_key['title'])
                     continue
                 
-                tmdb = json.loads(prettyJson(tmdbSubRequest.json()))
+                tmdb_series_entry = json.loads(pretty_json(tmdb_sub_request.json()))
 
-                print("Refreshing data for " + tmdb['name'] + " ( " + str(tmdb['id']) + " )")
+                print("Refreshing data for " + tmdb_series_entry['name'] + " ( " + str(tmdb_series_entry['id']) + " )")
 
-                if tmdb['last_air_date'] != None and tmdb['last_air_date'] != "" :
-                    lastAir = tmdb['last_air_date']
-                if tmdb['last_air_date'] == None or tmdb['last_air_date'] == "":
-                    lastAir = "null"
+                if tmdb_series_entry['last_air_date'] is not None and tmdb_series_entry['last_air_date'] != "" :
+                    last_air_date = tmdb_series_entry['last_air_date']
+                else:
+                    last_air_date = "null"
 
-                if tmdb['next_episode_to_air'] != None and tmdb['next_episode_to_air']['air_date'] != None:
-                    nextAir = tmdb['next_episode_to_air']['air_date']
-                if tmdb['next_episode_to_air'] == None or tmdb['next_episode_to_air'] == "":
-                    nextAir = "null"
+                if tmdb_series_entry['next_episode_to_air'] is not None and tmdb_series_entry['next_episode_to_air']['air_date'] != None:
+                    next_air_date = tmdb_series_entry['next_episode_to_air']['air_date']
+                else:
+                    next_air_date = "null"
 
-                if tmdb['first_air_date'] != None and tmdb['first_air_date'] != "":
-                    firstAir = tmdb['first_air_date']
-                if tmdb['first_air_date'] == None or tmdb['first_air_date'] == "":
-                    firstAir = "null"
-                updateMe.append(tmdb_search(u['title'], u['ratingKey'], u['tmdb_id'], tmdb['status']))
-                if tmdb['status'] == "Returning Series":
-                    tmdb_details.append(
-                            tmdbDetails(
-                                tmdb['id'],
-                                tmdb['name'],
-                                firstAir,
-                                lastAir,
-                                nextAir,
-                                tmdb['status'],
-                                tmdb['popularity']
-                                )
-                                )
-        updated_key_string = dict_ToJson(updateMe)
-        updatedwriteKeys = open(keys, "w")
-        updatedwriteKeys.write(updated_key_string)
-        updatedwriteKeys.close()
+                if tmdb_series_entry['first_air_date'] is not None and tmdb_series_entry['first_air_date'] != "":
+                    first_air_date = tmdb_series_entry['first_air_date']
+                else:
+                    first_air_date = "null"
+                
+                series_to_update_list.append(TMDBSearch(update_key['title'], update_key['ratingKey'], update_key['tmdb_id'], tmdb_series_entry['status']))
+                if tmdb_series_entry['status'] == "Returning Series":
+                    tmdb_details_list.append(
+                        TMDBDetails(
+                            tmdb_series_entry['id'],
+                            tmdb_series_entry['name'],
+                            first_air_date,
+                            last_air_date,
+                            next_air_date,
+                            tmdb_series_entry['status'],
+                            tmdb_series_entry['popularity']
+                        )
+                    )
+
+        updated_keys_file_content = dict_to_json(series_to_update_list)
+        write_updates_to_keys_file = open(keys_file, "w")
+        write_updates_to_keys_file.write(updated_keys_file_content)
+        write_updates_to_keys_file.close()
 
     # update history timestamp
-    if refresh == True:
+    if should_be_refreshed:
         try:
             # Read the JSON file
-            with open(stats, 'r') as sh:
-                statsData = json.load(sh)
+            with open(stats_file, 'r') as read_stats_file_to_update:
+                loaded_stats_json = json.load(read_stats_file_to_update)
 
             # Update the 'lastRefresh' field with the current date
             now = date.today().strftime("%Y-%m-%d")
-            statsData['lastRefresh'] = now
+            loaded_stats_json['lastRefresh'] = now
 
             # Write the updated data back to the JSON file
-            with open(stats, 'w') as sh:
-                json.dump(statsData, sh, indent=4)
+            with open(stats_file, 'w') as write_updated_data_to_stats_file:
+                json.dump(loaded_stats_json, write_updated_data_to_stats_file, indent=4)
 
             print("Timestamp updated successfully.")
 
@@ -1851,18 +1838,13 @@ templates:
             print(f"An error occurred updating the timestamp: {str(e)}")
 
 
-
-    
-
-
-    listResults = prettyJson(sortedList(json.loads(dict_ToJson(tmdb_details)), 'nextAir'))
-
+    next_air_dates_list = pretty_json(sorted_list(json.loads(dict_to_json(tmdb_details_list)), 'nextAir'))
 
 
     ## write tmdb details to file ##
-    writeTmdb = open(cache, "w")
-    writeTmdb.write(listResults)
-    writeTmdb.close()
+    write_tmdb_details_to_cache_file = open(cache_file, "w")
+    write_tmdb_details_to_cache_file.write(next_air_dates_list)
+    write_tmdb_details_to_cache_file.close()
     print("\033[K" + library + " TMDB data updated...")
     logging.info(library + " TMDB data updated...")
 
@@ -1870,100 +1852,100 @@ templates:
     # write Template to Overlay file
     print("Writing " + library + " Overlay Template to Returning Soon " + library + " overlay file.")
     logging.info("Writing " + library + " Overlay Template to Returning Soon " + library + " overlay file.")
-    with open(overlay_temp) as ot:
-        ovrTemp = yaml.load(ot)
-        rsoWrite = open(rso, "w")
-        yaml.dump(ovrTemp, rsoWrite)
+
+    with open(rs_overlay_template_file) as read_rs_overlay_template_file:
+        loaded_rs_overlay_template_yaml = yaml.load(read_rs_overlay_template_file)
+        write_rs_overlay_file = open(rs_overlay_file, "w")
+        yaml.dump(loaded_rs_overlay_template_yaml, write_rs_overlay_file)
         print(library + " template applied.")
 
 
     # Generate Overlay body
     # define date ranges
-    dayCounter = 1
-    lastAirDate = date.today() - timedelta(days=45)
-    last_episode_aired = lastAirDate.strftime("%m/%d/%Y")
-    nextAirDate = date.today() + timedelta(days=int(days_ahead))
-    thisDayTemp = date.today() + timedelta(days=int(dayCounter))
-    thisDay = thisDayTemp.strftime("%m/%d/%Y")
+    day_counter = 1
+    last_air_date = date.today() - timedelta(days=45)
+    last_episode_aired = last_air_date.strftime("%m/%d/%Y")
+    next_air_date = date.today() + timedelta(days=int(days_ahead))
+    this_day_temporary = date.today() + timedelta(days=int(day_counter))
+    this_day = this_day_temporary.strftime("%m/%d/%Y")
 
     try:
-        dateStyle = vars.setting('dateStyle')
+        date_style = vars.setting('dateStyle')
     except:
-        dateStyle = 1
+        date_style = 1
 
     try:
-        delimiter = vars.setting('delimiter')
-        allowedDelimiterTypes = ['/', '-', '.', '_']
-        if delimiter not in allowedDelimiterTypes:
-            delimiter = "/"
+        date_delimiter = vars.setting('delimiter')
+        allowed_delimiter_symbols = ['/', '-', '.', '_']
+        if date_delimiter not in allowed_delimiter_symbols:
+            date_delimiter = "/"
     except:
-        delimiter = "/"
+        date_delimiter = "/"
 
     
-    if vars.setting('zeros') == True or vars.setting('zeros') != False:
-        dayFormatCode = "%d"
-        monthFormatCode = "%m"
-        
-    if vars.setting('zeros') == False:
+    if vars.setting('zeros'):
+        day_format_code = "%d"
+        month_format_code = "%m"
+    else:
         if platform.system() == "Windows":
-            monthFormatCode = "%#m"
-            dayFormatCode = "%#d"
+            month_format_code = "%#m"
+            day_format_code = "%#d"
             
         if platform.system() == "Linux" or platform.system() == "Darwin":
-            monthFormatCode = "%-m"
-            dayFormatCode = "%-d"
+            month_format_code = "%-m"
+            day_format_code = "%-d"
 
-    if dateStyle == 1:
-        monthDayFormat = "%m/%d"
-        monthDayFormatText = monthFormatCode + delimiter + dayFormatCode
+    if date_style == 1:
+        month_day_format = "%m/%d"
+        month_day_format_for_text = month_format_code + date_delimiter + day_format_code
         
-    if dateStyle == 2:
-        monthDayFormat = "%d/%m"
-        monthDayFormatText = dayFormatCode + delimiter + monthFormatCode
+    if date_style == 2:
+        month_day_format = "%d/%m"
+        month_day_format_for_text = day_format_code + date_delimiter + month_format_code
         
 
-    if vars.setting('year') == True or vars.setting('year') != False:
-        yearFormatCode = "%Y"
-        dateFormat = monthDayFormat + "/" + yearFormatCode
-        dateFormatText = monthDayFormatText + delimiter + yearFormatCode
-        
-    if vars.setting('year') == False:
-        dateFormat = monthDayFormat + "/%Y"
-        dateFormatText = monthDayFormatText
+    if vars.setting('year'):
+        year_format_code = "%Y"
+        date_format = month_day_format + "/" + year_format_code
+        date_format_for_text = month_day_format_for_text + date_delimiter + year_format_code
+    else:
+        date_format = month_day_format + "/%Y"
+        date_format_for_text = month_day_format_for_text
     
-    thisDayDisplay = thisDayTemp.strftime(dateFormat)
-    thisDayDisplayText = thisDayTemp.strftime(dateFormatText)
+    this_day_display = this_day_temporary.strftime(date_format)
+    this_day_display_for_text = this_day_temporary.strftime(date_format_for_text)
             
 
-    prefix = vars.setting('prefix')
+    prefix_text = vars.setting('prefix')
 
     print("Generating " + library + " overlay body.")
     logging.info("Generating " + library + " overlay body.")
 
-    overlay_base = '''
+    overlay_body = '''
 
 overlays:
     '''
 
-    
-    if vars.setting('ovUpcoming') == True:
+
+    if vars.setting('ovUpcoming'):
         logging.info('"Upcoming" Overlay enabled, generating body...')
-        upcoming_Text = vars.setting('ovUpcomingText')
-        upcoming_FontColor = vars.setting('ovUpcomingFontColor')
-        upcoming_Color = vars.setting('ovUpcomingColor')
+        upcoming_text = vars.setting('ovUpcomingText')
+        upcoming_font_color = vars.setting('ovUpcomingFontColor')
+        upcoming_color = vars.setting('ovUpcomingColor')
         upcoming_horizontal_align = vars.setting('ovUpcoming_horizontal_align')
         upcoming_vertical_align = vars.setting('ovUpcoming_vertical_align')
         upcoming_horizontal_offset = vars.setting('ovUpcoming_horizontal_offset')
         upcoming_vertical_offset = vars.setting('ovUpcoming_vertical_offset')
-        ovUpcoming = f'''
+
+        overlay_upcoming = f'''
   # Upcoming
   TV_Top_TextCenter_Upcoming:
     template:
       - name: TV_Top_TextCenter
         weight: 90
-        text: "{upcoming_Text}"
-        color: "{upcoming_FontColor}"
-        back_color: "{upcoming_Color}"
+        text: "{upcoming_text}"
+        color: "{upcoming_font_color}"
+        back_color: "{upcoming_color}"
         horizontal_align: {upcoming_horizontal_align}
         vertical_align: {upcoming_vertical_align}
         horizontal_offset: {upcoming_horizontal_offset}
@@ -1976,28 +1958,29 @@ overlays:
       - production
       release.after: today
       '''
-        overlay_base = overlay_base + ovUpcoming
-    
-    
-    
-    if vars.setting('ovNew') == True:
+        overlay_body = overlay_body + overlay_upcoming
+
+
+
+    if vars.setting('ovNew'):
         logging.info('"New" Overlay enabled, generating body...')
-        newText = vars.setting('ovNewText')
-        newFontColor = vars.setting('ovNewFontColor')
-        newColor = vars.setting('ovNewColor')
+        new_text = vars.setting('ovNewText')
+        new_font_color = vars.setting('ovNewFontColor')
+        new_color = vars.setting('ovNewColor')
         new_horizontal_align = vars.setting('ovNew_horizontal_align')
         new_vertical_align = vars.setting('ovNew_vertical_align')
         new_horizontal_offset = vars.setting('ovNew_horizontal_offset')
         new_vertical_offset = vars.setting('ovNew_vertical_offset')
-        ovNew = f'''
+
+        overlay_new = f'''
   # New
   TV_Top_TextCenter_New:
     template:
       - name: TV_Top_TextCenter
         weight: 60
-        text: "{newText}"
-        color: "{newFontColor}"
-        back_color: "{newColor}"
+        text: "{new_text}"
+        color: "{new_font_color}"
+        back_color: "{new_color}"
         horizontal_align: {new_horizontal_align}
         vertical_align: {new_vertical_align}
         horizontal_offset: {new_horizontal_offset}
@@ -2012,32 +1995,34 @@ overlays:
         - canceled
       first_episode_aired: 45
       '''
-        overlay_base = overlay_base + ovNew
+        overlay_body = overlay_body + overlay_new
 
 
 
-    if vars.setting('ovAiring') == True:
+    if vars.setting('ovAiring'):
+        airing_today = date.today()
+        airing_today_formatted = airing_today.strftime("%m/%d/%Y")
+        considered_airing = date.today() - timedelta(days=15)
+        considered_airing_formatted = considered_airing.strftime("%m/%d/%Y")
+
         logging.info('"Airing" Overlay enabled, generating...')
-        airTodayTemp = date.today()
-        airToday = airTodayTemp.strftime("%m/%d/%Y")
-        considered_airingTemp = date.today() - timedelta(days=15)
-        considered_airing = considered_airingTemp.strftime("%m/%d/%Y")
-        airingText = vars.setting('ovAiringText')
-        airingFontColor = vars.setting('ovAiringFontColor')
-        airingColor = vars.setting('ovAiringColor')
+        airing_text = vars.setting('ovAiringText')
+        airing_font_color = vars.setting('ovAiringFontColor')
+        airing_color = vars.setting('ovAiringColor')
         airing_horizontal_align = vars.setting('ovAiring_horizontal_align')
         airing_vertical_align = vars.setting('ovAiring_vertical_align')
         airing_horizontal_offset = vars.setting('ovAiring_horizontal_offset')
         airing_vertical_offset = vars.setting('ovAiring_vertical_offset')
-        ovAiring = f'''
+
+        overlay_airing = f'''
   # Airing
   TV_Top_TextCenter_Airing:
     template:
       - name: TV_Top_TextCenter
         weight: 40
-        text: "{airingText}"
-        color: "{airingFontColor}"
-        back_color: "{airingColor}"
+        text: "{airing_text}"
+        color: "{airing_font_color}"
+        back_color: "{airing_color}"
         horizontal_align: {airing_horizontal_align}
         vertical_align: {airing_vertical_align}
         horizontal_offset: {airing_horizontal_offset}
@@ -2048,47 +2033,48 @@ overlays:
         - returning
         - planned
         - production
-      last_episode_aired.after: {considered_airing}
+      last_episode_aired.after: {considered_airing_formatted}
 
   # Airing Today
   TV_Top_TextCenter_Airing_Today:
     template:
       - name: TV_Top_TextCenter
         weight: 40
-        text: "{airingText}"
-        color: "{airingFontColor}"
-        back_color: "{airingColor}"
+        text: "{airing_text}"
+        color: "{airing_font_color}"
+        back_color: "{airing_color}"
         horizontal_align: {airing_horizontal_align}
         vertical_align: {airing_vertical_align}
         horizontal_offset: {airing_horizontal_offset}
         vertical_offset: {airing_vertical_offset}
     tmdb_discover:
-      air_date.gte: {airToday}
-      air_date.lte: {airToday}
+      air_date.gte: {airing_today_formatted}
+      air_date.lte: {airing_today_formatted}
       with_status: 0
       limit: 500
 '''
-        overlay_base = overlay_base + ovAiring
+        overlay_body = overlay_body + overlay_airing
 
 
-    if vars.setting('ovEnded') == True:
+    if vars.setting('ovEnded'):
         logging.info('"Ended" Overlay enabled, generating body...')
-        endedText = vars.setting('ovEndedText')
-        endedFontColor = vars.setting('ovEndedFontColor')
-        endedColor = vars.setting('ovEndedColor')
+        ended_text = vars.setting('ovEndedText')
+        ended_font_color = vars.setting('ovEndedFontColor')
+        ended_color = vars.setting('ovEndedColor')
         ended_horizontal_align = vars.setting('ovEnded_horizontal_align')
         ended_vertical_align = vars.setting('ovEnded_vertical_align')
         ended_horizontal_offset = vars.setting('ovEnded_horizontal_offset')
         ended_vertical_offset = vars.setting('ovEnded_vertical_offset')
-        ovEnded = f'''
+        
+        overlay_ended = f'''
   # Ended
   TV_Top_TextCenter_Ended:
     template:
       - name: TV_Top_TextCenter
         weight: 20
-        text: "{endedText}"
-        color: "{endedFontColor}"
-        back_color: "{endedColor}"
+        text: "{ended_text}"
+        color: "{ended_font_color}"
+        back_color: "{ended_color}"
         horizontal_align: {ended_horizontal_align}
         vertical_align: {ended_vertical_align}
         horizontal_offset: {ended_horizontal_offset}
@@ -2098,27 +2084,28 @@ overlays:
       tmdb_status:
         - ended
 '''
-        overlay_base = overlay_base + ovEnded
+        overlay_body = overlay_body + overlay_ended
 
 
-    if vars.setting('ovCanceled') == True:
+    if vars.setting('ovCanceled'):
         logging.info('"Canceled" Overlay enabled, generating body...')
-        canceledText = vars.setting('ovCanceledText')
-        canceledFontColor = vars.setting('ovCanceledFontColor')
-        canceledColor = vars.setting('ovCanceledColor')
+        canceled_text = vars.setting('ovCanceledText')
+        canceled_font_color = vars.setting('ovCanceledFontColor')
+        canceled_color = vars.setting('ovCanceledColor')
         canceled_horizontal_align = vars.setting('ovCanceled_horizontal_align')
         canceled_vertical_align = vars.setting('ovCanceled_vertical_align')
         canceled_horizontal_offset = vars.setting('ovCanceled_horizontal_offset')
         canceled_vertical_offset = vars.setting('ovCanceled_vertical_offset')
-        ovCanceled = f'''
+        
+        overlay_canceled = f'''
   # Canceled
   TV_Top_TextCenter_Canceled:
     template:
       - name: TV_Top_TextCenter
         weight: 20
-        text: "{canceledText}"
-        color: "{canceledFontColor}"
-        back_color: "{canceledColor}"
+        text: "{canceled_text}"
+        color: "{canceled_font_color}"
+        back_color: "{canceled_color}"
         horizontal_align: {canceled_horizontal_align}
         vertical_align: {canceled_vertical_align}
         horizontal_offset: {canceled_horizontal_offset}
@@ -2128,27 +2115,28 @@ overlays:
       tmdb_status:
         - canceled
 '''
-        overlay_base = overlay_base + ovCanceled
+        overlay_body = overlay_body + overlay_canceled
 
 
-    if vars.setting('ovReturning') == True:
+    if vars.setting('ovReturning'):
         logging.info('"Returning" Overlay enabled, generating body...')
-        returningText = vars.setting('ovReturningText')
-        returningFontColor = vars.setting('ovReturningFontColor')
-        returningColor = vars.setting('ovReturningColor')
+        returning_text = vars.setting('ovReturningText')
+        returning_font_color = vars.setting('ovReturningFontColor')
+        returning_color = vars.setting('ovReturningColor')
         returning_horizontal_align = vars.setting('ovReturning_horizontal_align')
         returning_vertical_align = vars.setting('ovReturning_vertical_align')
         returning_horizontal_offset = vars.setting('ovReturning_horizontal_offset')
         returning_vertical_offset = vars.setting('ovReturning_vertical_offset')
-        ovReturning = f'''
+
+        overlay_returning = f'''
   # Returning
   TV_Top_TextCenter_Returning:
     template:
       - name: TV_Top_TextCenter
         weight: 30
-        text: "{returningText}"
-        color: "{returningFontColor}"
-        back_color: "{returningColor}"
+        text: "{returning_text}"
+        color: "{returning_font_color}"
+        back_color: "{returning_color}"
         horizontal_align: {returning_horizontal_align}
         vertical_align: {returning_vertical_align}
         horizontal_offset: {returning_horizontal_offset}
@@ -2160,47 +2148,46 @@ overlays:
         - planned
         - production
 '''
-        overlay_base = overlay_base + ovReturning
+        overlay_body = overlay_body + overlay_returning
 
 
-    while thisDayTemp < nextAirDate:
-        rsback_color = vars.setting('rsback_color')
-        rsfont_color = vars.setting('rsfont_color')
-        rs_horizontal_align = vars.setting('rs_horizontal_align')
-        rs_vertical_align = vars.setting('rs_vertical_align')
-        rs_horizontal_offset = vars.setting('rs_horizontal_offset')
-        rs_vertical_offset = vars.setting('rs_vertical_offset')
-        overlay_gen = f'''
-# RETURNING {thisDayDisplay}
-  TV_Top_TextCenter_Returning_{thisDayDisplay}:
+    rs_font_color = vars.setting('rsfont_color')
+    rs_color = vars.setting('rsback_color')
+    rs_horizontal_align = vars.setting('rs_horizontal_align')
+    rs_vertical_align = vars.setting('rs_vertical_align')
+    rs_horizontal_offset = vars.setting('rs_horizontal_offset')
+    rs_vertical_offset = vars.setting('rs_vertical_offset')
+
+    while this_day_temporary < next_air_date:
+        overlay_rs_temporary = f'''
+# RETURNING {this_day_display}
+  TV_Top_TextCenter_Returning_{this_day_display}:
     template:
       - name: TV_Top_TextCenter
         weight: 35
-        text: "{prefix} {thisDayDisplayText}"
-        color: "{rsfont_color}"
-        back_color: "{rsback_color}"
+        text: "{prefix_text} {this_day_display_for_text}"
+        color: "{rs_font_color}"
+        back_color: "{rs_color}"
         horizontal_align: {rs_horizontal_align}
         vertical_align: {rs_vertical_align}
         horizontal_offset: {rs_horizontal_offset}
         vertical_offset: {rs_vertical_offset}
     tmdb_discover:
-      air_date.gte: {thisDay}
-      air_date.lte: {thisDay}
+      air_date.gte: {this_day}
+      air_date.lte: {this_day}
       with_status: 0
       limit: 500
     filters:
       last_episode_aired.before: {last_episode_aired}
 '''
-        dayCounter += 1
-        thisDayTemp = date.today() + timedelta(days=int(dayCounter))
-        thisDay = thisDayTemp.strftime("%m/%d/%Y")
+        day_counter += 1
+        this_day_temporary = date.today() + timedelta(days=int(day_counter))
+        this_day = this_day_temporary.strftime("%m/%d/%Y")
 
-        thisDayDisplay = thisDayTemp.strftime(dateFormat)
-        thisDayDisplayText = thisDayTemp.strftime(dateFormatText)
+        this_day_display = this_day_temporary.strftime(date_format)
+        this_day_display_for_text = this_day_temporary.strftime(date_format_for_text)
         
-        
-        overlay_base = overlay_base + overlay_gen
-            
+        overlay_body = overlay_body + overlay_rs_temporary
 
 
     
@@ -2208,51 +2195,50 @@ overlays:
     logging.info(library + " overlay body generated. Writing to file.")
 
     # Write the rest of the overlay
-    writeBody = open(rso, "a")
-    yaml.dump(yaml.load(overlay_base), writeBody)
-    writeBody.close()
+    write_body_to_overlay_file = open(rs_overlay_file, "a")
+    yaml.dump(yaml.load(overlay_body), write_body_to_overlay_file)
+    write_body_to_overlay_file.close()
     print("Overlay body appended to " + library + "-returning-soon-overlay.")
     logging.info("Overlay body appended to " + library + "-returning-soon-overlay.")
 
     # use keys file to gather show details
     print("Reading " + library + " cache file...")
     logging.info("Reading " + library + " cache file...")
-    cacheFile = open(cache, "r")
-    cacheData = json.load(cacheFile)
-    cacheFile.close()
+    read_cache_file = open(cache_file, "r")
+    loaded_cache_json = json.load(read_cache_file)
+    read_cache_file.close()
 
     # this is for the trakt list
     print("Filtering " + library + " data...")
     logging.info("Filtering " + library + " data...")
-    returningSoon = filter(
+    series_rs_list = filter(
         lambda x: (
-            x['status'] == "Returning Series" and 
-            x['nextAir'] != "null" and 
-            x['nextAir'] < str(nextAirDate) and 
-            x['nextAir'] > str(today) and 
-            x['lastAir'] < str(lastAirDate)),
-            cacheData)
+            x['status'] == "Returning Series" and
+            x['nextAir'] != "null" and
+            x['nextAir'] < str(next_air_date) and
+            x['nextAir'] > str(today) and
+            x['lastAir'] < str(last_air_date)),
+            loaded_cache_json)
     print("Sorting " + library + "...")
     logging.info("Sorting " + library + "...")
-    returningSorted = sortedList(returningSoon, 'nextAir')
+    series_rs_sorted_list = sorted_list(series_rs_list, 'nextAir')
 
-    traktaccess = vars.traktApi('token')
-    traktapi = vars.traktApi('client')
-    traktHeaders = {
+    trakt_access = vars.traktApi('token')
+    trakt_api = vars.traktApi('client')
+    trakt_headers = {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + traktaccess + '',
+                    'Authorization': 'Bearer ' + trakt_access + '',
                     'trakt-api-version': '2',
-                    'trakt-api-key': '' + traktapi + ''
+                    'trakt-api-key': '' + trakt_api + ''
                     }
-    slug = libraryCleanPath
-    traktListUrl = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
-    traktListUrlPost = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + ""
-    traktListUrlPostShow = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + slug + "/items"
+    trakt_list_url = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
+    trakt_list_url_post = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library_clean_path + ""
+    trakt_list_url_post_show = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library_clean_path + "/items"
     trakt_list_privacy = vars.librarySetting(library, 'trakt_list_privacy')
-    traktListData = f'''
+    trakt_list_data = f'''
 {{
     "name": "Returning Soon {library}",
-    "description": "Season premiers and returns within the next 30 days.",
+    "description": "Season premiers and returns within the next {days_ahead} days.",
     "privacy": "{trakt_list_privacy}",
     "display_numbers": true,
     "allow_comments": true,
@@ -2263,38 +2249,38 @@ overlays:
 
     print("Clearing " + library + " trakt list...")
     logging.info("Clearing " + library + " trakt list...")
-    traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
+    trakt_delete_list = requests.delete(trakt_list_url_post, headers=trakt_headers)
     time.sleep(1.25)
     logging.info("Initializing " + library + " trakt list...")
-    traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
+    trakt_make_list = requests.post(trakt_list_url, headers=trakt_headers, data=trakt_list_data)
     time.sleep(1.25)
-    traktListShow = '''
+    trakt_list_show = '''
 {
     "shows": [
         '''
-    for item in returningSorted:
-        print("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon " + library + ".")
-        logging.info("Adding " + item['title'] + " | TMDB ID: " + str(item['id']) + ", to Returning Soon " + library + ".")
+    for series_item in series_rs_sorted_list:
+        print("Adding " + series_item['title'] + " | TMDB ID: " + str(series_item['id']) + ", to Returning Soon " + library + ".")
+        logging.info("Adding " + series_item['title'] + " | TMDB ID: " + str(series_item['id']) + ", to Returning Soon " + library + ".")
 
-        traktListShow += f'''
+        trakt_list_show += f'''
     {{
     "ids": {{
-        "tmdb": "{str(item['id'])}"
+        "tmdb": "{str(series_item['id'])}"
             }}
     }},'''
         
         
-    traktListShow = traktListShow.rstrip(",")
-    traktListShow += '''
+    trakt_list_show = trakt_list_show.rstrip(",")
+    trakt_list_show += '''
 ]
 }
 '''
     
-    postShow = requests.post(traktListUrlPostShow, headers=traktHeaders, data=traktListShow)
-    if postShow.status_code == 201:
+    post_show = requests.post(trakt_list_url_post_show, headers=trakt_headers, data=trakt_list_show)
+    if post_show.status_code == 201:
         print("Success")
-        print("Added " + str(get_count(returningSorted)) + " entries to Trakt.")
-        logging.info('Success: Added ' + str(get_count(returningSorted)) + ' entries to Trakt.')
+        print("Added " + str(get_count(series_rs_sorted_list)) + " entries to Trakt.")
+        logging.info('Success: Added ' + str(get_count(series_rs_sorted_list)) + ' entries to Trakt.')
 end_time = time.time()
 elapsed_time = end_time - start_time
 minutes = int(elapsed_time // 60)
@@ -2307,18 +2293,18 @@ logging.info(f"Returning Soon operations complete. Run time {minutes:02}:{second
 ##########################
 extension_start_time = time.time()
 
-with open(settings, "r") as openSettings:
-    extensionSettings = yaml.load(openSettings)
+with open(settings_file, "r") as read_extensions_from_settings_file:
+    extension_settings = yaml.load(read_extensions_from_settings_file)
 
 print(f'''
 ==================================================
 Checking Extensions''')
 logging.info("Checking Extensions")
 
-for thisLibrary in extensionSettings['libraries']:
+for this_library in extension_settings['libraries']:
 
     try:
-        extensions = extensionSettings['libraries'][thisLibrary]['extensions']
+        extensions = extension_settings['libraries'][this_library]['extensions']
 
         for extension_item in extensions:
             
@@ -2326,92 +2312,88 @@ for thisLibrary in extensionSettings['libraries']:
                 print(f'''
 ==================================================''')
                 print(f'''
-Extension setting found. Running 'In History' on {thisLibrary}
+Extension setting found. Running 'In History' on {this_library}
 ''')
-                logging.info(f"Extension setting found. Running 'In History' on {thisLibrary}")
-                extension = vars.Extensions(thisLibrary).in_history.settings()
-                save_folder = pmm_config_path_prefix + extension.save_folder
-                if save_folder != '':
-                    is_save_folder = os.path.exists(save_folder)
-                    if not is_save_folder:
-                        subfolder_display_path = f"config/{extension.save_folder}"
-                        print(f"Sub-folder {subfolder_display_path} not found.")
+                logging.info(f"Extension setting found. Running 'In History' on {this_library}")
+                in_history_settings = vars.Extensions(this_library).in_history.settings()
+                pmm_in_history_folder = pmm_config_path_prefix + in_history_settings.save_folder
+                if pmm_in_history_folder != '':
+                    pmm_in_history_folder_exists = os.path.exists(pmm_in_history_folder)
+                    if not pmm_in_history_folder_exists:
+                        in_history_subfolder_path = f"config/{in_history_settings.save_folder}"
+                        print(f"Sub-folder {in_history_subfolder_path} not found.")
                         print(f"Attempting to create.")
-                        logging.info(f"Sub-folder {subfolder_display_path} not found.")
+                        logging.info(f"Sub-folder {in_history_subfolder_path} not found.")
                         logging.info(f"Attempting to create.")
                         try:
-                            os.makedirs(save_folder)
-                            print(f"{subfolder_display_path} created successfully.")
-                            logging.info(f"{subfolder_display_path} created successfully.")
+                            os.makedirs(pmm_in_history_folder)
+                            print(f"{in_history_subfolder_path} created successfully.")
+                            logging.info(f"{in_history_subfolder_path} created successfully.")
                         except Exception as sf:
                             print(f"Exception: {str(sf)}")
                             logging.warning(f"Exception: {str(sf)}")
-                range = extension.range
-                me = vars.traktApi('me')
-                slug = vars.cleanPath(extension.slug)
-                collection_title = extension.collection_title
-                in_history_meta = extension.meta
+                in_history_range = in_history_settings.range
+                trakt_user_name = vars.traktApi('me')
+                library_clean_path = vars.cleanPath(in_history_settings.slug)
+                collection_title = in_history_settings.collection_title
+                in_history_meta = in_history_settings.meta
                 try:
                     output_stream = StringIO()
                     yaml.dump(in_history_meta, output_stream)
                     in_history_meta_str = output_stream.getvalue()
                     output_stream.close()
                     in_history_meta_str = in_history_meta_str.replace("'","")
-                    in_history_meta_str = in_history_meta_str.replace('{{range}}', range)
-                    in_history_meta_str = in_history_meta_str.replace('{{Range}}', range.capitalize())
+                    in_history_meta_str = in_history_meta_str.replace('{{range}}', in_history_range)
+                    in_history_meta_str = in_history_meta_str.replace('{{Range}}', in_history_range.capitalize())
                 except Exception as e:
                     print(f"An error occurred: {e}")
 
 
-                inHistory = f"{pmm_config_path_prefix}{extension.save_folder}{slug}-in-history.yml"
-                isInHistory = os.path.exists(inHistory)
+                in_history_file = f"{pmm_config_path_prefix}{in_history_settings.save_folder}{library_clean_path}-in-history.yml"
+                in_history_file_exists = os.path.exists(in_history_file)
 
-                if not isInHistory:
+                if not in_history_file_exists:
                     try:
-                        print(f"Creating {thisLibrary} 'In History' metadata file..")
-                        logging.info(f"Creating {thisLibrary} 'In History' metadata file..")
-                        writeInHistory = open(inHistory, "x")
-                        writeInHistory.write(in_history_meta_str)
-                        writeInHistory.close()
+                        print(f"Creating {this_library} 'In History' metadata file..")
+                        logging.info(f"Creating {this_library} 'In History' metadata file..")
+                        create_in_history_file = open(in_history_file, "x")
+                        create_in_history_file.write(in_history_meta_str)
+                        create_in_history_file.close()
                         print(f"File created")
                         logging.info(f"File created")
-                        file_location = f"config/{extension.save_folder}{slug}-in-history.yml"
-                        print(f"{file_location}")
-                        logging.info(f"{file_location}")
+                        in_history_file_location = f"config/{in_history_settings.save_folder}{library_clean_path}-in-history.yml"
+                        print(f"{in_history_file_location}")
+                        logging.info(f"{in_history_file_location}")
                     except Exception as e:
                         print(f"An error occurred: {e}")
+                else:
+                    print(f"Updating {this_library} 'In History' metadata file..")
+                    logging.info(f"Updating {this_library} 'In History' metadata file..")
+                    in_history_file_location = f"config/{in_history_settings.save_folder}{library_clean_path}-in-history.yml"
+                    print(f"{in_history_file_location}")
+                    logging.info(f"{in_history_file_location}")
 
+                    with open(in_history_file, "r") as read_in_history_file:
+                        loaded_in_history_yaml = yaml.load(read_in_history_file)
 
-                if isInHistory:
-                    print(f"Updating {thisLibrary} 'In History' metadata file..")
-                    logging.info(f"Updating {thisLibrary} 'In History' metadata file..")
-                    file_location = f"config/{extension.save_folder}{slug}-in-history.yml"
-                    print(f"{file_location}")
-                    logging.info(f"{file_location}")
-    
-                    with open(inHistory, "r") as inHistory_file:
-                        check_InHistory_Title = yaml.load(inHistory_file)
-                        
-                        
-                        
-                        for key, value in check_InHistory_Title['collections'].items():
+                        for key, value in loaded_in_history_yaml['collections'].items():
                             if key != collection_title:
-                                print(f'''Collection for {thisLibrary} has been changed from {key} ==> {collection_title}
+                                print(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
-                                logging.info(f'''Collection for {thisLibrary} has been changed from {key} ==> {collection_title}
+                                logging.info(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
-                                library_id = vars.plexGet(thisLibrary)
+                                library_id = vars.plexGet(this_library)
                                 old_collection_id = plex.collection.id(key, library_id)
                                 delete_old_collection = plex.collection.delete(old_collection_id)
-                                if delete_old_collection == True:
+                                if delete_old_collection:
                                     print(f"Successfully removed old '{key}' collection.")
                                     logging.info(f"Successfully removed old '{key}' collection.")
-                                if delete_old_collection == False:
+                                else:
                                     print(f"Could not remove deprecated '{key}' collection.")
                                     logging.warning(f"Could not remove deprecated '{key}' collection.")
 
-                    with open(inHistory, "w") as write_inHistory:
-                        write_inHistory.write(in_history_meta_str)
+                    with open(in_history_file, "w") as write_in_history_file:
+                        write_in_history_file.write(in_history_meta_str)
                         print('')
                         print(f'''{in_history_meta_str}''')
                         logging.info('')
@@ -2424,12 +2406,12 @@ Attempting to remove unused collection.''')
             ]
                 
                 
-                if range == 'day':
+                if in_history_range == 'day':
                     today = datetime.now()
                     start_date = today
                     end_date = today
 
-                if range == 'week':
+                if in_history_range == 'week':
                     today = datetime.now()
                     weekday_number = today.weekday()
                     first_weekday = today - timedelta(days=weekday_number)
@@ -2438,7 +2420,7 @@ Attempting to remove unused collection.''')
                     start_date = first_weekday
                     end_date = last_weekday
 
-                if range == 'month':
+                if in_history_range == 'month':
                     today = datetime.now()
                     first_day_of_month = today.replace(day=1)
                     if first_day_of_month.month == 12:
@@ -2448,144 +2430,146 @@ Attempting to remove unused collection.''')
                     start_date = first_day_of_month
                     end_date = last_day_of_month
                 
-                description_identifier = plex.library.type(thisLibrary)
+                description_identifier = plex.library.type(this_library)
                 if description_identifier == 'show':
                     description_type = 'Shows'
                     trakt_type = 'shows'
                 if description_identifier == 'movie':
                     description_type = 'Movies'
                     trakt_type = 'movies'
-                traktaccess = vars.traktApi('token')
-                traktapi = vars.traktApi('client')
-                traktHeaders = {
+                trakt_access = vars.traktApi('token')
+                trakt_api = vars.traktApi('client')
+                trakt_headers = {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + traktaccess + '',
+                    'Authorization': 'Bearer ' + trakt_access + '',
                     'trakt-api-version': '2',
-                    'trakt-api-key': '' + traktapi + ''
+                    'trakt-api-key': '' + trakt_api + ''
                     }
-                traktListUrl = f"https://api.trakt.tv/users/{me}/lists"
-                traktListUrlPost = f"https://api.trakt.tv/users/{me}/lists/in-history-{slug}"
-                traktListUrlPostItems = f"https://api.trakt.tv/users/{me}/lists/in-history-{slug}/items"
-                traktListData = f'''
+                trakt_list_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists"
+                trakt_list_url_post = f"https://api.trakt.tv/users/{trakt_user_name}/lists/in-history-{library_clean_path}"
+                trakt_list_url_post_items = f"https://api.trakt.tv/users/{trakt_user_name}/lists/in-history-{library_clean_path}/items"
+                trakt_list_data = f'''
 {{
-    "name": "In History {thisLibrary}",
-    "description": "{description_type} released this {range} in history.",
-    "privacy": "{extension.trakt_list_privacy}",
+    "name": "In History {this_library}",
+    "description": "{description_type} released this {in_history_range} in history.",
+    "privacy": "{in_history_settings.trakt_list_privacy}",
     "display_numbers": true,
     "allow_comments": true,
     "sort_by": "rank",
     "sort_how": "asc"
 }}
     '''
-                print("Clearing " + thisLibrary + " trakt list...")
-                logging.info("Clearing " + thisLibrary + " trakt list...")
-                traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
-                if traktDeleteList.status_code == 201 or 200 or 204:
+                print("Clearing " + this_library + " trakt list...")
+                logging.info("Clearing " + this_library + " trakt list...")
+                trakt_delete_list = requests.delete(trakt_list_url_post, headers=trakt_headers)
+                if trakt_delete_list.status_code == 201 or 200 or 204:
                     print("List cleared")
                 time.sleep(1.25)
-                traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
-                if traktMakeList.status_code == 201 or 200 or 204:
+                trakt_make_list = requests.post(trakt_list_url, headers=trakt_headers, data=trakt_list_data)
+                if trakt_make_list.status_code == 201 or 200 or 204:
                     print("Initialization successful.")
                 time.sleep(1.25)
-                traktListItems = '''
+                trakt_list_items = '''
 {'''
-                traktListItems += f'''
+                trakt_list_items += f'''
     "{trakt_type}": [
         '''
-                print(f"Filtering ==> This '{range}' in history")
-                logging.info(f'Filtering ==> This {range} in history')
-                if extension.starting != 0:
-                    print(f"From {extension.starting} to {extension.ending}")
-                    logging.info(f"From {extension.starting} to {extension.ending}")
-                if extension.starting == 0:
-                    print(f"From earliest to {extension.ending}")
-                    logging.info(f"From earliest to {extension.ending}")
-                if extension.increment != 1:
-                    print(f"{extension.increment} year increment")
-                    logging.info(f"{extension.increment} year increment")
-                if extension.increment == 1:
+                print(f"Filtering ==> This '{in_history_range}' in history")
+                logging.info(f'Filtering ==> This {in_history_range} in history')
+                if in_history_settings.starting != 0:
+                    print(f"From {in_history_settings.starting} to {in_history_settings.ending}")
+                    logging.info(f"From {in_history_settings.starting} to {in_history_settings.ending}")
+                if in_history_settings.starting == 0:
+                    print(f"From earliest to {in_history_settings.ending}")
+                    logging.info(f"From earliest to {in_history_settings.ending}")
+                if in_history_settings.increment != 1:
+                    print(f"{in_history_settings.increment} year increment")
+                    logging.info(f"{in_history_settings.increment} year increment")
+                if in_history_settings.increment == 1:
                     print(f"Using all years")
                     logging.info(f"Using all years")
                 print(f'''
 ''')
-                library_List = plex.library.list(thisLibrary)
-                library_List = sorted(library_List, key=lambda item: item.date)
-                library_List_inRange = [item for item in library_List 
-                if date_within_range(item.date, start_date, end_date)]
-                for entry in library_List_inRange:
-                    title_inRange = plex.item.info(entry.ratingKey)
-                    title_inRange_month = month_names[title_inRange.date.month - 1]
+                library_list = plex.library.list(this_library)
+                library_list = sorted(library_list, key=lambda item: item.date)
+                library_list_in_range = [item for item in library_list if date_within_range(item.date, start_date, end_date)]
+                for entry in library_list_in_range:
+                    title_in_range = plex.item.info(entry.ratingKey)
+                    title_in_range_month = month_names[title_in_range.date.month - 1]
 
-                    if title_inRange.details.tmdb and title_inRange.details.imdb and title_inRange.details.tvdb == 'Null':
+                    if title_in_range.details.tmdb and title_in_range.details.imdb and title_in_range.details.tvdb == 'Null':
                         continue
                     
-                    if (extension.starting <= title_inRange.date.year <= extension.ending 
-                        and (extension.ending - title_inRange.date.year) % extension.increment == 0
-                        and title_inRange.date.year != today.year):
-                        print(f"Adding {title_inRange.title} ({title_inRange_month} {title_inRange.date.day}, {title_inRange.date.year})")
-                        logging.info(f"Adding {title_inRange.title} ({title_inRange_month} {title_inRange.date.day}, {title_inRange.date.year})")
-                        traktListItems += f'''
+                    if (in_history_settings.starting <= title_in_range.date.year <= in_history_settings.ending 
+                        and (in_history_settings.ending - title_in_range.date.year) % in_history_settings.increment == 0
+                        and title_in_range.date.year != today.year):
+                        print(f"Adding {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
+                        logging.info(f"Adding {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
+                        trakt_list_items += f'''
     {{
     "ids": {{'''
                 
-                        if title_inRange.details.tmdb != 'Null':
-                            traktListItems += f'''
-        "tmdb": "{title_inRange.details.tmdb}",'''
-                        if title_inRange.details.tvdb != 'Null':
-                            traktListItems += f'''
-        "tvdb": "{title_inRange.details.tvdb}",'''
-                        if title_inRange.details.imdb != 'Null':
-                            traktListItems += f'''
-        "imdb": "{title_inRange.details.imdb}",'''
+                        if title_in_range.details.tmdb != 'Null':
+                            trakt_list_items += f'''
+        "tmdb": "{title_in_range.details.tmdb}",'''
+                        if title_in_range.details.tvdb != 'Null':
+                            trakt_list_items += f'''
+        "tvdb": "{title_in_range.details.tvdb}",'''
+                        if title_in_range.details.imdb != 'Null':
+                            trakt_list_items += f'''
+        "imdb": "{title_in_range.details.imdb}",'''
                         
-                        traktListItems = traktListItems.rstrip(",")
+                        trakt_list_items = trakt_list_items.rstrip(",")
                     
-                        traktListItems += f'''
+                        trakt_list_items += f'''
             }}
     }},'''
         
         
-                traktListItems = traktListItems.rstrip(",")
-                traktListItems += '''
+                trakt_list_items = trakt_list_items.rstrip(",")
+                trakt_list_items += '''
 ]
 }
 '''
                 
-                postItems = requests.post(traktListUrlPostItems, headers=traktHeaders, data=traktListItems)
-                if postItems.status_code == 201:
-                    print(f"Successfully posted This {range} In History items for {thisLibrary}")
-                    logging.info(f"Successfully posted This {range} In History items for {thisLibrary}")
+                post_items = requests.post(trakt_list_url_post_items, headers=trakt_headers, data=trakt_list_items)
+                if post_items.status_code == 201:
+                    print(f"Successfully posted This {in_history_range} In History items for {this_library}")
+                    logging.info(f"Successfully posted This {in_history_range} In History items for {this_library}")
 
-            if extension_item == 'by_size' and plex.library.type(thisLibrary) == 'movie':
+
+
+
+            if extension_item == 'by_size' and plex.library.type(this_library) == 'movie':
                 print(f'''
 ==================================================''')
                 print(f'''
-Extension setting found. Running 'Sort by size' on {thisLibrary}
+Extension setting found. Running 'Sort by size' on {this_library}
 ''')
-                logging.info(f"Extension setting found. Running 'Sort by size' on {thisLibrary}")
+                logging.info(f"Extension setting found. Running 'Sort by size' on {this_library}")
 
 
-                extension = vars.Extensions(thisLibrary).by_size.settings()
-                save_folder = configPathPrefix + extension.save_folder
-                if save_folder != '':
-                    is_save_folder = os.path.exists(save_folder)
-                    if not is_save_folder:
-                        subfolder_display_path = f"config/{extension.save_folder}"
-                        print(f"Sub-folder {subfolder_display_path} not found.")
+                by_size_settings = vars.Extensions(this_library).by_size.settings()
+                pmm_by_size_folder = pmm_config_path_prefix + by_size_settings.save_folder
+                if pmm_by_size_folder != '':
+                    pmm_by_size_folder_exists = os.path.exists(pmm_by_size_folder)
+                    if not pmm_by_size_folder_exists:
+                        by_size_subfolder_path = f"config/{by_size_settings.save_folder}"
+                        print(f"Sub-folder {by_size_subfolder_path} not found.")
                         print(f"Attempting to create.")
-                        logging.info(f"Sub-folder {subfolder_display_path} not found.")
+                        logging.info(f"Sub-folder {by_size_subfolder_path} not found.")
                         logging.info(f"Attempting to create.")
                         try:
-                            os.makedirs(save_folder)
-                            print(f"{subfolder_display_path} created successfully.")
-                            logging.info(f"{subfolder_display_path} created successfully.")
+                            os.makedirs(pmm_by_size_folder)
+                            print(f"{by_size_subfolder_path} created successfully.")
+                            logging.info(f"{by_size_subfolder_path} created successfully.")
                         except Exception as sf:
                             print(f"Exception: {str(sf)}")
                             logging.warning(f"Exception: {str(sf)}")
-                me = vars.traktApi('me')
-                slug = vars.cleanPath(extension.slug)
-                collection_title = extension.collection_title
-                by_size_meta = extension.meta
+                trakt_user_name = vars.traktApi('me')
+                library_clean_path = vars.cleanPath(by_size_settings.slug)
+                collection_title = by_size_settings.collection_title
+                by_size_meta = by_size_settings.meta
                 try:
                     output_stream = StringIO()
                     yaml.dump(by_size_meta, output_stream)
@@ -2594,44 +2578,42 @@ Extension setting found. Running 'Sort by size' on {thisLibrary}
                     by_size_meta_str = by_size_meta_str.replace("'","")
                 except Exception as e:
                     print(f"An error occurred: {e}")
-                bySize = f"{configPathPrefix}{extension.save_folder}{slug}-by-size.yml"
-                isBySize = os.path.exists(bySize)
+                by_size_file = f"{pmm_config_path_prefix}{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
+                by_size_file_exists = os.path.exists(by_size_file)
 
-                if not isBySize:
+                if not by_size_file_exists:
                     try:
-                        print(f"Creating {thisLibrary} 'By Size' metadata file..")
-                        logging.info(f"Creating {thisLibrary} 'By Size' metadata file..")
-                        writeBySize = open(bySize, "x")
-                        writeBySize.write(by_size_meta_str)
-                        writeBySize.close()
+                        print(f"Creating {this_library} 'By Size' metadata file..")
+                        logging.info(f"Creating {this_library} 'By Size' metadata file..")
+                        creata_by_size_file = open(by_size_file, "x")
+                        creata_by_size_file.write(by_size_meta_str)
+                        creata_by_size_file.close()
                         print(f"File created")
                         logging.info(f"File created")
-                        file_location = f"config/{extension.save_folder}{slug}-by-size.yml"
-                        print(f"{file_location}")
-                        logging.info(f"{file_location}")
+                        by_size_file_location = f"config/{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
+                        print(f"{by_size_file_location}")
+                        logging.info(f"{by_size_file_location}")
                     except Exception as e:
                         print(f"An error occurred: {e}")
-
-
-                if isBySize:
-                    print(f"Updating {thisLibrary} 'By Size' metadata file..")
-                    logging.info(f"Updating {thisLibrary} 'By Size' metadata file..")
-                    file_location = f"config/{extension.save_folder}{slug}-by-size.yml"
-                    print(f"{file_location}")
-                    logging.info(f"{file_location}")
+                else:
+                    print(f"Updating {this_library} 'By Size' metadata file..")
+                    logging.info(f"Updating {this_library} 'By Size' metadata file..")
+                    by_size_file_location = f"config/{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
+                    print(f"{by_size_file_location}")
+                    logging.info(f"{by_size_file_location}")
     
-                    with open(bySize, "r") as bySize_file:
-                        check_BySize_Title = yaml.load(bySize_file)
+                    with open(by_size_file, "r") as read_by_size_file:
+                        check_BySize_Title = yaml.load(read_by_size_file)
                         
                         
                         
                         for key, value in check_BySize_Title['collections'].items():
                             if key != collection_title:
-                                print(f'''Collection for {thisLibrary} has been changed from {key} ==> {collection_title}
+                                print(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
-                                logging.info(f'''Collection for {thisLibrary} has been changed from {key} ==> {collection_title}
+                                logging.info(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
-                                library_id = vars.plexGet(thisLibrary)
+                                library_id = vars.plexGet(this_library)
                                 old_collection_id = plex.collection.id(key, library_id)
                                 delete_old_collection = plex.collection.delete(old_collection_id)
                                 if delete_old_collection == True:
@@ -2641,18 +2623,18 @@ Attempting to remove unused collection.''')
                                     print(f"Could not remove deprecated '{key}' collection.")
                                     logging.warning(f"Could not remove deprecated '{key}' collection.")
 
-                    with open(bySize, "w") as write_bySize:
-                        write_bySize.write(by_size_meta_str)
+                    with open(by_size_file, "w") as write_by_size_file:
+                        write_by_size_file.write(by_size_meta_str)
                         print('')
                         print(f'''{by_size_meta_str}''')
                         logging.info('')
                         logging.info(f'''{by_size_meta_str}''')
 
-                movies_list = plex.library.extended_list(thisLibrary)
-                sort_key = extension.order_by_field
-                reverse_value = extension.reverse
-                minimum = extension.minimum
-                maximum =  extension.maximum
+                movies_list = plex.library.extended_list(this_library)
+                sort_key = by_size_settings.order_by_field
+                reverse_value = by_size_settings.reverse
+                minimum = by_size_settings.minimum
+                maximum =  by_size_settings.maximum
                 movies_list = sorted(movies_list, key=lambda x: getattr(x, sort_key), reverse=reverse_value)
                 movies_list = [
                     movie for movie in movies_list
@@ -2662,25 +2644,25 @@ Attempting to remove unused collection.''')
                     )
                 ]
 
-                print(f'''Sorting {thisLibrary} by '{extension.order_by_field}.{extension.order_by_direction}'.''')
+                print(f'''Sorting {this_library} by '{by_size_settings.order_by_field}.{by_size_settings.order_by_direction}'.''')
 
-                slug = vars.cleanPath(thisLibrary)
-                me = vars.traktApi('me')
-                traktaccess = vars.traktApi('token')
-                traktapi = vars.traktApi('client')
-                traktHeaders = {
+                library_clean_path = vars.cleanPath(this_library)
+                trakt_user_name = vars.traktApi('me')
+                trakt_access = vars.traktApi('token')
+                trakt_api = vars.traktApi('client')
+                trakt_headers = {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + traktaccess + '',
+    'Authorization': 'Bearer ' + trakt_access + '',
     'trakt-api-version': '2',
-    'trakt-api-key': '' + traktapi + ''
+    'trakt-api-key': '' + trakt_api + ''
     }
-                traktListUrl = f"https://api.trakt.tv/users/{me}/lists"
-                traktListUrlPost = f"https://api.trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
-                traktListUrlPostItems = f"https://api.trakt.tv/users/{me}/lists/sorted-by-size-{slug}/items"
-                traktListData = f'''
+                trakt_list_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists"
+                trakt_list_url_post = f"https://api.trakt.tv/users/{trakt_user_name}/lists/sorted-by-size-{library_clean_path}"
+                trakt_list_url_post_items = f"https://api.trakt.tv/users/{trakt_user_name}/lists/sorted-by-size-{library_clean_path}/items"
+                trakt_list_data = f'''
 {{
-    "name": "Sorted by size {thisLibrary}",
-    "description": "{thisLibrary}, sorted by size.",
+    "name": "Sorted by size {this_library}",
+    "description": "{this_library}, sorted by size.",
     "privacy": "private",
     "display_numbers": true,
     "allow_comments": true,
@@ -2688,18 +2670,18 @@ Attempting to remove unused collection.''')
     "sort_how": "asc"
 }}
     '''
-                print("Clearing " + thisLibrary + " trakt list...")
-                logging.info("Clearing " + thisLibrary + " trakt list...")
-                traktDeleteList = requests.delete(traktListUrlPost, headers=traktHeaders)
-                if traktDeleteList.status_code == 201 or 200 or 204:
+                print("Clearing " + this_library + " trakt list...")
+                logging.info("Clearing " + this_library + " trakt list...")
+                trakt_delete_list = requests.delete(trakt_list_url_post, headers=trakt_headers)
+                if trakt_delete_list.status_code == 201 or 200 or 204:
                     print("List cleared")
                     time.sleep(1.25)
-                traktMakeList = requests.post(traktListUrl, headers=traktHeaders, data=traktListData)
-                if traktMakeList.status_code == 201 or 200 or 204:
+                trakt_make_list = requests.post(trakt_list_url, headers=trakt_headers, data=trakt_list_data)
+                if trakt_make_list.status_code == 201 or 200 or 204:
                     print("Initialization successful.")
                     time.sleep(1.25)
 
-                description_identifier = plex.library.type(thisLibrary)
+                description_identifier = plex.library.type(this_library)
                 if description_identifier == 'show':
                     description_type = 'Shows'
                     trakt_type = 'shows'
@@ -2707,9 +2689,9 @@ Attempting to remove unused collection.''')
                     description_type = 'Movies'
                     trakt_type = 'movies'
 
-                traktListItems = '''
+                trakt_list_items = '''
 {'''
-                traktListItems += f'''
+                trakt_list_items += f'''
     "{trakt_type}": [
         '''
 
@@ -2719,45 +2701,45 @@ Attempting to remove unused collection.''')
                     print(f'''Adding '{movie_info.title}'.''')
 
                     movie_by_size = plex.item.info(movie_info.ratingKey)
-                    traktListItems += f'''
+                    trakt_list_items += f'''
     {{
     "ids": {{'''
                 
                     if movie_by_size.details.tmdb != 'Null':
-                        traktListItems += f'''
+                        trakt_list_items += f'''
     "tmdb": "{movie_by_size.details.tmdb}",'''
                     if movie_by_size.details.tvdb != 'Null':
-                        traktListItems += f'''
+                        trakt_list_items += f'''
     "tvdb": "{movie_by_size.details.tvdb}",'''
                     if movie_by_size.details.imdb != 'Null':
-                        traktListItems += f'''
+                        trakt_list_items += f'''
     "imdb": "{movie_by_size.details.imdb}",'''
                         
-                    traktListItems = traktListItems.rstrip(",")
+                    trakt_list_items = trakt_list_items.rstrip(",")
                                     
-                    traktListItems += f'''
+                    trakt_list_items += f'''
             }}
     }},'''
         
         
-                traktListItems = traktListItems.rstrip(",")
-                traktListItems += '''
+                trakt_list_items = trakt_list_items.rstrip(",")
+                trakt_list_items += '''
 ]
 }
 '''
 
-                postItems = requests.post(traktListUrlPostItems, headers=traktHeaders, data=traktListItems)
-                if postItems.status_code == 201:
-                    print(f"Successfully posted Sorted by size items for {thisLibrary}")
-                    logging.info(f"Successfully Sorted by size items for {thisLibrary}")
+                post_items = requests.post(trakt_list_url_post_items, headers=trakt_headers, data=trakt_list_items)
+                if post_items.status_code == 201:
+                    print(f"Successfully posted Sorted by size items for {this_library}")
+                    logging.info(f"Successfully Sorted by size items for {this_library}")
 
-            if extension_item == 'by_size' and plex.library.type(thisLibrary) != 'movie':
-                print(f'''The 'By Size' extension is only valid for Movie libraries. {thisLibrary} is not compatible and will be skipped.''')
+            if extension_item == 'by_size' and plex.library.type(this_library) != 'movie':
+                print(f'''The 'By Size' extension is only valid for Movie libraries. {this_library} is not compatible and will be skipped.''')
 
                     
     except KeyError:
-        print(f"No extensions set for {thisLibrary}.")
-        logging.info(f"No extensions set for {thisLibrary}.")
+        print(f"No extensions set for {this_library}.")
+        logging.info(f"No extensions set for {this_library}.")
         continue
     except Exception as e:
         print(f"Exception Error: {str(e)}")
