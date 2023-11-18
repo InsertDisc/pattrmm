@@ -1545,14 +1545,14 @@ templates:
             self.status = status
 
     class TMDBDetails:
-        def __init__(self, id, title, first_air_date, last_air_date, next_air_date, status, pop):
+        def __init__(self, id, title, first_air_date, last_air_date, next_air_date, status, popularity):
             self.id = id
             self.title = title
             self.first_air_date = first_air_date
             self.last_air_date = last_air_date
             self.next_air_date = next_air_date
             self.status = status
-            self.pop = pop
+            self.popularity = popularity
 
     # declare lists
     search_list = []
@@ -1636,8 +1636,8 @@ templates:
 
         # Search for new and missing data
         for remaining_plex_item in new_search_list:
-            print("No key entry found for " + remaining_plex_item['title'] + ". Searching for details...")
-            logging.info("No key entry found for " + remaining_plex_item['title'] + ". Searching for details...")
+            print("No key entry found for " + remaining_plex_item['title'] + ". Adding to search queue...")
+            logging.info("No key entry found for " + remaining_plex_item['title'] + ". Adding to search queue...")
         if len(new_search_list) > 0:
             found_series_to_update = True
             search_list = new_search_list
