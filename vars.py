@@ -1,5 +1,6 @@
 from ruamel.yaml import YAML
 yaml = YAML()
+yaml.preserve_quotes = True
 import xml.etree.ElementTree as ET
 import requests
 import json
@@ -26,6 +27,220 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s -
 config_path = configPathPrefix + 'config.yml'
 settings_path = 'preferences/settings.yml'
 
+def date_within_range(item_date, start_date, end_date):
+    if (start_date.month, start_date.day) <= (end_date.month, end_date.day):
+        return (
+            (start_date.month, start_date.day) <= 
+            (item_date.month, item_date.day) <= 
+            (end_date.month, end_date.day)
+        )
+    else:
+        return (
+            (item_date.month, item_date.day) >= 
+            (start_date.month, start_date.day) 
+            or 
+            (item_date.month, item_date.day) <= 
+            (end_date.month, end_date.day)
+        )
+
+class LibraryList:
+    def __init__(self, title, date, ratingKey):
+        self.title = title
+        self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+        self.ratingKey = ratingKey
+
+class ExtendedLibraryList:
+    def __init__(self, ratingKey, title, added, released, size):
+        self.ratingKey = ratingKey
+        self.title = title
+        self.added = added
+        self.released = released
+        self.size = size
+
+class itemBase:
+    def __init__(self, title, date, details):
+        self.title = re.sub("\s\(.*?\)","", title)
+        self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+        self.details = details
+        
+
+class itemDetails:
+    def __init__(self, ratingKey, imdb, tmdb, tvdb):
+        self.ratingKey = ratingKey
+        self.imdb = imdb
+        self.tmdb = tmdb
+        self.tvdb = tvdb
+
+class Extensions:
+    def __init__(self, extension_library):
+        self.extension_library = extension_library
+
+    @property
+    def in_history(self):
+        self.context = 'in_history'
+        return self
+    
+    @property
+    def by_size(self):
+        self.context = 'by_size'
+        return self
+
+    def settings(self):
+        if self.context == 'in_history':
+            settings = settings_path
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            me = traktApi('me')
+            slug = cleanPath(self.extension_library)
+            self.slug = slug
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/in-history-{slug}"
+            try:
+                self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['in-history']['trakt_list_privacy']
+            except KeyError:
+                self.trakt_list_privacy = 'private'
+            try:
+                range = pref['libraries'][self.extension_library]['extensions']['in-history']['range']
+                range_lower = range.lower()
+                self.range = range_lower
+            except KeyError:
+                self.range = 'day'        
+            try:
+                self.save_folder = pref['libraries'][self.extension_library]['extensions']['in-history']['save_folder']
+            except KeyError:
+                self.save_folder = ''
+            try:
+                self.collection_title = pref['libraries'][self.extension_library]['extensions']['in-history']['collection_title']
+            except KeyError:
+                self.collection_title = 'This {{range}} in history'
+            if "{{range}}" in self.collection_title:
+                self.collection_title = self.collection_title.replace("{{range}}", self.range)
+            if "{{Range}}" in self.collection_title:
+                self.collection_title = self.collection_title.replace("{{Range}}", self.range.capitalize())
+            try:
+                self.starting = pref['libraries'][self.extension_library]['extensions']['in-history']['starting']
+            except KeyError:
+                self.starting = 0
+            try:
+                self.ending = pref['libraries'][self.extension_library]['extensions']['in-history']['ending']
+            except KeyError:
+                self.ending = today.year
+            try:
+                self.increment = pref['libraries'][self.extension_library]['extensions']['in-history']['increment']
+            except KeyError:
+                self.increment = 1
+            try:
+                try:
+                    options = {
+                    key: value
+                    for key, value in pref['libraries'][self.extension_library]['extensions']['in-history']['meta'].items()
+                        }
+                    if "sort_title" in options:
+                        options['sort_title'] = '"' + options['sort_title'] + '"'
+                except KeyError:
+                    options = {}
+                poster_url = f'"https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/This%20{self.range.capitalize()}%20in%20History.jpg"'
+                self.meta = {}
+                self.meta['collections'] = {}
+                self.meta['collections'][self.collection_title] = {}
+                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+                self.meta['collections'][self.collection_title]['visible_home'] = 'true'
+                self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
+                self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
+                self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
+                self.meta['collections'][self.collection_title]['url_poster'] = poster_url
+                self.meta['collections'][self.collection_title].update(options)
+                
+            except Exception as e:
+                return f"Error: {str(e)}"
+            return self
+                
+        if self.context == 'by_size':
+            settings = settings_path
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            me = traktApi('me')
+            slug = cleanPath(self.extension_library)
+            self.slug = slug
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
+            try:
+                self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['by_size']['trakt_list_privacy']
+            except KeyError:
+                self.trakt_list_privacy = 'private'
+            try:
+                minimum = pref['libraries'][self.extension_library]['extensions']['by_size']['minimum']
+                self.minimum = minimum
+            except KeyError:
+                self.minimum = 0
+
+            try:
+                maximum = pref['libraries'][self.extension_library]['extensions']['by_size']['maximum']
+                self.maximum = maximum
+            except KeyError:
+                self.maximum = None
+
+            try:
+                self.save_folder = pref['libraries'][self.extension_library]['extensions']['by_size']['save_folder']
+            except KeyError:
+                self.save_folder = ''
+            try:
+                self.collection_title = pref['libraries'][self.extension_library]['extensions']['by_size']['collection_title']
+            except KeyError:
+                self.collection_title = 'Sorted by size'
+            try:
+                default_order_by = 'size.desc'
+                order_by = pref['libraries'][self.extension_library]['extensions']['by_size']['order_by']
+                possible_filters = ('size.desc', 'size.asc', 'title.desc', 'title.asc', 'added.asc', 'added.desc', 'released.desc', 'released.asc')
+                possible_fields = ('size', 'title', 'added', 'released')
+                if order_by in possible_filters:
+                    self.order_by = order_by
+                if order_by not in possible_filters:
+                    if order_by in possible_fields:
+                        invalid_order_by = order_by
+                        if order_by == 'title':
+                            order_by = order_by + '.asc'
+                        else:
+                            order_by = order_by + '.desc'
+                    print(f'''Invalid order by setting "{invalid_order_by}".
+                          Order by field '{invalid_order_by}' found. Using '{order_by}'.''')
+                    logging.warning(f'''Invalid order by setting "{order_by}", falling back to default {default_order_by}''')
+                    if order_by not in possible_fields:
+                        print(f'''{order_by} is not a valid option. Using default.''')
+                        self.order_by = default_order_by
+            except KeyError:
+                print(f'''No list order setting found. Using default '{default_order_by}'.''')
+                logging.info(f'''No list order setting found. Using default '{default_order_by}'.''')
+                self.order_by = default_order_by
+            
+            self.order_by_field, self.order_by_direction = self.order_by.split('.')
+            if self.order_by_direction == 'desc':
+                self.reverse = True
+            if self.order_by_direction == 'asc':
+                self.reverse = False
+
+            try:
+                try:
+                    options = {
+                    key: value
+                    for key, value in pref['libraries'][self.extension_library]['extensions']['by_size']['meta'].items()
+                        }
+                    if "sort_title" in options:
+                        options['sort_title'] = '"' + options['sort_title'] + '"'
+                except KeyError:
+                    options = {}
+                self.meta = {}
+                self.meta['collections'] = {}
+                self.meta['collections'][self.collection_title] = {}
+                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+                self.meta['collections'][self.collection_title]['visible_home'] = 'true'
+                self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
+                self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
+                self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
+                self.meta['collections'][self.collection_title].update(options)
+                
+            except Exception as e:
+                return f"Error: {str(e)}"
+        return self
+
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
         self.plex_url = plex_url
@@ -34,16 +249,165 @@ class Plex:
         self.context = None
 
     @property
+    def library(self):
+        self.context = 'library'
+        return self  # Return self to allow method chaining
+    
+    @property
+    def collection(self):
+        self.context = 'collection'
+        return self  # Return self to allow method chaining
+    
+    @property
+    def item(self):
+        self.context = 'item'
+        return self  # Return self to allow method chaining
+
+    @property
     def show(self):
         self.context = 'show'
+        return self  # Return self to allow method chaining
+    
+    @property
+    def shows(self):
+        self.context = 'shows'
         return self  # Return self to allow method chaining
     
     @property
     def movie(self):
         self.context = 'movie'
         return self  # Return self to allow method chaining
+    
+    @property
+    def movies(self):
+        self.context = 'movies'
+        return self  # Return self to allow method chaining
+        
+    
+    def type(self, library):
+        library_details_url = f"{self.plex_url}/library/sections"
+        library_details_url = re.sub("0//", "0/", library_details_url)
+        headers = {"X-Plex-Token": self.plex_token,
+                "accept": "application/json"}
+        response = requests.get(library_details_url, headers=headers)
+        data = response.json()
+        for section in data['MediaContainer']['Directory']:
+            if section["title"] == library:
+                library_type = section["type"]
 
-    def id(self, name):
+        return library_type
+
+
+    
+    def info(self, ratingKey):
+        
+        if self.context == 'item':
+            movie_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
+            movie_details_url = re.sub("0//", "0/", movie_details_url)
+            headers = {"X-Plex-Token": self.plex_token,
+                "accept": "application/json"}
+            response = requests.get(movie_details_url, headers=headers)
+            if response.status_code == 200:
+                imdbID = "Null"
+                tmdbID = "Null"
+                tvdbID = "Null"
+                
+                data = response.json()
+                extendedDetails = response.json()
+                try:
+                    data = data['MediaContainer']['Metadata']
+                    for item in data:
+                        title = item.get('title')
+                        if item.get('originallyAvailableAt'):
+                            date = item.get('originallyAvailableAt')
+                        else:
+                            date = "Null"
+                        key = item.get('ratingKey')
+                except:
+                    None
+                try:
+                    dataDetails = extendedDetails['MediaContainer']['Metadata'][0]['Guid']
+                    for guid_item in dataDetails:
+                        guid_id = guid_item.get('id')
+                        if guid_id.startswith("tmdb://"):
+                            tmdbID = guid_item.get('id')[7:]
+                        if guid_id.startswith("imdb://"):
+                            imdbID = guid_item.get('id')[7:]
+                        if guid_id.startswith("tvdb://"):
+                            tvdbID = guid_item.get('id')[7:]
+                except KeyError:
+                    return itemBase(title=title, date=date, details=itemDetails(key, imdbID, tmdbID, tvdbID))
+                return itemBase(title=title, date=date, details=itemDetails(key, imdbID, tmdbID, tvdbID))
+                    
+    
+    def list(self, library):
+            try:
+                # Replace with the correct section ID and library URL
+                section_id = plexGet(library)  # Replace with the correct section ID
+                library_url = f"{self.plex_url}/library/sections/{section_id}/all"
+                library_url = re.sub("0//", "0/", library_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(library_url, headers=headers)
+                library_list = []
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data['MediaContainer']['Metadata']:
+                        try:
+                            check_if_has_date = item['originallyAvailableAt']
+
+                            library_list.append(LibraryList(title=item['title'],ratingKey=item['ratingKey'], date=item['originallyAvailableAt']))
+                        except KeyError:
+                            print(f"{item['title']} has no 'Originally Available At' date. Ommitting title.")
+                            continue
+                    return library_list
+                else:
+                    return f"Error: {response.status_code} - {response.text}"
+            except Exception as e:
+                return f"Error: {str(e)}"
+                
+    def extended_list(self, library):
+            try:
+                # Replace with the correct section ID and library URL
+                section_id = plexGet(library)  # Replace with the correct section ID
+                library_url = f"{self.plex_url}/library/sections/{section_id}/all"
+                library_url = re.sub("0//", "0/", library_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(library_url, headers=headers)
+                extended_library_list = []
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for item in data['MediaContainer']['Metadata']:
+                        try:
+                            title = item['title']
+                            ratingKey = item['ratingKey']
+                            released = item['originallyAvailableAt']
+                            added_at_timestamp = item['addedAt']
+                            added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
+                            added_at = added_dt_object.strftime('%Y-%m-%d')
+                            duration_ms = item["Media"][0]["duration"]
+                            bitrate_kbps = item["Media"][0]["bitrate"]
+                            file_size_gb = (duration_ms * bitrate_kbps) / (8 * 1000 * 1024 * 1024)
+                            extended_library_list.append(ExtendedLibraryList(**{
+                            'ratingKey': ratingKey,
+                            'title': title,
+                            'added': added_at,
+                            'released': released,
+                            'size': file_size_gb
+                            }))
+                        except KeyError:
+                            print(f"{item['title']} has no 'Originally Available At' date. Ommitting title.")
+                            continue
+                    return extended_library_list
+                else:
+                    return f"Error: {response.status_code} - {response.text}"
+            except Exception as e:
+                return f"Error: {str(e)}"        
+
+    def id(self, name, library_id=None):
         if self.context == 'show':
             try:
                 # Replace with the correct section ID and library URL
@@ -69,7 +433,41 @@ class Plex:
                 num = 1 + 1 # get movie id here
 
             except Exception as e:
-                return f"Error: {str(e)}"    
+                return f"Error: {str(e)}"
+            
+        if self.context == 'collection':
+            try:
+                section_id = library_id
+                collection_name = name
+                collection_url = f"{self.plex_url}/library/sections/{section_id}/collections"
+                collection_url = re.sub("0//", "0/", collection_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.get(collection_url, headers=headers)
+                if response.status_code == 200:
+                    collections_data = response.json()
+                for collection in collections_data['MediaContainer']['Metadata']:
+                    if collection['title'] == collection_name:
+                        collection_id = collection['ratingKey']
+                return collection_id
+            except Exception as e:
+                return f"Error: {str(e)}"
+
+    def delete(self, key):
+        if self.context == 'collection':
+            try:
+                collection_id = key
+                collection_delete_url = f"{self.plex_url}/library/collections/{collection_id}"
+                collection_delete_url = re.sub("0//", "0/", collection_delete_url)
+                headers = {"X-Plex-Token": self.plex_token,
+                           "accept": "application/json"}
+                response = requests.delete(collection_delete_url, headers=headers)
+                if response.status_code == 200:
+                    return True
+                elif response.status_code != 200:
+                    return False
+            except Exception as e:
+                return f"Error: {str(e)}"
 
     def tmdb_id(self, rating_key):
         # Attempt to retrieve TMDB ID from Plex
@@ -279,6 +677,14 @@ def librarySetting(library, value):
         settings = settings_path
         with open(settings) as sf:
             pref = yaml.load(sf)
+            if value == 'returning-soon':
+                try:
+                    entry = pref['libraries'][library]['returning-soon']
+                except KeyError:
+                    entry = True
+                if entry not in (True, False):
+                    print(f"Invalid setting returning-soon: '{entry}' for {library}, defaulting to True")
+                    entry = True
             if value == 'refresh':
                 try:
                     entry = pref['libraries'][library]['refresh']
@@ -291,6 +697,25 @@ def librarySetting(library, value):
                         entry = 90
                 except:
                     entry = 30
+
+            if value == 'save_folder':
+                try:
+                    entry = pref['libraries'][library]['save_folder']
+                except KeyError:
+                    entry = ''
+
+            if value == 'overlay_save_folder':
+                try:
+                    entry = pref['libraries'][library]['overlay_save_folder']
+                except KeyError:
+                    entry = 'overlays/'
+
+            if value == 'trakt_list_privacy':
+                try:
+                    entry = pref['libraries'][library]['trakt_list_privacy']
+                except KeyError:
+                    entry = 'private'
+
         return entry
 
 def setting(value):
@@ -298,11 +723,36 @@ def setting(value):
         settings = settings_path
         with open(settings) as sf:
             pref = yaml.load(sf)
-        
+
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
             if value == 'rsfont_color':
                 entry = pref['returning_soon_fontcolor']
+
+            if value == 'rs_vertical_align':
+                try:
+                    entry = pref['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'rs_horizontal_align':
+                try:
+                    entry = pref['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'rs_horizontal_offset':
+                try:
+                    entry = pref['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'rs_vertical_offset':
+                try:
+                    entry = pref['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
             if value == 'prefix':
                 entry = pref['overlay_prefix']
             if value == 'dateStyle':
@@ -312,6 +762,65 @@ def setting(value):
                     entry = pref['leading_zeros']
                 except:
                     entry = True
+            if value == 'delimiter':
+                try:
+                    entry = pref['date_delimiter']
+                except:
+                    entry = "/"
+            if value == 'year':
+                try:
+                    entry = pref['year_in_dates']
+                except:
+                    entry = False
+
+
+            if value == 'ovUpcoming':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['use']
+                except:
+                    entry = False
+            if value == 'ovUpcomingColor':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['bgcolor']
+                except KeyError:
+                    entry = "#fc4e03"
+            if value == 'ovUpcomingFontColor':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
+            if value == 'ovUpcomingText':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['text']
+                except KeyError:
+                    entry = "U P C O M I N G"
+
+            if value == 'ovUpcoming_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovUpcoming_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovUpcoming_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovUpcoming_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['upcoming']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
             if value == 'ovNew':
                 try:
                     entry = pref['extra_overlays']['new']['use']
@@ -323,6 +832,35 @@ def setting(value):
                  entry = pref['extra_overlays']['new']['font_color']
             if value == 'ovNewText':
                  entry = pref['extra_overlays']['new']['text']
+
+            if value == 'ovNew_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['new']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovNew_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['new']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovNew_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['new']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovNew_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['new']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+                 
+            
             if value == 'ovReturning':
                 try:
                     entry = pref['extra_overlays']['returning']['use']
@@ -334,6 +872,34 @@ def setting(value):
                  entry = pref['extra_overlays']['returning']['font_color']
             if value == 'ovReturningText':
                  entry = pref['extra_overlays']['returning']['text']
+
+            if value == 'ovReturning_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['returning']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovReturning_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['returning']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovReturning_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['returning']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovReturning_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['returning']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+
             if value == 'ovAiring':
                 try:
                     entry = pref['extra_overlays']['airing']['use']
@@ -345,6 +911,34 @@ def setting(value):
                  entry = pref['extra_overlays']['airing']['font_color']
             if value == 'ovAiringText':
                  entry = pref['extra_overlays']['airing']['text']
+
+            if value == 'ovAiring_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['airing']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovAiring_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['airing']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovAiring_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['airing']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovAiring_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['airing']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+
             if value == 'ovEnded':
                 try:
                     entry = pref['extra_overlays']['ended']['use']
@@ -356,6 +950,34 @@ def setting(value):
                  entry = pref['extra_overlays']['ended']['font_color']
             if value == 'ovEndedText':
                  entry = pref['extra_overlays']['ended']['text']
+
+            if value == 'ovEnded_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['ended']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovEnded_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['ended']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovEnded_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['ended']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovEnded_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['ended']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+
+
+
             if value == 'ovCanceled':
                 try:
                     entry = pref['extra_overlays']['canceled']['use']
@@ -366,7 +988,32 @@ def setting(value):
             if value == 'ovCanceledFontColor':
                  entry = pref['extra_overlays']['canceled']['font_color']
             if value == 'ovCanceledText':
-                 entry = pref['extra_overlays']['canceled']['text']   
+                 entry = pref['extra_overlays']['canceled']['text']
+
+            if value == 'ovCanceled_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['canceled']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovCanceled_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['canceled']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovCanceled_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['canceled']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovCanceled_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['canceled']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
         return entry
 
 def traktApi(type):
