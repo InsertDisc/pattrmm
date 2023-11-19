@@ -1,7 +1,4 @@
 # pattrmm
-
-[Join our Discord](https://discord.com/invite/7yUYdqgxkn)
-
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in Plex Meta Manager.
 
 Requirements:
@@ -38,37 +35,6 @@ services:
 If using the docker version, you can initialize the settings file with this command.
 ```
 docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:latest --run
-```
-The DEVELOP branch of docker is slightly ahead of the latest branch. Extensions have been added and will continue to expand.
-```
-Extensions Available:
-  in-history
-    This extension uses the Originally Available At date within Plex to create Trakt lists based on a specified range per library and a corresponding metadata file for use with that library.
-    Available options are, day, week, and month.
-Extension Use Example:
-  Using PATTRMM's setting file.
-
-libraries:
-  Movies:
-    extensions:
-      in-history:
-        range: month
-  TV Shows:
-    refresh: 30
-    days_ahead: 90
-    extensions:
-      in-history:
-        range: week
-  Anime:
-    returning-soon: False <-- if you only want to use extensions on this 'Show' library.
-    refresh: 7
-    days_ahead: 45
-    extensions:
-      in-history:
-        range: day
-
-Each extension can only be used within a library ONCE, otherwise an error will occur.
-In-History supports ONE range.
 ```
 What now:
 
