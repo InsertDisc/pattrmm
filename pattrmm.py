@@ -1838,6 +1838,75 @@ templates:
 
         except Exception as e:
             print(f"An error occurred updating the timestamp: {str(e)}")
+    print("-------------------------")        
+    print("Checking for missing data using TMDB DISCOVER...")
+    logging.info("Checking for missing data using TMDB DISCOVER...")
+
+    tmdb_discover_url = "https://api.themoviedb.org/3/discover/tv"
+    tmdb_discover_key = vars.tmdbApi('token')
+    tmdb_discover_headers = {
+    "accept": "application/json",
+}
+
+    for i in range(days_ahead):
+        tmdb_discover_search_date = (datetime.now() + timedelta(days=i+1)).strftime('%Y-%m-%d')
+        tmdb_discover_params = {
+        "api_key": tmdb_discover_key,
+        "air_date.gte": tmdb_discover_search_date,
+        "air_date.lte": tmdb_discover_search_date,
+        "include_null_first_air_dates": "false",
+        "sort_by": "popularity.desc",
+        "with_status": "0",
+        "page": 1  # Initial page number
+        }
+
+        total_pages = 1  # Initialize total pages
+
+        # Fetching total pages information after the first request
+        tmdb_discover_response = requests.get(tmdb_discover_url, headers=tmdb_discover_headers, params=tmdb_discover_params)
+        if tmdb_discover_response.status_code == 200:
+            tmdb_discover_results = tmdb_discover_response.json().get('results')
+            total_pages = tmdb_discover_response.json().get('total_pages')  # Update total pages from response
+            total_results = tmdb_discover_response.json().get('total_results')  # Total results from response
+            print(f'''-------------------------
+TMDB Discover: {tmdb_discover_search_date}
+Shows: {total_results}
+''')
+            logging.info(f'''-------------------------
+TMDB Discover: {tmdb_discover_search_date}
+Shows: {total_results}
+''')
+
+        # Update next air dates in original data using the search date and matching TMDB IDs
+        for entry in tmdb_details_list:
+            if entry.next_air_date == "null":
+                for result in tmdb_discover_results:
+                    if entry.id == result['id']:
+                        print(f'''Found data for {result['name']}, updating entry.''')
+                        last_air_date = datetime.strptime(entry.last_air_date, '%Y-%m-%d')  # Convert last air date to datetime object
+                        days_since_last_air = (datetime.now() - last_air_date).days  # Calculate days since last air date
+                        if days_since_last_air >= 45:  # Check if last air date is more than 45 days ago
+                            entry.next_air_date = tmdb_discover_search_date  # Update next air date with search date
+
+        if total_pages > 1:
+            # Loop through multiple pages of TMDB results
+            for page_number in range(2, total_pages + 1):
+                tmdb_discover_params['page'] = page_number  # Update page number in API call
+                tmdb_discover_response = requests.get(tmdb_discover_url, headers=tmdb_discover_headers, params=tmdb_discover_params)
+
+                if tmdb_discover_response.status_code == 200:
+                    tmdb_discover_results = tmdb_discover_response.json().get('results')
+
+                    # Update next air dates in original data using the search date and matching TMDB IDs
+                    for entry in tmdb_details_list:
+                        if entry.next_air_date == "null":
+                            for result in tmdb_discover_results:
+                                if entry.id == result['id']:
+                                    print(f'''Found data for {result['name']}, updating entry.''')
+                                    last_air_date = datetime.strptime(entry.last_air_date, '%Y-%m-%d')  # Convert last air date to datetime object
+                                    days_since_last_air = (datetime.now() - last_air_date).days  # Calculate days since last air date
+                                    if days_since_last_air >= 45:  # Check if last air date is more than 45 days ago
+                                        entry.next_air_date = tmdb_discover_search_date  # Update next air date with search date
 
 
     next_air_dates_list = pretty_json(sorted_list(json.loads(dict_to_json(tmdb_details_list)), 'next_air_date'))
@@ -2223,7 +2292,7 @@ overlays:
             loaded_cache_json)
     print("Sorting " + library + "...")
     logging.info("Sorting " + library + "...")
-    series_rs_sorted_list = sorted_list(series_rs_list, 'next_air')
+    series_rs_sorted_list = sorted_list(series_rs_list, 'next_air_date')
 
     trakt_access = vars.traktApi('token')
     trakt_api = vars.traktApi('client')
@@ -2261,8 +2330,8 @@ overlays:
     "shows": [
         '''
     for series_item in series_rs_sorted_list:
-        print("Adding " + series_item['title'] + " | TMDB ID: " + str(series_item['id']) + ", to Returning Soon " + library + ".")
-        logging.info("Adding " + series_item['title'] + " | TMDB ID: " + str(series_item['id']) + ", to Returning Soon " + library + ".")
+        print(f"""{library} Returning Soon | + | {series_item['title']} | TMDB ID: {series_item['id']}""")
+        logging.info(f"""{library} Returning Soon | + | {series_item['title']} | TMDB ID: {series_item['id']}""")
 
         trakt_list_show += f'''
     {{
@@ -2505,8 +2574,8 @@ Attempting to remove unused collection.''')
                     if (in_history_settings.starting <= title_in_range.date.year <= in_history_settings.ending 
                         and (in_history_settings.ending - title_in_range.date.year) % in_history_settings.increment == 0
                         and title_in_range.date.year != today.year):
-                        print(f"Adding {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
-                        logging.info(f"Adding {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
+                        print(f"In History | + | {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
+                        logging.info(f"In History | + | {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
                         trakt_list_items += f'''
     {{
     "ids": {{'''
@@ -2536,7 +2605,8 @@ Attempting to remove unused collection.''')
                 
                 post_items = requests.post(trakt_list_url_post_items, headers=trakt_headers, data=trakt_list_items)
                 if post_items.status_code == 201:
-                    print(f"Successfully posted This {in_history_range} In History items for {this_library}")
+                    print(f'''
+    Successfully posted This {in_history_range} In History items for {this_library}''')
                     logging.info(f"Successfully posted This {in_history_range} In History items for {this_library}")
 
 
@@ -2700,7 +2770,8 @@ Attempting to remove unused collection.''')
                 for movie_info in movies_list:
 
     
-                    print(f'''Adding '{movie_info.title}'.''')
+                    print(f'''By Size | + | {movie_info.title}''')
+                    logging.info(f'''By Size | + | {movie_info.title}''')
 
                     movie_by_size = plex.item.info(movie_info.ratingKey)
                     trakt_list_items += f'''
@@ -2732,8 +2803,9 @@ Attempting to remove unused collection.''')
 
                 post_items = requests.post(trakt_list_url_post_items, headers=trakt_headers, data=trakt_list_items)
                 if post_items.status_code == 201:
-                    print(f"Successfully posted Sorted by size items for {this_library}")
-                    logging.info(f"Successfully Sorted by size items for {this_library}")
+                    print(f'''
+    Successfully posted Sorted by size items for {this_library}''')
+                    logging.info(f"Successfully posted Sorted by size items for {this_library}")
 
             if extension_item == 'by_size' and plex.library.type(this_library) != 'movie':
                 print(f'''The 'By Size' extension is only valid for Movie libraries. {this_library} is not compatible and will be skipped.''')
