@@ -32,7 +32,7 @@ To update the stand-alone version, you need to delete OR replace vars.py and rep
 ```yaml
 services:
   pattrmm:
-    image: ghcr.io/insertdisc/pattrmm:develop
+    image: ghcr.io/insertdisc/pattrmm:latest
     container_name: pattrmm
     environment:
       - PUID=1000
