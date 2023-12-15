@@ -48,7 +48,7 @@ services:
 
 You can initialize the settings file for the docker version with this command:
 
-*Replace the paths with the appropriate location for the directories used.*
+*Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
 docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
@@ -56,10 +56,10 @@ docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/p
 
 If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
 
-*Replace the paths with the appropriate location for the directories used.*
+*Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" -v "./pattrmm/data:/data" -v "../pmm:/config" ghcr.io/insertdisc/pattrmm:develop --run
+docker run --rm -it -v "./pattrmm/preferences:/preferences" -v "./pattrmm/data:/data" -v "../pmm:/config" ghcr.io/insertdisc/pattrmm --run
 ```
 
 The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
@@ -77,7 +77,7 @@ Pattrmm now has a template available in the Community Applications for unRAID. T
 
 You can initialize the settings file for the docker version with this command:
 
-*Replace the paths with the appropriate location for the directories used.*
+*Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
 docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
@@ -85,10 +85,10 @@ docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/p
 
 If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
 
-*Replace the paths with the appropriate location for the directories used.*
+*Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" -v "./pattrmm/data:/data" -v "../pmm:/config" ghcr.io/insertdisc/pattrmm:develop --run
+docker run --rm -it -v "./pattrmm/preferences:/preferences" -v "./pattrmm/data:/data" -v "../pmm:/config" ghcr.io/insertdisc/pattrmm --run
 ```
 
 ![image](https://github.com/InsertDisc/pattrmm/assets/67336980/24e23d34-8d92-4afc-a0bc-138ecfcc3067)
