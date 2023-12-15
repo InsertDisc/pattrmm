@@ -40,9 +40,9 @@ services:
       - TZ=America/New_York
       - PATTRMM_TIME=02:00  # Schedule run time
     volumes:
-      - ./pattrmm/data:/data
-      - ./pattrmm/preferences:/preferences
-      - ./pmm/config:/config
+      - /path/to/pattrmm/data:/data
+      - /path/to/pattrmm/preferences:/preferences
+      - /path/to/pmm/config:/config
     restart: unless-stopped  
 ```
 
@@ -51,7 +51,7 @@ You can initialize the settings file for the docker version with this command:
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
 ```
 
 If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
@@ -59,7 +59,7 @@ If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" -v "./pattrmm/data:/data" -v "../pmm:/config" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm --run
 ```
 
 The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
@@ -80,7 +80,7 @@ You can initialize the settings file for the docker version with this command:
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
 ```
 
 If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
@@ -88,7 +88,7 @@ If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" -v "./pattrmm/data:/data" -v "../pmm:/config" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm --run
 ```
 
 ![image](https://github.com/InsertDisc/pattrmm/assets/67336980/24e23d34-8d92-4afc-a0bc-138ecfcc3067)
