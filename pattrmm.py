@@ -1,4 +1,4 @@
-#pattrmm-py by insertdisc
+#pattrmm:nightly by insertdisc
 
 # import dependencies
 import time
@@ -152,6 +152,7 @@ if not vars_file_exists:
     print("Creating vars module file..")
     create_vars_file = open(vars_file, "x")
     create_vars_file.write("""
+#vars:nightly
 from ruamel.yaml import YAML
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -238,7 +239,12 @@ class Extensions:
     def by_size(self):
         self.context = 'by_size'
         return self
-
+    
+    @property
+    def missing_episodes(self):
+        self.context = 'missing_episodes'
+        return self
+    
     def settings(self):
         if self.context == 'in_history':
             settings = settings_path
@@ -393,7 +399,44 @@ class Extensions:
                 
             except Exception as e:
                 return f"Error: {str(e)}"
-        return self
+            return self
+    
+        if self.context == 'missing_episodes':
+            settings = settings_path
+            print(settings_path)
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            try:
+                self.overlay_save_folder = pref['libraries'][self.extension_library]['extensions']['missing_episodes']['overlay_save_folder']
+            except KeyError:
+                self.overlay_save_folder = 'overlays/'
+            try:
+                self.monitored_only = pref['libraries'][self.extension_library]['extensions']['missing_episodes']['monitored_only']
+            except KeyError:
+                self.monitored_only = False
+            try:
+                self.style = pref['libraries'][self.extension_library]['extensions']['missing_episodes']['style']
+            except KeyError:
+                self.style = 'dot'
+
+            if self.style == 'icon':
+                self.display_style_present = f'''
+    template: {{name: Missing_Episodes, this_overlay_name: all-episodes-present, back_height: 30, back_width: 30, back_color: "#FFFFFF", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+    '''
+                self.display_style_missing = f'''
+    template: {{name: Missing_Episodes, this_overlay_name: not-all-episodes-present, back_height: 30, back_width: 30, back_color: "#FFFFFF", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+    '''
+            if self.style == 'dot':
+                self.display_style_present = f'''
+    template: {{name: Missing_Episodes, back_height: 30, back_width: 30, back_color: "#FFFFFF", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+      '''
+                self.display_style_missing = f'''
+    template: {{name: Missing_Episodes, back_height: 30, back_width: 30, back_color: "#FFFFFF00", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+      '''
+            return self
+
+
+            
 
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
@@ -539,12 +582,13 @@ class Plex:
                             title = item['title']
                             ratingKey = item['ratingKey']
                             released = item['originallyAvailableAt']
-                            added_at_timestamp = item['addedAt']
+                            added_at_str = item['addedAt']
+                            added_at_timestamp = abs(int(added_at_str))
                             added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
                             added_at = added_dt_object.strftime('%Y-%m-%d')
-                            duration_ms = item["Media"][0]["duration"]
-                            bitrate_kbps = item["Media"][0]["bitrate"]
-                            file_size_gb = (duration_ms * bitrate_kbps) / (8 * 1000 * 1024 * 1024)
+                            size_str = item['Media'][0]['Part'][0]['size']
+                            size_bytes = int(size_str)
+                            file_size_gb = size_bytes / 1073741824
                             extended_library_list.append(ExtendedLibraryList(**{
                             'ratingKey': ratingKey,
                             'title': title,
@@ -623,17 +667,17 @@ class Plex:
             except Exception as e:
                 return f"Error: {str(e)}"
 
-    def tmdb_id(self, ratingKey):
+    def tmdb_id(self, rating_key):
         # Attempt to retrieve TMDB ID from Plex
-        plex_tmdb_id = self.get_tmdb_id_from_plex(ratingKey)
+        plex_tmdb_id = self.get_tmdb_id_from_plex(rating_key)
         
         if plex_tmdb_id is not None:
             return plex_tmdb_id
         
         # If not found in Plex, search TMDB
         if plex_tmdb_id == None:
-            show_name = self.get_show_name(ratingKey)
-            year = self.year(ratingKey)
+            show_name = self.get_show_name(rating_key)
+            year = self.year(rating_key)
             if year != None:
                 print("")
                 print("No TMDB ID found locally: Searching for " + show_name + " with year " + str(year))
@@ -666,9 +710,9 @@ class Plex:
             
 
 
-    def get_tmdb_id_from_plex(self, ratingKey):
+    def get_tmdb_id_from_plex(self, rating_key):
         try:
-            show_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
+            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token}
             response = requests.get(show_details_url, headers=headers)
@@ -687,9 +731,9 @@ class Plex:
             return f"Error: {str(e)}"
 
 
-    def get_show_name(self, ratingKey):
+    def get_show_name(self, rating_key):
         try:
-            show_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
+            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"
@@ -724,10 +768,10 @@ class Plex:
         return "null"
         
 
-    def year(self, ratingKey):
+    def year(self, rating_key):
         try:
             # Get the originally available year from Plex
-            show_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
+            show_details_url = f"{self.plex_url}/library/metadata/{rating_key}"
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"}
@@ -777,10 +821,10 @@ class Plex:
             return e
 
 
-    def episodes(self, ratingKey):
+    def episodes(self, rating_key):
         try:
             # Retrieve a list of episodes for a show based on rating key
-            episodes_url = f"{self.plex_url}/library/metadata/{ratingKey}/allLeaves"
+            episodes_url = f"{self.plex_url}/library/metadata/{rating_key}/allLeaves"
             episodes_url = re.sub("0//", "0/", episodes_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"}
@@ -1229,10 +1273,61 @@ def cleanPath(string):
         return cleanedPath
 
 
+
+class SonarrApi:
+    def __init__(self):
+        with open(config_path, "r") as pmm_config_yaml:
+            pmm_config_file = yaml.load(pmm_config_yaml)
+            self.sonarr_url = pmm_config_file['sonarr']['url']
+            self.sonarr_token = pmm_config_file['sonarr']['token']
+            self.sonarr_api_url = f'{self.sonarr_url}/api'
+            self.sonarr_status_endpoint = f'{self.sonarr_api_url}/system/status'
+            self.sonarr_series_endpoint = f'{self.sonarr_api_url}/series'
+            self.sonarr_headers = {'X-Api-Key': self.sonarr_token}
+            self.connected = self.check_connection()
+
+    def check_connection(self):
+        try:
+            response = requests.get(self.sonarr_status_endpoint, headers=self.sonarr_headers)
+            response.raise_for_status()  # Raises an error for bad status codes
+            print("Connection to Sonarr successful.")
+            return True  # Connection successful
+        except requests.exceptions.RequestException as e:
+            print(f"Connection to Sonarr failed: {e}")
+            return False  # Connection failed
+            
+
+    def get_series_list(self):
+        response = requests.get(self.sonarr_series_endpoint, headers=self.sonarr_headers)
+        response.raise_for_status()
+        return sorted(response.json(), key=lambda x: x['title'])
+
+    def get_missing_episodes_count(self, series_id):
+        sonarr_episodes_endpoint = f'{self.sonarr_api_url}/episode'
+        params = {'seriesId': series_id}
+        response = requests.get(sonarr_episodes_endpoint, headers=self.sonarr_headers, params=params)
+        response.raise_for_status()
+        
+
+        episodes = response.json()
+        available_missing_episodes = len([
+            episode for episode in episodes if episode.get('airDateUtc') and not episode.get('hasFile')
+                                            and episode['seasonNumber'] != 0
+                                            and datetime.datetime.strptime(episode['airDateUtc'], "%Y-%m-%dT%H:%M:%SZ") < today
+        ])
+
+        total_episodes = len([episode for episode in episodes if episode.get('airDateUtc') and episode['seasonNumber'] != 0 
+                              and datetime.datetime.strptime(episode.get('airDateUtc'), "%Y-%m-%dT%H:%M:%SZ") < today])
+        self.missing_count = available_missing_episodes
+        self.total_count = total_episodes
+        return self
+
+
 """)
     create_vars_file.close()
 else:
     print("Vars module file present.")
+
 
 
 # Check if this is a Docker Build to format PMM config folder directory
@@ -1376,7 +1471,7 @@ for library in loaded_settings_yaml['libraries']:
     rs_overlay_file = pmm_rs_overlay_folder + library_clean_path + "-returning-soon-overlay.yml"
     
     # overlay template path
-    rs_overlay_template_file = "./preferences/" + library_clean_path + "-returning-soon-template.yml"
+    rs_overlay_template_file = "./preferences/" + library_clean_path + "-status-template.yml"
     
 
     # Just some information
@@ -1460,10 +1555,33 @@ collections:
         logging.info("Generating " + library + " template file..")
         create_rs_overlay_template_file = open(rs_overlay_template_file, "x")
         create_rs_overlay_template_file.write(
-        '''
+        f'''
 templates:
-  # TEXT CENTER
-  TV_Top_TextCenter:
+  # {library} STATUS BANNER
+  {library}_Status_Banner:
+    sync_mode: sync
+    builder_level: show
+    overlay:
+      name: backdrop
+      horizontal_offset: <<horizontal_offset>>
+      horizontal_align: <<horizontal_align>>
+      vertical_offset: <<vertical_offset>>
+      vertical_align: <<vertical_align>>
+      group: <<group>>
+      weight: <<weight>>
+      back_color: <<back_color>>
+      back_width: 1000
+      back_height: 90
+
+    default:
+      horizontal_align: center
+      vertical_align: top
+      horizontal_offset: 0
+      vertical_offset: 0
+      group: banner_backdrop
+
+  # {library} STATUS
+  {library}_Status:
     sync_mode: sync
     builder_level: show
     overlay:
@@ -1473,19 +1591,19 @@ templates:
       vertical_offset: <<vertical_offset>>
       vertical_align: <<vertical_align>>
       font: config/fonts/Juventus-Fans-Bold.ttf
-      font_size: 70
+      font_size: <<font_size>>
       font_color: <<color>>
-      group: TV_Top_TextCenter
+      group: <<group>>
       weight: <<weight>>
       back_color: <<back_color>>
-      back_width: 1920
-      back_height: 90
 
     default:
       horizontal_align: center
       vertical_align: top
       horizontal_offset: 0
-      vertical_offset: 0
+      vertical_offset: 10
+      font_size: 70
+      back_color: "#00000000"
 '''
     )
         create_rs_overlay_template_file.close()
@@ -1783,7 +1901,11 @@ templates:
                 
                 tmdb_series_entry = json.loads(pretty_json(tmdb_sub_request.json()))
 
-                print("Refreshing data for " + tmdb_series_entry['name'] + " ( " + str(tmdb_series_entry['id']) + " )")
+                tmdb_series_name = tmdb_series_entry['name'][:30] + '...' if len(tmdb_series_entry['name']) > 30 else tmdb_series_entry['name']
+                tmdb_series_id = tmdb_series_entry['id']
+
+                print(f"Refreshing Data | {tmdb_series_name.ljust(33)} | TMDB ID | {tmdb_series_id}")
+                logging.info(f"Refreshing Data | {tmdb_series_name.ljust(33)} | TMDB ID | {tmdb_series_id}")
 
                 if tmdb_series_entry['last_air_date'] is not None and tmdb_series_entry['last_air_date'] != "" :
                     last_air_date = tmdb_series_entry['last_air_date']
@@ -1849,6 +1971,7 @@ templates:
 }
 
     for i in range(days_ahead):
+        tmdb_discover_matches = 0
         tmdb_discover_search_date = (datetime.now() + timedelta(days=i+1)).strftime('%Y-%m-%d')
         tmdb_discover_params = {
         "api_key": tmdb_discover_key,
@@ -1870,45 +1993,49 @@ templates:
             total_results = tmdb_discover_response.json().get('total_results')  # Total results from response
             print(f'''-------------------------
 TMDB Discover: {tmdb_discover_search_date}
-Shows: {total_results}
-''')
+Shows: {total_results}''')
             logging.info(f'''-------------------------
 TMDB Discover: {tmdb_discover_search_date}
-Shows: {total_results}
+Shows: {total_results}''')
+
+            # Update next air dates in original data using the search date and matching TMDB IDs
+            for entry in tmdb_details_list:
+                if entry.next_air_date == "null":
+                    for result in tmdb_discover_results:
+                        if entry.id == result['id']:
+                            tmdb_discover_matches += 1
+                            print(f'''Found data for {result['name']}, updating entry.''')
+                            logging.info(f'''Found data for {result['name']}, updating entry.''')
+                            last_air_date = datetime.strptime(entry.last_air_date, '%Y-%m-%d')  # Convert last air date to datetime object
+                            days_since_last_air = (datetime.now() - last_air_date).days  # Calculate days since last air date
+                            if days_since_last_air >= 45:  # Check if last air date is more than 45 days ago
+                                entry.next_air_date = tmdb_discover_search_date  # Update next air date with search date
+
+            if total_pages > 1:
+                # Loop through multiple pages of TMDB results
+                for page_number in range(2, total_pages + 1):
+                    tmdb_discover_params['page'] = page_number  # Update page number in API call
+                    tmdb_discover_response = requests.get(tmdb_discover_url, headers=tmdb_discover_headers, params=tmdb_discover_params)
+
+                    if tmdb_discover_response.status_code == 200:
+                        tmdb_discover_results = tmdb_discover_response.json().get('results')
+
+                        # Update next air dates in original data using the search date and matching TMDB IDs
+                        for entry in tmdb_details_list:
+                            if entry.next_air_date == "null":
+                                for result in tmdb_discover_results:
+                                    if entry.id == result['id']:
+                                        tmdb_discover_matches += 1
+                                        print(f'''Found data for {result['name']}, updating entry.''')
+                                        logging.info(f'''Found data for {result['name']}, updating entry.''')
+                                        last_air_date = datetime.strptime(entry.last_air_date, '%Y-%m-%d')  # Convert last air date to datetime object
+                                        days_since_last_air = (datetime.now() - last_air_date).days  # Calculate days since last air date
+                                        if days_since_last_air >= 45:  # Check if last air date is more than 45 days ago
+                                            entry.next_air_date = tmdb_discover_search_date  # Update next air date with search date
+            print(f'''Matches: {tmdb_discover_matches}
 ''')
-
-        # Update next air dates in original data using the search date and matching TMDB IDs
-        for entry in tmdb_details_list:
-            if entry.next_air_date == "null":
-                for result in tmdb_discover_results:
-                    if entry.id == result['id']:
-                        print(f'''Found data for {result['name']}, updating entry.''')
-                        last_air_date = datetime.strptime(entry.last_air_date, '%Y-%m-%d')  # Convert last air date to datetime object
-                        days_since_last_air = (datetime.now() - last_air_date).days  # Calculate days since last air date
-                        if days_since_last_air >= 45:  # Check if last air date is more than 45 days ago
-                            entry.next_air_date = tmdb_discover_search_date  # Update next air date with search date
-
-        if total_pages > 1:
-            # Loop through multiple pages of TMDB results
-            for page_number in range(2, total_pages + 1):
-                tmdb_discover_params['page'] = page_number  # Update page number in API call
-                tmdb_discover_response = requests.get(tmdb_discover_url, headers=tmdb_discover_headers, params=tmdb_discover_params)
-
-                if tmdb_discover_response.status_code == 200:
-                    tmdb_discover_results = tmdb_discover_response.json().get('results')
-
-                    # Update next air dates in original data using the search date and matching TMDB IDs
-                    for entry in tmdb_details_list:
-                        if entry.next_air_date == "null":
-                            for result in tmdb_discover_results:
-                                if entry.id == result['id']:
-                                    print(f'''Found data for {result['name']}, updating entry.''')
-                                    last_air_date = datetime.strptime(entry.last_air_date, '%Y-%m-%d')  # Convert last air date to datetime object
-                                    days_since_last_air = (datetime.now() - last_air_date).days  # Calculate days since last air date
-                                    if days_since_last_air >= 45:  # Check if last air date is more than 45 days ago
-                                        entry.next_air_date = tmdb_discover_search_date  # Update next air date with search date
-
-
+            logging.info(f'''Matches: {tmdb_discover_matches}
+''')
     next_air_dates_list = pretty_json(sorted_list(json.loads(dict_to_json(tmdb_details_list)), 'next_air_date'))
 
 
@@ -1934,7 +2061,7 @@ Shows: {total_results}
     # Generate Overlay body
     # define date ranges
     day_counter = 1
-    last_air_date = date.today() - timedelta(days=45)
+    last_air_date = date.today() - timedelta(days=14)
     last_episode_aired = last_air_date.strftime("%m/%d/%Y")
     next_air_date = date.today() + timedelta(days=int(days_ahead))
     this_day_temporary = date.today() + timedelta(days=int(day_counter))
@@ -2009,14 +2136,30 @@ overlays:
         upcoming_vertical_offset = vars.setting('ovUpcoming_vertical_offset')
 
         overlay_upcoming = f'''
-  # Upcoming
-  TV_Top_TextCenter_Upcoming:
+  # Upcoming Banner
+  {library}_Status_Upcoming_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        group: banner_backdrop
         weight: 90
-        text: "{upcoming_text}"
-        color: "{upcoming_font_color}"
         back_color: "{upcoming_color}"
+        vertical_align: {upcoming_vertical_align}
+    plex_all: true
+    filters:
+      tmdb_status:
+      - returning
+      - planned
+      - production
+      release.after: today
+
+  # Upcoming
+  {library}_Status_Upcoming:
+    template:
+      - name: {library}_Status
+        text: "{upcoming_text}"
+        group: banner_text
+        weight: 90
+        color: "{upcoming_font_color}"
         horizontal_align: {upcoming_horizontal_align}
         vertical_align: {upcoming_vertical_align}
         horizontal_offset: {upcoming_horizontal_offset}
@@ -2044,14 +2187,32 @@ overlays:
         new_vertical_offset = vars.setting('ovNew_vertical_offset')
 
         overlay_new = f'''
-  # New
-  TV_Top_TextCenter_New:
+  # New_Banner
+  {library}_Status_New_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        weight: 60
+        group: banner_backdrop
+        back_color: "{new_color}"
+        vertical_align: {new_vertical_align}
+    plex_all: true
+    filters:
+      tmdb_status:
+        - returning
+        - planned
+        - production
+        - ended
+        - canceled
+      first_episode_aired: 45
+
+  # New
+  {library}_Status_New:
+    template:
+      - name: {library}_Status
         weight: 60
         text: "{new_text}"
+        group: banner_text
         color: "{new_font_color}"
-        back_color: "{new_color}"
         horizontal_align: {new_horizontal_align}
         vertical_align: {new_vertical_align}
         horizontal_offset: {new_horizontal_offset}
@@ -2086,14 +2247,30 @@ overlays:
         airing_vertical_offset = vars.setting('ovAiring_vertical_offset')
 
         overlay_airing = f'''
-  # Airing
-  TV_Top_TextCenter_Airing:
+  # Airing_Banner
+  {library}_Status_Airing_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        weight: 40
+        group: banner_backdrop
+        back_color: "{airing_color}"
+        vertical_align: {airing_vertical_align}
+    plex_all: true
+    filters:
+      tmdb_status:
+        - returning
+        - planned
+        - production
+      last_episode_aired.after: {considered_airing_formatted}
+
+  # Airing
+  {library}_Status_Airing:
+    template:
+      - name: {library}_Status
         weight: 40
         text: "{airing_text}"
+        group: banner_text
         color: "{airing_font_color}"
-        back_color: "{airing_color}"
         horizontal_align: {airing_horizontal_align}
         vertical_align: {airing_vertical_align}
         horizontal_offset: {airing_horizontal_offset}
@@ -2106,14 +2283,28 @@ overlays:
         - production
       last_episode_aired.after: {considered_airing_formatted}
 
-  # Airing Today
-  TV_Top_TextCenter_Airing_Today:
+  # Airing Today Banner
+  {library}_Status_Airing_Today_Banner:
     template:
-      - name: TV_Top_TextCenter
-        weight: 40
-        text: "{airing_text}"
-        color: "{airing_font_color}"
+      - name: {library}_Status_Banner
+        weight: 41
+        group: banner_backdrop
         back_color: "{airing_color}"
+        vertical_align: {airing_vertical_align}
+    tmdb_discover:
+      air_date.gte: {airing_today_formatted}
+      air_date.lte: {airing_today_formatted}
+      with_status: 0
+      limit: 500
+
+  # Airing Today
+  {library}_Status_Airing_Today:
+    template:
+      - name: {library}_Status
+        weight: 41
+        text: "{airing_text}"
+        group: banner_text
+        color: "{airing_font_color}"
         horizontal_align: {airing_horizontal_align}
         vertical_align: {airing_vertical_align}
         horizontal_offset: {airing_horizontal_offset}
@@ -2138,14 +2329,27 @@ overlays:
         ended_vertical_offset = vars.setting('ovEnded_vertical_offset')
         
         overlay_ended = f'''
-  # Ended
-  TV_Top_TextCenter_Ended:
+  # Ended Banner
+  {library}_Status_Ended_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        weight: 20
+        group: banner_backdrop
+        back_color: "{ended_color}"
+        vertical_align: {ended_vertical_align}
+    plex_all: true
+    filters:
+      tmdb_status:
+        - ended
+
+  # Ended
+  {library}_Status_Ended:
+    template:
+      - name: {library}_Status
         weight: 20
         text: "{ended_text}"
+        group: banner_text
         color: "{ended_font_color}"
-        back_color: "{ended_color}"
         horizontal_align: {ended_horizontal_align}
         vertical_align: {ended_vertical_align}
         horizontal_offset: {ended_horizontal_offset}
@@ -2169,14 +2373,28 @@ overlays:
         canceled_vertical_offset = vars.setting('ovCanceled_vertical_offset')
         
         overlay_canceled = f'''
-  # Canceled
-  TV_Top_TextCenter_Canceled:
+  # Canceled_Banner
+  {library}_Status_Canceled_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        weight: 20
+        group: banner_backdrop
+        back_color: "{canceled_color}"
+        vertical_align: {canceled_vertical_align}
+
+    plex_all: true
+    filters:
+      tmdb_status:
+        - canceled
+
+  # Canceled
+  {library}_Status_Canceled:
+    template:
+      - name: {library}_Status
         weight: 20
         text: "{canceled_text}"
+        group: banner_text
         color: "{canceled_font_color}"
-        back_color: "{canceled_color}"
         horizontal_align: {canceled_horizontal_align}
         vertical_align: {canceled_vertical_align}
         horizontal_offset: {canceled_horizontal_offset}
@@ -2200,14 +2418,29 @@ overlays:
         returning_vertical_offset = vars.setting('ovReturning_vertical_offset')
 
         overlay_returning = f'''
-  # Returning
-  TV_Top_TextCenter_Returning:
+  # Returning_Banner
+  {library}_Status_Returning_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        weight: 30
+        group: banner_backdrop
+        back_color: "{returning_color}"
+        vertical_align: {returning_vertical_align}
+    plex_all: true
+    filters:
+      tmdb_status:
+        - returning
+        - planned
+        - production
+
+  # Returning
+  {library}_Status_Returning:
+    template:
+      - name: {library}_Status
         weight: 30
         text: "{returning_text}"
+        group: banner_text
         color: "{returning_font_color}"
-        back_color: "{returning_color}"
         horizontal_align: {returning_horizontal_align}
         vertical_align: {returning_vertical_align}
         horizontal_offset: {returning_horizontal_offset}
@@ -2218,6 +2451,7 @@ overlays:
         - returning
         - planned
         - production
+
 '''
         overlay_body = overlay_body + overlay_returning
 
@@ -2231,14 +2465,30 @@ overlays:
 
     while this_day_temporary < next_air_date:
         overlay_rs_temporary = f'''
-# RETURNING {this_day_display}
-  TV_Top_TextCenter_Returning_{this_day_display}:
+# RETURNING {this_day_display} Banner
+  {library}_Status_Returning_{this_day_display}_Banner:
     template:
-      - name: TV_Top_TextCenter
+      - name: {library}_Status_Banner
+        weight: 35
+        group: banner_backdrop
+        back_color: "{rs_color}"
+        vertical_align: {rs_vertical_align}
+    tmdb_discover:
+      air_date.gte: {this_day}
+      air_date.lte: {this_day}
+      with_status: 0
+      limit: 500
+    filters:
+      last_episode_aired.before: {last_episode_aired}
+
+# RETURNING {this_day_display}
+  {library}_Status_Returning_{this_day_display}:
+    template:
+      - name: {library}_Status
         weight: 35
         text: "{prefix_text} {this_day_display_for_text}"
+        group: banner_text
         color: "{rs_font_color}"
-        back_color: "{rs_color}"
         horizontal_align: {rs_horizontal_align}
         vertical_align: {rs_vertical_align}
         horizontal_offset: {rs_horizontal_offset}
@@ -2811,12 +3061,150 @@ Attempting to remove unused collection.''')
                 print(f'''The 'By Size' extension is only valid for Movie libraries. {this_library} is not compatible and will be skipped.''')
 
                     
+   
+
+
+
+            if extension_item == 'missing_episodes' and plex.library.type(this_library) == 'show':
+                print(f'''
+==================================================''')
+                print(f'''
+Extension setting found. Running 'Missing Episodes' on {this_library}
+''')
+                logging.info(f"Extension setting found. Running 'Missing Episodes' on {this_library}")
+                template_file_name = f'{this_library}-missing-episodes-template.yml'
+                template_file_path = f'./preferences/{template_file_name}'
+                missing_episodes_settings = vars.Extensions(this_library).missing_episodes.settings()
+                missing_episodes_overlay_file_name = f'{this_library}-missing-episodes-overlay.yml'
+                pmm_missing_episodes_overlay_folder = pmm_config_path_prefix + missing_episodes_settings.overlay_save_folder
+                pmm_missing_episodes_overlay_file_path = pmm_missing_episodes_overlay_folder + missing_episodes_overlay_file_name
+                is_template_file_path = os.path.exists(template_file_path)
+
+                if not is_template_file_path:
+                    print(f"Attempting to create Missing Episodes Template file [preferences/{template_file_name}]")
+                    logging.info(f"Attempting to create Missing Episodes Template file [preferences/{template_file_name}]")
+                    try:
+                        
+                        with open(template_file_path, "x") as missing_episodes_template_yaml:
+                            missing_episodes_template = f'''
+templates:
+  Missing_Episodes:
+    overlay:
+      name: <<this_overlay_name>>
+      horizontal_offset: <<horizontal_offset>>
+      horizontal_align: <<horizontal_align>>
+      vertical_offset: <<vertical_offset>>
+      vertical_align: <<vertical_align>>
+      back_padding: <<back_padding>>
+      back_radius: <<back_radius>>
+      back_color: <<back_color>>
+      back_height: <<back_height>>
+      back_width: <<back_width>>
+      back_line_color: <<back_line_color>>
+      back_line_width: <<back_line_width>>
+
+    default:
+      this_overlay_name: backdrop
+      horizontal_offset: 30
+      horizontal_align: left
+      vertical_offset: 30
+      vertical_align: top
+      back_padding: 15
+      back_radius: 30
+      back_color: "#FFFFFF"
+      back_height: 30
+      back_width: 30
+      back_line_color: "#FFFFFF"
+      back_line_width: 10
+      '''
+                            missing_episodes_template_yaml.write(missing_episodes_template)
+
+                    except Exception as error:
+                        print(f"There was a problem creating {template_file_name}")
+                        print(f"{error}")
+                        logging.warning(f"There was a problem creating {template_file_name}")
+                        logging.warning(f"{error}")
+                        continue
+
+                sonarr = vars.SonarrApi()
+                series_list = sonarr.get_series_list()
+                tvdb_ids_missing_episodes = []
+                tvdb_ids_not_missing_episodes = []
+
+                # Get missing episodes count and total episodes for each series
+                for series in series_list:
+                    series_id = series['id']
+                    series_title = series['title']
+                    series_tvdb_id = series['tvdbId']
+                    # Get missing episodes count and total episodes for the series
+                    sonarr.get_missing_episodes_count(series_id)
+                    missing_count = sonarr.missing_count
+                    total_count = sonarr.total_count
+
+                            
+                    # Output the details for each show
+                    print(f'Scanning details...')
+                    print(f"Show Name: {series_title}")
+                    print(f"TVDB ID: {series_tvdb_id}")
+                    print(f"Available but Missing Episodes: {sonarr.missing_count}")
+                    print(f"Total Episodes (Excluding Specials): {sonarr.total_count}\n")
+                    if sonarr.missing_count != 0:
+                        tvdb_ids_missing_episodes.append(series_tvdb_id)
+                    if sonarr.missing_count == 0:
+                        tvdb_ids_not_missing_episodes.append(series_tvdb_id)
+
+
+                print(f'{len(tvdb_ids_missing_episodes)} Shows Missing Episodes.')
+                print(f'Generating Missing Episodes overlay file for {this_library}')
+
+                missing_episodes_overlay_base = f'''overlays:
+  all-episodes-present:
+    {missing_episodes_settings.display_style_present}
+    tvdb_show:
+'''
+                
+                for not_missing_id in tvdb_ids_not_missing_episodes:
+                    if not_missing_id is not None:
+                        missing_episodes_overlay_base += f'''      - {not_missing_id}
+'''
+                missing_episodes_overlay_base += f'''
+  not-all-episodes-present:
+    {missing_episodes_settings.display_style_missing}
+    tvdb_show:
+'''
+                
+                for missing_id in tvdb_ids_missing_episodes:
+                    if missing_id is not None:
+                        missing_episodes_overlay_base += f'''      - {missing_id}
+'''
+
+                try:
+                    verify_or_create_file(pmm_missing_episodes_overlay_file_path, missing_episodes_overlay_file_name)
+                    with open(template_file_path) as read_missing_episodes_overlay_template_file:
+                        loaded_missing_episodes_overlay_template_yaml = yaml.load(read_missing_episodes_overlay_template_file)
+                        write_missing_episodes_template_to_overlay_file = open(pmm_missing_episodes_overlay_file_path, "w")
+                        yaml.dump(loaded_missing_episodes_overlay_template_yaml, write_missing_episodes_template_to_overlay_file)
+                        print(library + " template applied.")
+                        write_body_to_overlay_file = open(pmm_missing_episodes_overlay_file_path, "a")
+                        yaml.dump(yaml.load(missing_episodes_overlay_base), write_body_to_overlay_file)
+                        write_body_to_overlay_file.close()
+                        print(f'''{this_library}-missing-episodes-overlay.yml file updated''')
+                
+                    
+                except Exception as write_error:
+                    print(f'''There was a problem writing the {this_library} Missing Episodes overlay file''')
+                    print(f'{write_error}')
+
+
     except KeyError:
         print(f"No extensions set for {this_library}.")
         logging.info(f"No extensions set for {this_library}.")
         continue
     except Exception as e:
         print(f"Exception Error: {str(e)}")
+
+
+
 
 
 extension_end_time = time.time()
