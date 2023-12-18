@@ -1,3 +1,4 @@
+#vars:nightly
 from ruamel.yaml import YAML
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -84,7 +85,12 @@ class Extensions:
     def by_size(self):
         self.context = 'by_size'
         return self
-
+    
+    @property
+    def missing_episodes(self):
+        self.context = 'missing_episodes'
+        return self
+    
     def settings(self):
         if self.context == 'in_history':
             settings = settings_path
@@ -239,7 +245,44 @@ class Extensions:
                 
             except Exception as e:
                 return f"Error: {str(e)}"
-        return self
+            return self
+    
+        if self.context == 'missing_episodes':
+            settings = settings_path
+            print(settings_path)
+            with open(settings) as sf:
+                pref = yaml.load(sf)
+            try:
+                self.overlay_save_folder = pref['libraries'][self.extension_library]['extensions']['missing_episodes']['overlay_save_folder']
+            except KeyError:
+                self.overlay_save_folder = 'overlays/'
+            try:
+                self.monitored_only = pref['libraries'][self.extension_library]['extensions']['missing_episodes']['monitored_only']
+            except KeyError:
+                self.monitored_only = False
+            try:
+                self.style = pref['libraries'][self.extension_library]['extensions']['missing_episodes']['style']
+            except KeyError:
+                self.style = 'dot'
+
+            if self.style == 'icon':
+                self.display_style_present = f'''
+    template: {{name: Missing_Episodes, this_overlay_name: all-episodes-present, back_height: 30, back_width: 30, back_color: "#FFFFFF", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+    '''
+                self.display_style_missing = f'''
+    template: {{name: Missing_Episodes, this_overlay_name: not-all-episodes-present, back_height: 30, back_width: 30, back_color: "#FFFFFF", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+    '''
+            if self.style == 'dot':
+                self.display_style_present = f'''
+    template: {{name: Missing_Episodes, back_height: 30, back_width: 30, back_color: "#FFFFFF", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+      '''
+                self.display_style_missing = f'''
+    template: {{name: Missing_Episodes, back_height: 30, back_width: 30, back_color: "#FFFFFF00", back_line_width: 10, back_line_color: "#FFFFFF", back_radius: 50, horizontal_offset: 30, vertical_offset: 30}}
+      '''
+            return self
+
+
+            
 
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
@@ -385,12 +428,13 @@ class Plex:
                             title = item['title']
                             ratingKey = item['ratingKey']
                             released = item['originallyAvailableAt']
-                            added_at_timestamp = item['addedAt']
+                            added_at_str = item['addedAt']
+                            added_at_timestamp = abs(int(added_at_str))
                             added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
                             added_at = added_dt_object.strftime('%Y-%m-%d')
-                            duration_ms = item["Media"][0]["duration"]
-                            bitrate_kbps = item["Media"][0]["bitrate"]
-                            file_size_gb = (duration_ms * bitrate_kbps) / (8 * 1000 * 1024 * 1024)
+                            size_str = item['Media'][0]['Part'][0]['size']
+                            size_bytes = int(size_str)
+                            file_size_gb = size_bytes / 1073741824
                             extended_library_list.append(ExtendedLibraryList(**{
                             'ratingKey': ratingKey,
                             'title': title,
@@ -1073,3 +1117,53 @@ def plexGet(identifier):
 def cleanPath(string):
         cleanedPath = re.sub(r'[^\w]+', '-', string)
         return cleanedPath
+
+
+
+class SonarrApi:
+    def __init__(self):
+        with open(config_path, "r") as pmm_config_yaml:
+            pmm_config_file = yaml.load(pmm_config_yaml)
+            self.sonarr_url = pmm_config_file['sonarr']['url']
+            self.sonarr_token = pmm_config_file['sonarr']['token']
+            self.sonarr_api_url = f'{self.sonarr_url}/api'
+            self.sonarr_status_endpoint = f'{self.sonarr_api_url}/system/status'
+            self.sonarr_series_endpoint = f'{self.sonarr_api_url}/series'
+            self.sonarr_headers = {'X-Api-Key': self.sonarr_token}
+            self.connected = self.check_connection()
+
+    def check_connection(self):
+        try:
+            response = requests.get(self.sonarr_status_endpoint, headers=self.sonarr_headers)
+            response.raise_for_status()  # Raises an error for bad status codes
+            print("Connection to Sonarr successful.")
+            return True  # Connection successful
+        except requests.exceptions.RequestException as e:
+            print(f"Connection to Sonarr failed: {e}")
+            return False  # Connection failed
+            
+
+    def get_series_list(self):
+        response = requests.get(self.sonarr_series_endpoint, headers=self.sonarr_headers)
+        response.raise_for_status()
+        return sorted(response.json(), key=lambda x: x['title'])
+
+    def get_missing_episodes_count(self, series_id):
+        sonarr_episodes_endpoint = f'{self.sonarr_api_url}/episode'
+        params = {'seriesId': series_id}
+        response = requests.get(sonarr_episodes_endpoint, headers=self.sonarr_headers, params=params)
+        response.raise_for_status()
+        
+
+        episodes = response.json()
+        available_missing_episodes = len([
+            episode for episode in episodes if episode.get('airDateUtc') and not episode.get('hasFile')
+                                            and episode['seasonNumber'] != 0
+                                            and datetime.datetime.strptime(episode['airDateUtc'], "%Y-%m-%dT%H:%M:%SZ") < today
+        ])
+
+        total_episodes = len([episode for episode in episodes if episode.get('airDateUtc') and episode['seasonNumber'] != 0 
+                              and datetime.datetime.strptime(episode.get('airDateUtc'), "%Y-%m-%dT%H:%M:%SZ") < today])
+        self.missing_count = available_missing_episodes
+        self.total_count = total_episodes
+        return self
