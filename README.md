@@ -15,7 +15,7 @@ PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that au
 
 ### Requirements
 
-Obviously, Plex-Meta-Manager (PMM) must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
+Obviously, Plex-Meta-Manager (PMM) must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
 
 
 ### Stand-alone setup
