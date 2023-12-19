@@ -32,7 +32,7 @@ To update the stand-alone version, you need to delete OR replace vars.py and rep
 ```yaml
 services:
   pattrmm:
-    image: ghcr.io/insertdisc/pattrmm:develop
+    image: ghcr.io/insertdisc/pattrmm:develop 
     container_name: pattrmm
     environment:
       - PUID=1000
@@ -40,19 +40,58 @@ services:
       - TZ=America/New_York
       - PATTRMM_TIME=02:00  # Schedule run time
     volumes:
-      - ./pattrmm/data:/data
-      - ./pattrmm/preferences:/preferences
-      - ./pmm/config:/config
+      - /path/to/pattrmm/data:/data
+      - /path/to/pattrmm/preferences:/preferences
+      - /path/to/pmm/config:/config
     restart: unless-stopped  
 ```
 
 You can initialize the settings file for the docker version with this command:
 
+*Replace the paths below with the appropriate location for the directories used.*
+
 ```bash
-docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:develop --run
+```
+
+If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
+
+*Replace the paths below with the appropriate location for the directories used.*
+
+```bash
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:develop --run
 ```
 
 The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
+
+### unRAID setup
+
+Pattrmm now has a template available in the Community Applications for unRAID. This should be the easiest way to use Pattrmm in unRAID.
+
+1. Head over to the `Apps` tab in your unRAID instance and search for `Pattrmm`. There should only be one template from Droppisalt.
+2. Select the `Install` button
+3. Choose which branch you want to run `latest`, `develop`, or `nightly`.
+4. Fill-in the required Paths and Environment Variables. **Make sure of the following:** The `/config` points to your `Plex-Meta-Manager` config.yml and NOT to the default folder that unRAID might point to (often `.../appdata/pattrmm`)
+    - See below for an example.
+5. Select `Apply`.
+
+You can initialize the settings file for the docker version with this command:
+
+*Replace the paths below with the appropriate location for the directories used.*
+
+```bash
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:develop --run
+```
+
+If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
+
+*Replace the paths below with the appropriate location for the directories used.*
+
+```bash
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:develop --run
+```
+
+![image](https://github.com/InsertDisc/pattrmm/assets/67336980/24e23d34-8d92-4afc-a0bc-138ecfcc3067)
 
 
 ## Extensions
