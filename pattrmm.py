@@ -1225,7 +1225,10 @@ def plexGet(identifier):
         return key
 
 def cleanPath(string):
-        cleanedPath = re.sub(r'[^\w]+', '-', string)
+        cleanedPath = re.sub(r'[^\w]+', '-', string)   
+        cleanedPath = cleanedPath.rstrip('-')
+        while '--' in cleanedPath:
+            cleanedPath = cleanedPath.replace('--', '-')
         return cleanedPath
 
 
