@@ -2226,7 +2226,7 @@ overlays:
             loaded_cache_json)
     print("Sorting " + library + "...")
     logging.info("Sorting " + library + "...")
-    series_rs_sorted_list = sorted_list(series_rs_list, 'next_air')
+    series_rs_sorted_list = sorted_list(series_rs_list, 'next_air_date')
 
     trakt_access = vars.traktApi('token')
     trakt_api = vars.traktApi('client')
