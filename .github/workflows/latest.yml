@@ -1,4 +1,6 @@
+name: build latest from main
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -17,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          ref: main
 
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
