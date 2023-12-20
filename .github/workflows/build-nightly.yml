@@ -1,0 +1,32 @@
+name: Build :nightly
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - nightly
+    paths:
+      - 'main.py'
+      - 'Dockerfile'
+      - 'pattrmm.py'
+      - 'vars.py'
+  pull_request:
+    types: [closed]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: nightly
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: docker build -t ghcr.io/insertdisc/pattrmm:nightly .
+
+      - name: Push Docker image
+        run: docker push ghcr.io/insertdisc/pattrmm:nightly
