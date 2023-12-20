@@ -3,7 +3,7 @@
 ![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/InsertDisc/pattrmm?style=plastic)](https://github.com/InsertDisc/pattrmm/releases)
-[![Docker Version](https://img.shields.io/docker/v/insertdisc/pattrmm?label=Docker%20Version&style=plastic)](https://hub.docker.com/r/insertdisc/pattrmm)
+[![Docker Latest](https://img.shields.io/badge/Docker-latest-blue?style=plastic)](https://github.com/users/insertdisc/packages/container/package/pattrmm?tag=latest)
 [![Discord](https://img.shields.io/discord/1171872202858188910?style=plastic&label=Discord&color=%252300bc8c)](https://discord.com/invite/7yUYdqgxkn)
 
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Plex Meta Manager](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
