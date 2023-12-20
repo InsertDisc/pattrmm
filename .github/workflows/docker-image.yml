@@ -1,5 +1,3 @@
-packaging:
-    permissions: write-all
 on:
   push:
     branches:
