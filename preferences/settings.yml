@@ -1,0 +1,36 @@
+libraries:
+  Anime:                         # Plex Libraries to read from. Can enter multiple libraries.
+  - by_size: 
+      asuperduperLOOOOOOOOOOOOOOOOOOOONG: no
+      my_Phalic_setting: big
+      order_by: size.desc
+      back_color: "#9987766"
+      meta:
+        my_container_name: the big box
+  - by_size:
+      minimum: 1
+      maximum: 10
+      trakt_list_privacy: public
+      order_by: title.desc
+      collection_title: Order my pickles
+      meta:
+        visible_home: False
+        sort_title: "!2234"
+        asuperlongkeynamesoicantellitsthere: yes
+  - in-history:
+      range: month
+  - in-history:
+  Series:
+  - returning-soon:
+      refresh: 30
+      days_ahead: 90                   # How far ahead to consider 'Returning Soon'
+  - by_size:
+      order_by: size.desc
+  - in-history:
+      range: month
+      collection_title: My Series In History by month
+      derek_machine: Appalachia
+  - missing_episodes:
+      style: dot
+  Movies:
+  - by_size:
