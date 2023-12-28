@@ -15,10 +15,9 @@ ENV PATTRMM_DOCKER "True"
 COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
-ADD main.py .
 ADD vars.py .
 ADD pattrmm.py .
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "pattrmm.py"]
 
