@@ -1,15 +1,7 @@
-# pattrmm:develop
-[Join our Discord](https://discord.com/invite/7yUYdqgxkn)
 
-![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
-
-PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in Plex Meta Manager.
-Extensions have been added to further PATTRMM's capabilities.
-
-NOTE !! : The latest update changes the *-returning-soon.yml to *-returning-soon-metadata.yml.
-Make sure to update your pmm config file with the new filename if you've updated your script.
-If you want to use the new alignment options then you will also need to delete your old
-'pattrmm/preferences/' template files.
+PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates generating
+overlay and metadata files for non 'out-of-the-box' collections for Plex Meta Manager. This may include
+lists that need sorted in specific ways or that need dynamically generated text for overlays.
 
 Requirements:    
     Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to.
@@ -70,74 +62,91 @@ Settings
 ```
 libraries:                
   Anime:
-    save_folder: metadata/anime/
-    overlay_save_folder: overlays/anime/
-    trakt_list_privacy: private                          
-    refresh: 7     
-    days_ahead: 90 
+  - extra_overlays: # Will default to all True
+  - returning_soon:
+      save_folder: metadata/anime/
+      overlay_save_folder: overlays/anime/
+      trakt_list_privacy: private                          
+      refresh: 7     
+      days_ahead: 90
+      text: "RETURNING"          # Text to display before the dates.
+      bgcolor: "#008001"
+      font_color: "#FFFFFF"
+
   Series:
-    save_folder: metadata/series/
-    overlay_save_folder: overlays/series/
-    trakt_list_privacy: public
-    refresh: 30
-    returning-soon: False
-    days_ahead: 45
-    extensions:
-      in-history:
-        trakt_list_privacy: public
-        save_folder: metadata/series/
-        range: week
-        collection_title: This {{range}} in history.
-        starting: 1990
-        increment: 5                   
+  - extra_overlays:
+      new: True
+      new_next_air: False
+      upcoming: True
+      returning: True
+      airing: True
+      airing_next_air: False
+      canceled: True
+      ended: True
+      
+  - returning_soon:
+      save_folder: metadata/series/
+      overlay_save_folder: overlays/series/
+      trakt_list_privacy: public
+      refresh: 30
+      returning-soon: False
+      days_ahead: 45
+      text: "RETURNING"          # Text to display before the dates.
+      bgcolor: "#008001"
+      font_color: "#FFFFFF"
+      collection_title: Returning Soon
+
+  - in-history:
+      trakt_list_privacy: public
+      save_folder: metadata/series/
+      range: week
+      collection_title: This {{range}} in history.
+      starting: 1990
+      increment: 5
+          
   Movies:
-    extensions:
-      in-history:
-        range: month
-        collection_title: Released This {{Range}} In History
-        save_folder: collections/
-        trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
-        starting: 1975
-        ending: 2020
-        increment: 10
-        meta:
-          sort_title: "!!020"
-          collection_mode: hide
-          visible_home: true
-          visible_shared: true
-          sync_mode: sync
-          collection_order: critic_rating.desc
-          summary: Movies released this {{range}} in history
-      by_size:
-        minimum: 25                # Size in GB
-        maximum: 90
-        order_by: size.desc
-        collection_title: Movies sorted by size
-        save_folder: collections/
-        trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
-        meta:
-          sort_title: "!!010"
-          collection_mode: hide
-          visible_home: true
-          visible_shared: true
-          sync_mode: sync
-          collection_order: custom
-          summary: Movies sorted by size between 25 and 90 GB
-date_style: 1                        # 1 for mm/dd, 2 for dd/mm
-overlay_prefix: "RETURNING"          # Text to display before the dates.
-horizontal_align: center
-vertical_align: top
-horizontal_offset: 0
-vertical_offset: 0
-leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
-date_delimiter: "/"                  # Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
-year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. True or False
-returning_soon_bgcolor: "#81007F"
-returning_soon_fontcolor: "#FFFFFF"
+  - in_history:
+      range: month
+      collection_title: Released This {{Range}} In History
+      save_folder: collections/
+      trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
+      starting: 1975
+      ending: 2020
+      increment: 10
+      meta:
+        sort_title: "!!020"
+        collection_mode: hide
+        visible_home: true
+        visible_shared: true
+        sync_mode: sync
+        collection_order: critic_rating.desc
+        summary: Movies released this {{range}} in history
+
+  - by_size:
+      minimum: 25                # Size in GB
+      maximum: 90
+      order_by: size.desc
+      collection_title: Movies sorted by size
+      save_folder: collections/
+      trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
+      meta:
+        sort_title: "!!010"
+        collection_mode: hide
+        visible_home: true
+        visible_shared: true
+        sync_mode: sync
+        collection_order: custom
+        summary: Movies sorted by size between 25 and 90 GB
+
+date_settings:
+  date_style: 1                        # 1 for mm/dd, 2 for dd/mm
+  leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
+  date_delimiter: "/"                  # Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
+  year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. True or False
+
 
 extra_overlays:
   new:
-    use: True
     bgcolor: "#008001"
     font_color: "#FFFFFF"
     text: "N E W  S E R I E S"
@@ -145,36 +154,69 @@ extra_overlays:
     vertical_align: top
     horizontal_offset: 0
     vertical_offset: 0
+
+  new_next_air:
+    bgcolor: "#343399"
+    font_color: "#FFFFFF"
+    text: "New · Airing"
     
   upcoming:
-    use: True
     bgcolor: "#fc4e03"
     font_color: "#FFFFFF"
     text: "U P C O M I N G"
     horizontal_align: center
     vertical_align: top
+
   airing:
-    use: True
     bgcolor: "#343399"
     font_color: "#FFFFFF"
     text: "A I R I N G"
+
+  airing_next_air:
+    bgcolor: "#343399"
+    font_color: "#FFFFFF"
+    text: "A I R I N G"
+
   returning:
-    use: True
     bgcolor: "#81007F"
     font_color: "#FFFFFF"
     text: "R E T U R N I N G"
+
   ended:
-    use: True
     bgcolor: "#000000"
     font_color: "#FFFFFF"
     text: "E N D E D"
+
   canceled:
-    use: True
     bgcolor: "#CF142B"
     font_color: "#FFFFFF"
     text: "C A N C E L E D"
 ```
-Standard library options:
+
+Date sytle options
+```
+date_style: 1
+        This changes how the dates are formatted in the generated overlay files.
+          1
+            Will display dates as mm/dd (12/31) for December 31st
+          2
+            Will display dates as dd/mm (31/12) for December 31st
+
+date_delimiter: "/"
+        Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
+        Default is '/'
+
+year_in_dates: False
+        Show year in dates: 01/14/22 vs 01/14. True or False
+        Default is False
+
+```
+Core settings
+
+returning_soon:
+Enables the 'Returning Soon' core for a library.
+![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
+
 ```
 save_folder: collections/
         Specify a location to write the returning soon metadata file to. Your PMM config folder
@@ -205,43 +247,10 @@ days_ahead: 45
         How far ahead a title should still be considered 'Returning Soon'.
         For example, 45, would consider any title that has a 'Returning' status
         and airs again within the next 45 days to be 'Returning Soon'.
-
-returning-soon: False
-        For those that would like to only run extensions on a 'show' library.
-        This will disable PATTRMM's default 'Returning Soon' operations on this library.
-        The default setting is True and does not need declared.
 ```
-Standard PATTRMM options
-```
-date_style: 1
-        This changes how the dates are formatted in the generated overlay files.
-          1
-            Will display dates as mm/dd (12/31) for December 31st
-          2
-            Will display dates as dd/mm (31/12) for December 31st
 
-date_delimiter: "/"
-        Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
-        Default is '/'
-
-year_in_dates: False
-        Show year in dates: 01/14/22 vs 01/14. True or False
-        Default is False
-
-extra_overlays:
-Included here are various settings used to customize additional 'airing status' overlays
-to be included in the generated overlay yml.
-If they are not wanted they will need to be disabled with
-use: False
-as the default behavior is to have them enabled.
-
-Note: These do not need disabled in a 'Movies' only setup.
-'Returning Soon' is not compatible with 'Movies' libraries and will skip those libraries.
-```
-Extension settings
-
-in-history:
-Enables the 'In History' extension for a library.
+in_history:
+Enables the 'In History' core for a library.
 ![this_month_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/71575460-c575-4b12-9e77-77ec6a8a59e5)
 ![this_week_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/f412f703-1d81-4bd1-9a0b-87b10789f271)
 
@@ -355,7 +364,7 @@ Enables the 'In History' extension for a library.
 
 ```
 by_size:
-Enables the 'By Size' extension for a library.
+Enables the 'By Size' core for a library.
 ![sorted_by_size](https://github.com/InsertDisc/pattrmm/assets/31751462/e53b748e-8ffc-461f-88b3-b752289f7b3e)
 ```
   By Size specific settings
@@ -451,25 +460,26 @@ Enables the 'By Size' extension for a library.
 Each extension can only be used within a library ONCE, otherwise an error will occur.
 In-History supports ONE range per library.
 ```
+extra_overlays:
+Enables additional status overlays.
+If extra_overlays: is enabled for a library, all available extra overlays will be enabled for that library.
+These can be disabled
+```
+ Series:
+  - extra_overlays:
+      new_next_air: False
+      airing_next_air: False
+```
+
 What now:
 
-    Add the ?-returning-soon.yml under the appropriate metadata section 
-    of the corresponding library you are having it scan.
-    Add the overlays/?-returning-soon-overlay.yml 
-    under the appropriate overlay section of the same library.
-    Don't forget to add any additional metadata files 
-    that any 'extensions' you are using create as well.
+    Add your generated metadata files under the appropriate 
+    metadata section of the corresponding library 
+    that you are having it scan.
+    Add the generated overlay files under the appropriate 
+    overlay section of the same library.
 
 When to run:
-    
-    I've tried my best to optimize how PATTRMM runs, meaning, 
-    you can run it on a daily basis using whatever scheduling service your OS utilizes. 
-    After the initial full cycle, only new entries in Plex will get detailed searches. 
-    Any series that are not considered a returning series will not be
-    updated upon following runs. 
-    Any series that loses it's 'Returning Series' status will be updated accordingly 
-    and removed from further searches. 
-    This greatly speeds up the process of daily executions.
 
     Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
 
