@@ -526,7 +526,15 @@ When creating a schedule or running manually, make sure to run PATTRMM before ru
 
 When using the standalone version you can create a service and run it using a timer (e.g. on a daily basis).
 
-1. Create a service file for PATTRMM:
+1. Setup a virtual environment for PATTRMM. Navigate to your pattrmm install folder (`/path/to/pattrmm`) and execute:
+    ```bash
+    python3 -m venv pmm-venv
+    ```
+2. Install the requirements:
+    ```bash
+    python -m pip install -r requirements.txt
+    ```
+4. Create a service file for PATTRMM:
 
     ```bash
     sudo nano /etc/systemd/system/pattrmm.service
@@ -547,19 +555,14 @@ When using the standalone version you can create a service and run it using a ti
     Environment=LC_ALL=C.UTF-8
     Environment=LANG=C.UTF-8
     WorkingDirectory=/path/to/pattrmm
-    ExecStart=/usr/bin/python /path/to/pattrmm/pattrmm.py
-    Restart=always
-    RestartSec=10
-
-    [Install]
-    WantedBy=default.target
+    ExecStart=/path/to/pattrmm/pmm-venv/bin/python /path/to/pattrmm/pattrmm.py
     ```
 
     Change USER and GROUP to reflect your user and group.
 
     Change /path/to/pattrmm to reflect where you’ve copied/installed PATTRMM.
 
-2. Create a timer file for PATTRMM:
+5. Create a timer file for PATTRMM:
 
     ```bash
     sudo nano /etc/systemd/system/pattrmm.timer
@@ -579,17 +582,17 @@ When using the standalone version you can create a service and run it using a ti
     Unit=pattrmm.service
 
     [Install]
-    WantedBy=default.target
+    WantedBy=multi-user.target
     ```
 
-3. Enable and start the timer/service:
+6. Enable and start the timer/service:
     
     ```
     sudo systemctl enable pattrmm.timer
     sudo systemctl start pattrmm.timer
     ```
 
-    This will run pattrmm.py every day at 2 a.m.
+    The `pattrmm.timer` will trigger the `pattrmm.service`. This will run pattrmm.py every day at 2 a.m.
 
 
 ## Support, ideas and feedback
