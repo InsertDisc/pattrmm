@@ -48,7 +48,7 @@ The DEVELOP branch is slightly ahead of the latest branch.
 Extensions have been added and will continue to expand.
 ```
 Extensions Available:
-  in-history
+  in_history
     This extension uses the Originally Available At date within Plex to create Trakt lists
     based on a specified range per library and a corresponding 'in-history' metadata file
     for use with that library.
@@ -96,7 +96,7 @@ libraries:
       font_color: "#FFFFFF"
       collection_title: Returning Soon
 
-  - in-history:
+  - in_history:
       trakt_list_privacy: public
       save_folder: metadata/series/
       range: week
