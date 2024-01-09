@@ -6,7 +6,7 @@ RUN apt-get update
 RUN apt-get upgrade -y --no-install-recommends
 RUN apt-get install -y gcc g++
 RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
-RUN apt-get --purge autoremove gcc g++
+RUN apt-get --purge autoremove gcc g++ -y
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get check
