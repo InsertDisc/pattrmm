@@ -1,4 +1,4 @@
-name: Build :latest for Multiple Architectures
+name: Build :latest
 on:
   workflow_dispatch:
   push:
