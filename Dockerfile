@@ -4,7 +4,9 @@ COPY requirements.txt .
 # Run updates
 RUN apt-get update \
  && apt-get upgrade -y --no-install-recommends \
+ && apt-get install -y gcc g++ \
  && pip3 install --no-cache-dir --upgrade --requirement requirements.txt \
+ && apt-get --purge autoremove gcc g++ \
  && apt-get clean \
  && apt-get update \
  && apt-get check \
