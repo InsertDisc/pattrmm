@@ -1,4 +1,4 @@
-name: Build and Push
+name: Build :latest
 
 on:
   workflow_dispatch:
