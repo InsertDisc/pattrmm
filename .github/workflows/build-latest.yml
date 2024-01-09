@@ -52,7 +52,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
+          
+      - name: Pull image from GitHub Container Registry
+        run: docker pull ghcr.io/insertdisc/pattrmm:latest
+        
       - name: Tag for Docker Hub
         run: |
           docker tag ghcr.io/insertdisc/pattrmm:latest ${{ secrets.DOCKER_HUB_USERNAME }}/pattrmm:latest
