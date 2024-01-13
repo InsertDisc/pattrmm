@@ -1,4 +1,4 @@
-#pattrmm-py by insertdisc
+#pattrmm
 
 # import dependencies
 import time
