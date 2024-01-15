@@ -13,13 +13,18 @@ pmm_config = configuration_data.pmm_config
 
 @dataclass
 class BySize:
-    trakt_list_privacy: str
-    order_by: str
-    minimum: int
-    maximum: int
-    collection_title: str
-    metadata_save_folder: str
-    meta: dict
+    trakt_list_privacy: str = 'private'
+    direction: str = 'desc'
+    minimum: int = 0
+    maximum: int = None
+    metadata_save_folder: str = 'metadata/'
+    collection_title: str = 'Sorted by size'
+    collection: dict = {
+        'visible_home': 'true',
+        'visible_shared': 'true',
+        'collection_order': 'custom',
+        'sync_mode': 'sync'
+    }
 
 
 
@@ -27,20 +32,7 @@ def run():
     allowed_instances = 1
 
     # Define default settings
-    default_settings = {
-        'trakt_list_privacy': 'private',
-        'order_by': 'size.desc',
-        'minimum': 0,
-        'maximum': None,
-        'collection_title': 'Sorted by size',
-        'metadata_save_folder': 'metadata/',
-        'meta':{
-            'visible_home': 'true',
-            'visible_shared': 'true',
-            'collection_order': 'custom',
-            'sync_mode': 'sync'
-        }
-    }
+    default_settings = BySize()
 
     core_name = 'by_size'
     core_settings = get_core_settings(core_name, allowed_instances, default_settings)
