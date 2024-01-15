@@ -21,8 +21,11 @@ yaml.preserve_quotes = True
 from io import StringIO
 import xml.etree.ElementTree as ET
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 
+LOG_DIR = "data/logs"
+MAIN_LOG = "pattrmm.log"
 
 # functions
 def verify_or_create_folder(folder_path, folder_name_for_logging):
@@ -47,6 +50,21 @@ def verify_or_create_file(file_path, file_name_for_logging):
     else:
         print(file_name_for_logging.capitalize() + " file present...")
 
+def log_setup():
+    """Setup log formatter and handler"""
+    log_path = LOG_DIR + '/' + MAIN_LOG
+    need_roll = os.path.isfile(log_path)
+    
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    log_handler = RotatingFileHandler(log_path, backupCount=5)
+    log_formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s', "%Y-%m-%d %H:%M:%S")
+    log_handler.setFormatter(log_formatter)
+    logger.addHandler(log_handler)
+    
+    # roll log if already present
+    if need_roll:
+        logger.handlers[0].doRollover()
 
 
 print("Verifying files...")
@@ -57,14 +75,9 @@ verify_or_create_folder("data", "data")
 # history folder for timestamps
 verify_or_create_folder("./data/history", "stats")
 
-# logs folder
+# logs setup
 verify_or_create_folder("data/logs", "logs")
-
-# pattrmm log file
-log_file = "data/logs/pattrmm.log"
-verify_or_create_file(log_file, "log")
-
-logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+log_setup()
 
 # preferences folder
 verify_or_create_folder("preferences", "preferences")
