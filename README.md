@@ -3,7 +3,7 @@
 ![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/InsertDisc/pattrmm?style=plastic)](https://github.com/InsertDisc/pattrmm/releases)
-[![Docker Develop](https://img.shields.io/badge/Docker-develop-blue?style=plastic)](https://github.com/users/insertdisc/packages/container/package/pattrmm?tag=develop)
+[![Docker Nightly](https://img.shields.io/badge/Docker-develop-blue?style=plastic)](https://github.com/users/insertdisc/packages/container/package/pattrmm?tag=nightly)
 [![Discord](https://img.shields.io/discord/1171872202858188910?style=plastic&label=Discord&color=%252300bc8c)](https://discord.com/invite/7yUYdqgxkn)
 
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Plex Meta Manager](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
@@ -33,7 +33,7 @@ To update the stand-alone version, you need to delete OR replace vars.py and rep
 ```yaml
 services:
   pattrmm:
-    image: ghcr.io/insertdisc/pattrmm:develop 
+    image: ghcr.io/insertdisc/pattrmm:nightly 
     container_name: pattrmm
     environment:
       - PUID=1000
@@ -52,7 +52,7 @@ You can initialize the settings file for the docker version with this command:
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:develop --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
 If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
@@ -60,7 +60,7 @@ If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:develop --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
 The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
@@ -81,7 +81,7 @@ You can initialize the settings file for the docker version with this command:
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:develop --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
 If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
@@ -89,7 +89,7 @@ If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:develop --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
 ![image](https://github.com/InsertDisc/pattrmm/assets/67336980/24e23d34-8d92-4afc-a0bc-138ecfcc3067)
