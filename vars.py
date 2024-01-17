@@ -875,7 +875,10 @@ def setting(value):
             if value == 'ovNewFontColor':
                  entry = pref['extra_overlays']['new']['font_color']
             if value == 'ovNewText':
-                 entry = pref['extra_overlays']['new']['text']
+                try:
+                    entry = pref['extra_overlays']['new']['text']
+                except KeyError:
+                    entry = 'N E W  S E R I E S'
 
             if value == 'ovNew_horizontal_align':
                 try:
@@ -993,7 +996,10 @@ def setting(value):
                 entry = pref['extra_overlays']['airing_next']['font_color']
 
             if value == 'ovAiringNextText':
-                entry = pref['extra_overlays']['airing_next']['text']
+                try:
+                    entry = pref['extra_overlays']['airing_next']['text']
+                except KeyError:
+                    entry = 'A I R I N G'
 
             if value == 'ovAiringNext_horizontal_align':
                 try:
