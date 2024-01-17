@@ -2352,8 +2352,8 @@ overlays:
             airing_next_date = today + timedelta(days=next_air_counter)  # Start from the 15th
             airing_next_formatted = airing_next_date.strftime("%m/%d/%Y")
 
-            next_air_display = airing_next_formatted.strftime(date_format)  # Update next_air_display
-            next_air_display_for_text = airing_next_formatted.strftime(date_format_for_text)  # Update next_air_display_for_text
+            next_air_display = airing_next_date.strftime(date_format)  # Update next_air_display
+            next_air_display_for_text = airing_next_date.strftime(date_format_for_text)  # Update next_air_display_for_text
 
             # Define the specific parts for Airing Next
             overlay_airing_next = f'''
