@@ -2392,7 +2392,7 @@ overlays:
             last_episode_aired.after: {considered_airing_formatted}
     '''
 
-            overlay_body += overlay_airing_next  # Append to overlay_body
+            overlay_body = overlay_body + overlay_airing_next  # Append to overlay_body
             next_air_counter += 1  # Update the counter for the next iteration
 
     if vars.setting('ovEnded'):
