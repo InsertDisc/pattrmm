@@ -990,10 +990,16 @@ def setting(value):
                     entry = False
 
             if value == 'ovAiringNextColor':
-                entry = pref['extra_overlays']['airing_next']['bgcolor']
+                try:
+                    entry = pref['extra_overlays']['airing_next']['bgcolor']
+                except KeyError:
+                    entry = "#006580"
 
             if value == 'ovAiringNextFontColor':
-                entry = pref['extra_overlays']['airing_next']['font_color']
+                try:
+                    entry = pref['extra_overlays']['airing_next']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
 
             if value == 'ovAiringNextText':
                 try:
