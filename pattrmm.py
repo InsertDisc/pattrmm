@@ -2359,37 +2359,37 @@ overlays:
             overlay_airing_next = f'''
     # Airing Next Banner
     {library}_Status_Airing_Next_Banner_{next_air_display}:
-        template:
-            - name: {library}_Status_Banner
-            weight: {initial_weight - next_air_counter}
-            group: banner_backdrop
-            back_color: "{airing_next_color}"
-            vertical_align: {airing_next_vertical_align}
-        tmdb_discover:
-            air_date.gte: {airing_next_formatted}
-            air_date.lte: {airing_next_formatted}
-            with_status: 0
-            limit: 500
-            last_episode_aired.after: {considered_airing_formatted}
+      template:
+        name: {library}_Status_Banner
+        weight: {initial_weight - next_air_counter}
+        group: banner_backdrop
+        back_color: "{airing_next_color}"
+        vertical_align: {airing_next_vertical_align}
+      tmdb_discover:
+        air_date.gte: {airing_next_formatted}
+        air_date.lte: {airing_next_formatted}
+        with_status: 0
+        limit: 500
+        last_episode_aired.after: {considered_airing_formatted}
 
     # Airing Next
     {library}_Status_Airing_Next_{next_air_display}:
-        template:
-            - name: {library}_Status
-            weight: {initial_weight - next_air_counter}
-            text: "{airing_next_text} {next_air_display_for_text}"
-            group: banner_text
-            color: "{airing_next_font_color}"
-            horizontal_align: {airing_next_horizontal_align}
-            vertical_align: {airing_next_vertical_align}
-            horizontal_offset: {airing_next_horizontal_offset}
-            vertical_offset: {airing_next_vertical_offset}
-        tmdb_discover:
-            air_date.gte: {airing_next_formatted}
-            air_date.lte: {airing_next_formatted}
-            with_status: 0
-            limit: 500
-            last_episode_aired.after: {considered_airing_formatted}
+      template:
+        name: {library}_Status
+        weight: {initial_weight - next_air_counter}
+        text: "{airing_next_text} {next_air_display_for_text}"
+        group: banner_text
+        color: "{airing_next_font_color}"
+        horizontal_align: {airing_next_horizontal_align}
+        vertical_align: {airing_next_vertical_align}
+        horizontal_offset: {airing_next_horizontal_offset}
+        vertical_offset: {airing_next_vertical_offset}
+      tmdb_discover:
+        air_date.gte: {airing_next_formatted}
+        air_date.lte: {airing_next_formatted}
+        with_status: 0
+        limit: 500
+        last_episode_aired.after: {considered_airing_formatted}
     '''
 
             overlay_body = overlay_body + overlay_airing_next  # Append to overlay_body
