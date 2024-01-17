@@ -1005,7 +1005,7 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['airing_next']['text']
                 except KeyError:
-                    entry = 'A I R I N G'
+                    entry = 'AIRING'
 
             if value == 'ovAiringNext_horizontal_align':
                 try:
