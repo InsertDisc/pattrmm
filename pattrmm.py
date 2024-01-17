@@ -2329,7 +2329,71 @@ overlays:
       limit: 500
 '''
         overlay_body = overlay_body + overlay_airing
+    if vars.setting('ovAiringNext'):
+        today = date.today()
+        next_air_counter = 1
+        initial_weight = 56
 
+        logging.info('"Airing Next" Overlay enabled, generating...')
+        airing_next_text = vars.setting('ovAiringNextText')
+        airing_next_font_color = vars.setting('ovAiringNextFontColor')
+        airing_next_color = vars.setting('ovAiringNextColor')
+        airing_next_horizontal_align = vars.setting('ovAiringNext_horizontal_align')
+        airing_next_vertical_align = vars.setting('ovAiringNext_vertical_align')
+        airing_next_horizontal_offset = vars.setting('ovAiringNext_horizontal_offset')
+        airing_next_vertical_offset = vars.setting('ovAiringNext_vertical_offset')
+
+        next_air_display = today.strftime(date_format)
+        next_air_display_for_text = today.strftime(date_format_for_text)
+        considered_airing = date.today() - timedelta(days=15)
+        considered_airing_formatted = considered_airing.strftime("%m/%d/%Y")
+
+        for _ in range(15):
+            airing_next_date = today + timedelta(days=next_air_counter)  # Start from the 15th
+            airing_next_formatted = airing_next_date.strftime("%m/%d/%Y")
+
+            next_air_display = airing_next_formatted.strftime(date_format)  # Update next_air_display
+            next_air_display_for_text = airing_next_formatted.strftime(date_format_for_text)  # Update next_air_display_for_text
+
+            # Define the specific parts for Airing Next
+            overlay_airing_next = f'''
+    # Airing Next Banner
+    {library}_Status_Airing_Next_Banner_{next_air_display}:
+        template:
+            - name: {library}_Status_Banner
+            weight: {initial_weight - next_air_counter}
+            group: banner_backdrop
+            back_color: "{airing_next_color}"
+            vertical_align: {airing_next_vertical_align}
+        tmdb_discover:
+            air_date.gte: {airing_next_formatted}
+            air_date.lte: {airing_next_formatted}
+            with_status: 0
+            limit: 500
+            last_episode_aired.after: {considered_airing_formatted}
+
+    # Airing Next
+    {library}_Status_Airing_Next_{next_air_display}:
+        template:
+            - name: {library}_Status
+            weight: {initial_weight - next_air_counter}
+            text: "{airing_next_text} {next_air_display_for_text}"
+            group: banner_text
+            color: "{airing_next_font_color}"
+            horizontal_align: {airing_next_horizontal_align}
+            vertical_align: {airing_next_vertical_align}
+            horizontal_offset: {airing_next_horizontal_offset}
+            vertical_offset: {airing_next_vertical_offset}
+        tmdb_discover:
+            air_date.gte: {airing_next_formatted}
+            air_date.lte: {airing_next_formatted}
+            with_status: 0
+            limit: 500
+            last_episode_aired.after: {considered_airing_formatted}
+    '''
+
+            overlay_body += overlay_airing_next  # Append to overlay_body
+            next_air_counter += 1  # Update the counter for the next iteration
 
     if vars.setting('ovEnded'):
         logging.info('"Ended" Overlay enabled, generating body...')
