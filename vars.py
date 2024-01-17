@@ -980,9 +980,46 @@ def setting(value):
                 except KeyError:
                     entry = '0'
 
+            if value == 'ovAiringNext':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['use']
+                except KeyError:
+                    entry = False
 
+            if value == 'ovAiringNextColor':
+                entry = pref['extra_overlays']['airing_next']['bgcolor']
 
+            if value == 'ovAiringNextFontColor':
+                entry = pref['extra_overlays']['airing_next']['font_color']
 
+            if value == 'ovAiringNextText':
+                entry = pref['extra_overlays']['airing_next']['text']
+
+            if value == 'ovAiringNext_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovAiringNext_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovAiringNext_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovAiringNext_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+            
             if value == 'ovEnded':
                 try:
                     entry = pref['extra_overlays']['ended']['use']
