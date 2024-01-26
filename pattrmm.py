@@ -95,6 +95,7 @@ libraries:
     trakt_list_privacy: private
     save_folder: "metadata/"
     overlay_save_folder: "overlays/"
+    font_path: "fonts/Juventus-Fans-Bold.ttf"
     refresh: 30                      # Full-refresh delay for library          
     days_ahead: 30                   # How far ahead to consider 'Returning Soon'
     extensions:
@@ -920,6 +921,12 @@ def librarySetting(library, value):
                     entry = pref['libraries'][library]['overlay_save_folder']
                 except KeyError:
                     entry = 'overlays/'
+            
+            if value == 'font_path':
+                try:
+                    entry = pref['libraries'][library]['font_path']
+                except KeyError:
+                    entry = 'fonts/Juventus-Fans-Bold.ttf'
 
             if value == 'trakt_list_privacy':
                 try:
@@ -1486,6 +1493,9 @@ for library in loaded_settings_yaml['libraries']:
     # overlay template path
     rs_overlay_template_file = "./preferences/" + library_clean_path + "-status-template.yml"
     
+    # font file path (font folder and font file)
+    rs_overlay_font_path = vars.librarySetting(library, 'font_path')
+    
 
     # Just some information
     print("Checking folder structure for " + library + ".")
@@ -1603,7 +1613,7 @@ templates:
       horizontal_align: <<horizontal_align>>
       vertical_offset: <<vertical_offset>>
       vertical_align: <<vertical_align>>
-      font: config/fonts/Juventus-Fans-Bold.ttf
+      font: config/{rs_overlay_font_path}
       font_size: <<font_size>>
       font_color: <<color>>
       group: <<group>>

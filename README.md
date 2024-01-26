@@ -240,6 +240,11 @@ overlay_save_folder: overlays/
     # PATTRMM will ATTEMPT to create it.
     # Default location is the default PMM 'overlays' folder and does not need specified.
 
+font_path: fonts/Juventus-Fans-Bold.ttf
+    # Specify a path to a font file to use for the overlays. Your PMM config folder
+    # (where your config.yml is), will always be the BASE location.
+    # Default font path is 'fonts/Juventus-Fans-Bold.ttf' and does not need specified.
+
 trakt_list_privacy: private
     # Specify public/private trakt list privacy for returning soon list. Can be set per library.
     # Default is private and does not need specified.
