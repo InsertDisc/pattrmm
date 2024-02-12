@@ -747,6 +747,12 @@ def librarySetting(library, value):
                     entry = pref['libraries'][library]['save_folder']
                 except KeyError:
                     entry = ''
+            
+            if value == 'font_path':
+                try:
+                    entry = pref['libraries'][library]['font_path']
+                except KeyError:
+                    entry = 'fonts/Juventus-Fans-Bold.ttf'
 
             if value == 'overlay_save_folder':
                 try:
