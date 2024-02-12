@@ -877,9 +877,15 @@ def setting(value):
                 except:
                     entry = False
             if value == 'ovNewColor':
-                 entry = pref['extra_overlays']['new']['bgcolor']
+                try:
+                    entry = pref['extra_overlays']['new']['bgcolor']
+                except KeyError:
+                    entry = "#008001"
             if value == 'ovNewFontColor':
-                 entry = pref['extra_overlays']['new']['font_color']
+                try:
+                    entry = pref['extra_overlays']['new']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
             if value == 'ovNewText':
                 try:
                     entry = pref['extra_overlays']['new']['text']
@@ -912,6 +918,53 @@ def setting(value):
 
 
 
+            if value == 'ovNewNext':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['use']
+                except KeyError:
+                    entry = False
+
+            if value == 'ovNewNextColor':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['bgcolor']
+                except KeyError:
+                    entry = "#008001"
+
+            if value == 'ovNewNextFontColor':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
+
+            if value == 'ovNewNextText':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['text']
+                except KeyError:
+                    entry = 'New · Airing'
+
+            if value == 'ovNewNext_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovNewNext_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovNewNext_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovNewNext_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['vertical_offset']
+                except KeyError:
+                    entry = '0'
                  
             
             if value == 'ovReturning':
