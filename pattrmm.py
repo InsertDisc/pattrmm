@@ -2341,7 +2341,7 @@ overlays:
       with_status: 0
       limit: 500
     filters:
-	  first_episode_aired: 21
+      first_episode_aired: 21
 
   # Next Next
   {library}_Status_Next_Next_{new_next_air_display}:
