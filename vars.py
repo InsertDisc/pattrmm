@@ -940,7 +940,7 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['new_next_air']['text']
                 except KeyError:
-                    entry = 'New · Airing'
+                    entry = 'NEW · AIRING'
 
             if value == 'ovNewNext_horizontal_align':
                 try:
