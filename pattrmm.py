@@ -103,6 +103,7 @@ libraries:
         range: month
         trakt_list_privacy: private
         save_folder: "collections/"
+        
 date_style: 1                        # 1 for mm/dd, 2 for dd/mm
 overlay_prefix: "RETURNING"          # Text to display before the dates.
 horizontal_align: center
@@ -116,13 +117,7 @@ returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
 
 extra_overlays:
-  new:
-    use: True
-    bgcolor: "#008001"
-    font_color: "#FFFFFF"
-    text: "N E W  S E R I E S"
-    horizontal_align: center
-    vertical_align: top
+
   upcoming:
     use: True
     bgcolor: "#fc4e03"
@@ -130,26 +125,62 @@ extra_overlays:
     text: "U P C O M I N G"
     horizontal_align: center
     vertical_align: top
+
+  new:
+    use: True
+    bgcolor: "#008001"
+    font_color: "#FFFFFF"
+    text: "N E W  S E R I E S"
+    horizontal_align: center
+    vertical_align: top
+
+  new_next_air:
+    use: True
+    bgcolor: "#008001"
+    font_color: "#FFFFFF"
+    text: "NEW · AIRING"
+    horizontal_align: center
+    vertical_align: top
+    
   airing:
     use: True
-    bgcolor: "#343399"
+    bgcolor: "#006580"
     font_color: "#FFFFFF"
     text: "A I R I N G"
+    horizontal_align: center
+    vertical_align: top
+    
+  airing_next:
+    use: True
+    bgcolor: "#006580"
+    font_color: "#FFFFFF"
+    text: "AIRING"
+    horizontal_align: center
+    vertical_align: top
+    
   returning:
     use: True
     bgcolor: "#81007F"
     font_color: "#FFFFFF"
     text: "R E T U R N I N G"
+    horizontal_align: center
+    vertical_align: top
+    
   ended:
     use: True
     bgcolor: "#000000"
     font_color: "#FFFFFF"
     text: "E N D E D"
+    horizontal_align: center
+    vertical_align: top
+    
   canceled:
     use: True
     bgcolor: "#CF142B"
     font_color: "#FFFFFF"
     text: "C A N C E L E D"
+    horizontal_align: center
+    vertical_align: top
 ''')
     create_settings_file.close()
     print("Settings file created. Please configure preferences/settings.yml and rerun PATTRMM.")
@@ -1695,8 +1726,8 @@ templates:
       group: <<group>>
       weight: <<weight>>
       back_color: <<back_color>>
-      back_width: 1000
-      back_height: 90
+      back_width: <<back_width>>
+      back_height: <<back_height>>
 
     default:
       horizontal_align: center
@@ -1704,6 +1735,8 @@ templates:
       horizontal_offset: 0
       vertical_offset: 0
       group: banner_backdrop
+      back_width: 1000
+      back_height: 90
 
   # {library} STATUS
   {library}_Status:
@@ -1721,6 +1754,9 @@ templates:
       group: <<group>>
       weight: <<weight>>
       back_color: <<back_color>>
+      back_width: <<back_width>>
+      back_height: <<back_height>>
+      back_align: <<back_align>>
 
     default:
       horizontal_align: center
@@ -1729,6 +1765,9 @@ templates:
       vertical_offset: 10
       font_size: 70
       back_color: "#00000000"
+      back_align: center
+      back_height: 90
+      back_width: 1000
 '''
     )
         create_rs_overlay_template_file.close()
