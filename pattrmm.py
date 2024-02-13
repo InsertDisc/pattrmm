@@ -2305,7 +2305,7 @@ overlays:
         initial_weight = 76
 
         logging.info('"New Airing Next" Overlay enabled, generating...')
-        new_next_air_days = vars.setting(ovNewNextAirDays)
+        new_next_air_days = vars.setting('ovNewNextAirDays')
         new_airing_next_text = vars.setting('ovNewNextText')
         new_airing_next_font_color = vars.setting('ovNewNextFontColor')
         new_airing_next_color = vars.setting('ovNewNextColor')
