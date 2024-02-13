@@ -915,18 +915,18 @@ def librarySetting(library, value):
                     entry = pref['libraries'][library]['save_folder']
                 except KeyError:
                     entry = ''
-
-            if value == 'overlay_save_folder':
-                try:
-                    entry = pref['libraries'][library]['overlay_save_folder']
-                except KeyError:
-                    entry = 'overlays/'
             
             if value == 'font_path':
                 try:
                     entry = pref['libraries'][library]['font_path']
                 except KeyError:
                     entry = 'fonts/Juventus-Fans-Bold.ttf'
+
+            if value == 'overlay_save_folder':
+                try:
+                    entry = pref['libraries'][library]['overlay_save_folder']
+                except KeyError:
+                    entry = 'overlays/'
 
             if value == 'trakt_list_privacy':
                 try:
@@ -1045,11 +1045,20 @@ def setting(value):
                 except:
                     entry = False
             if value == 'ovNewColor':
-                 entry = pref['extra_overlays']['new']['bgcolor']
+                try:
+                    entry = pref['extra_overlays']['new']['bgcolor']
+                except KeyError:
+                    entry = "#008001"
             if value == 'ovNewFontColor':
-                 entry = pref['extra_overlays']['new']['font_color']
+                try:
+                    entry = pref['extra_overlays']['new']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
             if value == 'ovNewText':
-                 entry = pref['extra_overlays']['new']['text']
+                try:
+                    entry = pref['extra_overlays']['new']['text']
+                except KeyError:
+                    entry = 'N E W  S E R I E S'
 
             if value == 'ovNew_horizontal_align':
                 try:
@@ -1077,6 +1086,53 @@ def setting(value):
 
 
 
+            if value == 'ovNewNext':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['use']
+                except KeyError:
+                    entry = False
+
+            if value == 'ovNewNextColor':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['bgcolor']
+                except KeyError:
+                    entry = "#008001"
+
+            if value == 'ovNewNextFontColor':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
+
+            if value == 'ovNewNextText':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['text']
+                except KeyError:
+                    entry = 'NEW · AIRING'
+
+            if value == 'ovNewNext_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovNewNext_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovNewNext_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovNewNext_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['new_next_air']['vertical_offset']
+                except KeyError:
+                    entry = '0'
                  
             
             if value == 'ovReturning':
@@ -1154,9 +1210,55 @@ def setting(value):
                 except KeyError:
                     entry = '0'
 
+            if value == 'ovAiringNext':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['use']
+                except KeyError:
+                    entry = False
 
+            if value == 'ovAiringNextColor':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['bgcolor']
+                except KeyError:
+                    entry = "#006580"
 
+            if value == 'ovAiringNextFontColor':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['font_color']
+                except KeyError:
+                    entry = "#FFFFFF"
 
+            if value == 'ovAiringNextText':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['text']
+                except KeyError:
+                    entry = 'AIRING'
+
+            if value == 'ovAiringNext_horizontal_align':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['horizontal_align']
+                except KeyError:
+                    entry = 'center'
+
+            if value == 'ovAiringNext_vertical_align':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['vertical_align']
+                except KeyError:
+                    entry = 'top'
+
+            if value == 'ovAiringNext_horizontal_offset':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['horizontal_offset']
+                except KeyError:
+                    entry = '0'
+
+            if value == 'ovAiringNext_vertical_offset':
+                try:
+                    entry = pref['extra_overlays']['airing_next']['vertical_offset']
+                except KeyError:
+                    entry = '0'
+
+            
             if value == 'ovEnded':
                 try:
                     entry = pref['extra_overlays']['ended']['use']
@@ -2197,7 +2299,73 @@ overlays:
       '''
         overlay_body = overlay_body + overlay_upcoming
 
+    if vars.setting('ovNewNext'):
+        today = date.today()
+        new_next_air_counter = 1
+        initial_weight = 76
 
+        logging.info('"New Airing Next" Overlay enabled, generating...')
+        new_airing_next_text = vars.setting('ovNewNextText')
+        new_airing_next_font_color = vars.setting('ovNewNextFontColor')
+        new_airing_next_color = vars.setting('ovNewNextColor')
+        new_airing_next_horizontal_align = vars.setting('ovNewNext_horizontal_align')
+        new_airing_next_vertical_align = vars.setting('ovNewNext_vertical_align')
+        new_airing_next_horizontal_offset = vars.setting('ovNewNext_horizontal_offset')
+        new_airing_next_vertical_offset = vars.setting('ovNewNext_vertical_offset')
+
+        new_next_air_display = today.strftime(date_format)
+        new_next_air_display_for_text = today.strftime(date_format_for_text)
+        new_considered_airing = date.today() - timedelta(days=15)
+        new_considered_airing_formatted = new_considered_airing.strftime("%m/%d/%Y")
+
+        for _ in range(15):
+            new_airing_next_date = today + timedelta(days=new_next_air_counter)
+            new_airing_next_formatted = new_airing_next_date.strftime("%m/%d/%Y")
+
+            new_next_air_display = new_airing_next_date.strftime(date_format)  # Update new_next_air_display
+            new_next_air_display_for_text = new_airing_next_date.strftime(date_format_for_text)  # Update new_next_air_display_for_text
+
+            # Define the specific parts for Next Next
+            overlay_new_airing_next = f'''
+  # New Airing Next Banner
+  {library}_Status_New_Airing_Next_Banner_{new_next_air_display}:
+    template:
+      name: {library}_Status_Banner
+      weight: {initial_weight - new_next_air_counter}
+      group: banner_backdrop
+      back_color: "{new_airing_next_color}"
+      vertical_align: {new_airing_next_vertical_align}
+    tmdb_discover:
+      air_date.gte: {new_airing_next_formatted}
+      air_date.lte: {new_airing_next_formatted}
+      with_status: 0
+      limit: 500
+    filters:
+	  first_episode_aired: 21
+
+  # Next Next
+  {library}_Status_Next_Next_{new_next_air_display}:
+    template:
+      name: {library}_Status
+      weight: {initial_weight - new_next_air_counter}
+      text: "{new_airing_next_text} {new_next_air_display_for_text}"
+      group: banner_text
+      color: "{new_airing_next_font_color}"
+      horizontal_align: {new_airing_next_horizontal_align}
+      vertical_align: {new_airing_next_vertical_align}
+      horizontal_offset: {new_airing_next_horizontal_offset}
+      vertical_offset: {new_airing_next_vertical_offset}
+    tmdb_discover:
+      air_date.gte: {new_airing_next_formatted}
+      air_date.lte: {new_airing_next_formatted}
+      with_status: 0
+      limit: 500
+    filters:
+      first_episode_aired: 21
+'''
+
+            overlay_body = overlay_body + overlay_new_airing_next  # Append to overlay_body
+            new_next_air_counter += 1  # Update the counter for the next iteration
 
     if vars.setting('ovNew'):
         logging.info('"New" Overlay enabled, generating body...')
@@ -2226,7 +2394,7 @@ overlays:
         - production
         - ended
         - canceled
-      first_episode_aired: 45
+      first_episode_aired: 21
 
   # New
   {library}_Status_New:
@@ -2248,7 +2416,7 @@ overlays:
         - production
         - ended
         - canceled
-      first_episode_aired: 45
+      first_episode_aired: 21
       '''
         overlay_body = overlay_body + overlay_new
 

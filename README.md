@@ -190,6 +190,16 @@ extra_overlays:
     vertical_align: top
     horizontal_offset: 0
     vertical_offset: 0
+
+  new_next_air:
+    use: True
+    bgcolor: "#008001"
+    font_color: "#FFFFFF"
+    text: "NEW · AIRING"
+    horizontal_align: center
+    vertical_align: top
+    horizontal_offset: 0
+    vertical_offset: 0
     
   upcoming:
     use: True
@@ -198,21 +208,31 @@ extra_overlays:
     text: "U P C O M I N G"
     horizontal_align: center
     vertical_align: top
+
   airing:
     use: True
     bgcolor: "#343399"
     font_color: "#FFFFFF"
     text: "A I R I N G"
+
+  airing_next:
+    use: True
+    bgcolor: "#343399"
+    font_color: "#FFFFFF"
+    text: "NEW · AIRING"
+
   returning:
     use: True
     bgcolor: "#81007F"
     font_color: "#FFFFFF"
     text: "R E T U R N I N G"
+
   ended:
     use: True
     bgcolor: "#000000"
     font_color: "#FFFFFF"
     text: "E N D E D"
+
   canceled:
     use: True
     bgcolor: "#CF142B"
@@ -287,9 +307,9 @@ year_in_dates: False
 extra_overlays:
     # Included here are various settings used to customize additional 'airing status' overlays
     # to be included in the generated overlay yml.
-    # If they are not wanted they will need to be disabled with
-    # use: False
-    # as the default behavior is to have them enabled.
+    # Every 'extra' overlay will need enabled if you intend to use them. I.E. -->
+    # use: True
+    # as the default behavior is to have them disabled.
 ```
 
 > **_NOTE:_** These do not need disabled in a 'Movies' only setup. 'Returning Soon' is not compatible with 'Movies' libraries and will skip those libraries.
