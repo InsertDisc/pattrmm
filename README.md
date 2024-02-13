@@ -219,7 +219,7 @@ extra_overlays:
     use: True
     bgcolor: "#343399"
     font_color: "#FFFFFF"
-    text: "NEW · AIRING"
+    text: "AIRING"
 
   returning:
     use: True
