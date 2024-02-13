@@ -2305,6 +2305,7 @@ overlays:
         initial_weight = 76
 
         logging.info('"New Airing Next" Overlay enabled, generating...')
+        new_next_air_days = vars.setting(ovNewNextAirDays)
         new_airing_next_text = vars.setting('ovNewNextText')
         new_airing_next_font_color = vars.setting('ovNewNextFontColor')
         new_airing_next_color = vars.setting('ovNewNextColor')
@@ -2341,7 +2342,7 @@ overlays:
       with_status: 0
       limit: 500
     filters:
-      first_episode_aired: 21
+      first_episode_aired: {new_next_air_days}
 
   # Next Next
   {library}_Status_Next_Next_{new_next_air_display}:
@@ -2361,7 +2362,7 @@ overlays:
       with_status: 0
       limit: 500
     filters:
-      first_episode_aired: 21
+      first_episode_aired: {new_next_air_days}
 '''
 
             overlay_body = overlay_body + overlay_new_airing_next  # Append to overlay_body
@@ -2369,6 +2370,7 @@ overlays:
 
     if vars.setting('ovNew'):
         logging.info('"New" Overlay enabled, generating body...')
+        new_days = vars.setting('ovNewDays')
         new_text = vars.setting('ovNewText')
         new_font_color = vars.setting('ovNewFontColor')
         new_color = vars.setting('ovNewColor')
@@ -2394,7 +2396,7 @@ overlays:
         - production
         - ended
         - canceled
-      first_episode_aired: 21
+      first_episode_aired: {new_days}
 
   # New
   {library}_Status_New:
@@ -2416,7 +2418,7 @@ overlays:
         - production
         - ended
         - canceled
-      first_episode_aired: 21
+      first_episode_aired: {new_days}
       '''
         overlay_body = overlay_body + overlay_new
 
