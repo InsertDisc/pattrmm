@@ -1108,7 +1108,7 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['new_next_air']['text']
                 except KeyError:
-                    entry = 'New · Airing'
+                    entry = 'NEW · AIRING'
 
             if value == 'ovNewNext_horizontal_align':
                 try:
@@ -2319,7 +2319,7 @@ overlays:
         new_considered_airing_formatted = new_considered_airing.strftime("%m/%d/%Y")
 
         for _ in range(15):
-            new_airing_next_date = today + timedelta(days=new_next_air_counter)  # Start from the 15th
+            new_airing_next_date = today + timedelta(days=new_next_air_counter)
             new_airing_next_formatted = new_airing_next_date.strftime("%m/%d/%Y")
 
             new_next_air_display = new_airing_next_date.strftime(date_format)  # Update new_next_air_display
