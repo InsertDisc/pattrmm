@@ -774,6 +774,20 @@ def setting(value):
         with open(settings) as sf:
             pref = yaml.load(sf)
 
+            if value == 'timezone_use_local'
+                try:
+                    use_local = pref['settings']['timezone']['use_local']
+                    if use_local = True
+                        try:
+                            timezone_valid_sources = ('host', 'default', 'force')
+                            timezone_source = pref['settings']['timezone']['source']
+                            if timezone_source not in timezone_valid_sources:
+                                
+                    
+                except KeyError:
+                    entry = False
+                
+
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
             if value == 'rsfont_color':
