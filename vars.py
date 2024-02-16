@@ -774,14 +774,42 @@ def setting(value):
         with open(settings) as sf:
             pref = yaml.load(sf)
 
-            if value == 'timezone_use_local'
+            if value == 'timezone_locality'
                 try:
                     use_local = pref['settings']['timezone']['use_local']
                     if use_local = True
                         try:
-                            timezone_valid_sources = ('host', 'default', 'force')
+                            timezone_valid_sources = ('host', 'default', 'forced')
                             timezone_source = pref['settings']['timezone']['source']
                             if timezone_source not in timezone_valid_sources:
+                                print(f"{timezone_source} : invalid setting")
+                                print(f"Trying host locality.")
+                                timezone_source = 'host'
+                            if timezone_source == 'host'
+                                try:
+                                    print(f"Attempting to get local timezone from host environment")
+                                    timezone = os.environ.get('TZ')
+                                    entry = f'timezone: {timezone}'
+                                    print(f'Found Timezone => "{timezone]" from host')
+                                except:
+                                    print(f'Failed to retrieve local timezone from host')
+                                    print(f'Falling back to default...')
+                                    timezone_source = 'default'
+                            if timezone_source == 'forced'
+                                try:
+                                    timezone = pref['settings']['timezone']['locality']
+                                except KeyError:
+                                    print(f'Timezone forced locality missing or not found')
+                                    print(f'Check configuration/YAML structure')
+                                    print(f'Falling back to default...')
+                                    timezone_source = 'default'
+                            if timezone_source == 'default'
+                                timezone = 'America/New_York'
+                                entry = f'timezone: {timezone}'
+                                        
+
+                    elif use_local = False
+                        entry = ''
                                 
                     
                 except KeyError:
