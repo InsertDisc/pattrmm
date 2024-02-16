@@ -2223,6 +2223,8 @@ Shows: {total_results}''')
 
 
     # Generate Overlay body
+    # get user defined timezone setting
+    timezone_locality = vars.setting('timezone_locality')
     # define date ranges
     day_counter = 1
     last_air_date = date.today() - timedelta(days=14)
@@ -2378,6 +2380,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {new_airing_next_formatted}
       air_date.lte: {new_airing_next_formatted}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
     filters:
@@ -2398,6 +2401,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {new_airing_next_formatted}
       air_date.lte: {new_airing_next_formatted}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
     filters:
@@ -2526,6 +2530,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {airing_today_formatted}
       air_date.lte: {airing_today_formatted}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
 
@@ -2544,6 +2549,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {airing_today_formatted}
       air_date.lte: {airing_today_formatted}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
 '''
@@ -2587,6 +2593,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {airing_next_formatted}
       air_date.lte: {airing_next_formatted}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
     filters:
@@ -2607,6 +2614,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {airing_next_formatted}
       air_date.lte: {airing_next_formatted}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
     filters:
@@ -2774,6 +2782,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {this_day}
       air_date.lte: {this_day}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
     filters:
@@ -2794,6 +2803,7 @@ overlays:
     tmdb_discover:
       air_date.gte: {this_day}
       air_date.lte: {this_day}
+      timezone: {timezone_locality}
       with_status: 0
       limit: 500
     filters:
