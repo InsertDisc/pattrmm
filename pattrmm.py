@@ -995,22 +995,31 @@ def setting(value):
                                     print(f"Attempting to get local timezone from host environment")
                                     if is_docker == "True":
                                         try:
-                                            timezone = os.environ.get('TZ', 'America/New_York')
-                                            print(f"Using locality {timezone} to adjust for airing dates.")
+                                            timezone = os.environ.get('TZ')
+                                            if timezone is None:
+                                                print("Could not retrieve timezone information from docker 'TZ' environment variable.")
+                                                print("Attempting 'Docker Host'")
+                                                try:
+                                                    system_tz = tzlocal.get_localzone()
+                                                    timezone = str(system_tz)
+                                                    print(f"Using locality {timezone} to adjust for airing dates.")
+                                                except Exception as e:
+                                                    print("Could not retrieve timezone information from 'Docker Host'.")
+                                                    print(f"An error occured: {e}")
+                                                    print("Falling back to default")
+                                                    timezone = "America/New_York"
+                                                    print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
-                                            print("Could not retrieve timezone information from docker 'TZ' environment variable.")
                                             print(f"An error occured: {e}")
-                                            print("Attempting 'Docker Host'")
-                                            try:
-                                                system_tz = tzlocal.get_localzone()
-                                                timezone = str(system_tz)
-                                                print(f"Using locality {timezone} to adjust for airing dates.")
-                                            except Exception as e:
-                                                print("Could not retrieve timezone information from 'Docker Host'.")
-                                                print(f"An error occured: {e}")
-                                                print("Falling back to default")
-                                                timezone = "America/New_York"
-                                                print(f"Using locality {timezone} to adjust for airing dates.")
+                                            print(f"Details:")
+                                            print(f"Environment detected")
+                                            print(f"  => Docker")
+                                            print(f"Failed to retrieve timezone from:")
+                                            print(f"  => Docker 'TZ' environment variable")
+                                            print(f"  => Docker Host OS")
+                                            print("--Falling back to default--")
+                                            timezone = "America/New_York"
+                                            print(f"Using locality {timezone} to adjust for airing dates.")    
                                         entry = timezone
                                         
                                     if is_docker == "False":
