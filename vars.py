@@ -790,6 +790,7 @@ def setting(value):
                 try:
                     use_local = pref['settings']['timezone']['enable']
                     if use_local == True:
+                        print("| Time zone setting enabled |")
                         try:
                             timezone_valid_sources = ('host', 'default', 'forced')
                             timezone_source = pref['settings']['timezone']['source']
@@ -799,13 +800,14 @@ def setting(value):
                                 timezone_source = 'host'
                             if timezone_source == 'host':
                                 try:
-                                    print(f"Attempting to get local timezone from host environment")
+                                    print(f"Attempting to get local time zone from host environment")
                                     if is_docker == "True":
                                         print("=> Docker environment detected")
                                         try:
                                             timezone = os.environ.get('TZ')
+                                            print(f"Using found time zone variable 'TZ={timezone}' to adjust for airing dates.")
                                             if timezone is None:
-                                                print("   Could not retrieve timezone information from docker 'TZ' environment variable.")
+                                                print("   Could not retrieve time zone information from docker 'TZ' environment variable.")
                                                 print("   => Attempting 'Docker Host'")
                                                 try:
                                                     print("      Docker Host Detected:", get_os())
@@ -813,7 +815,7 @@ def setting(value):
                                                     timezone = str(system_tz)
                                                     print(f"      Using locality {timezone} to adjust for airing dates.")
                                                 except Exception as e:
-                                                    print("      Could not retrieve timezone information from 'Docker Host'.")
+                                                    print("      Could not retrieve time zone information from 'Docker Host'.")
                                                     print(f"      An error occured: {e}")
                                                     print("      Falling back to default")
                                                     timezone = "America/New_York"
@@ -823,7 +825,7 @@ def setting(value):
                                             print(f"Details:")
                                             print(f"Environment detected")
                                             print(f"  => Docker")
-                                            print(f"Failed to retrieve timezone from:")
+                                            print(f"Failed to retrieve time zone from:")
                                             print(f"  => Docker 'TZ' environment variable")
                                             print(f"  => Docker Host OS:", get_os())
                                             print("--Falling back to default--")
@@ -835,10 +837,10 @@ def setting(value):
                                         try:
                                             system_tz = tzlocal.get_localzone()
                                             timezone = str(system_tz)
-                                            print(f'Found timezone information from host')
+                                            print(f'Found time zone information from host')
                                             print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
-                                            print("Could not retrieve timezone information from host.")
+                                            print("Could not retrieve time zone information from host.")
                                             print(f"An error occured: {e}")
                                             print("Falling back default")
                                             timezone = "America/New_York"
@@ -846,27 +848,27 @@ def setting(value):
                                         entry = timezone
                                     
                                 except Exception as e:
-                                    print(f'Failed to retrieve local timezone from host')
+                                    print(f'Failed to retrieve local time zone from host')
                                     print(f"An error occured: {e}")
                                     print(f"Falling back to 'default'...")
                                     timezone_source = 'default'
                             if timezone_source == 'forced':
                                 try:
                                     timezone = pref['settings']['timezone']['locality']
-                                    print(f'Using user defined Timezone => "{timezone}" to adjust for airing dates.')
+                                    print(f'Using user defined time zone => "{timezone}" to adjust for airing dates.')
                                     entry = timezone
                                 except KeyError:
-                                    print(f"Timezone 'forced' locality missing or not found in settings.")
+                                    print(f"Time zone 'forced' locality missing or not found in settings.")
                                     print(f'Check configuration/YAML structure')
                                     print(f'Falling back to default...')
                                     timezone_source = 'default' 
                             if timezone_source == 'default':
                                 timezone = 'America/New_York'
-                                print("'default' timezone selected")
+                                print("'default' time zone selected")
                                 print(f"Using locality {timezone} to adjust for airing dates.")
                                 entry = timezone
                         except Exception as e:
-                            print("Encountered an error while parsing timezone settings:")
+                            print("Encountered an error while parsing 'timezone' settings:")
                             print(f"{e}")
 
                     elif use_local == False:
