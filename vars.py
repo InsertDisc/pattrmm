@@ -777,7 +777,7 @@ def setting(value):
 
             if value == 'timezone_locality':
                 try:
-                    use_local = pref['settings']['timezone']['use_local']
+                    use_local = pref['settings']['timezone']['enable']
                     if use_local == True:
                         try:
                             timezone_valid_sources = ('host', 'default', 'forced')
