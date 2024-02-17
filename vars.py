@@ -10,6 +10,7 @@ import datetime
 import tzlocal
 today = datetime.datetime.today()
 import os
+import sys
 library = ""
 
 is_docker = os.environ.get('PATTRMM_DOCKER', "False")
@@ -28,6 +29,16 @@ logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s -
 
 config_path = configPathPrefix + 'config.yml'
 settings_path = 'preferences/settings.yml'
+
+def get_os():
+    if sys.platform.startswith('linux'):
+        return 'Linux'
+    elif sys.platform.startswith('darwin'):
+        return 'macOS'
+    elif sys.platform.startswith('win'):
+        return 'Windows'
+    else:
+        return 'Unknown'
 
 def date_within_range(item_date, start_date, end_date):
     if (start_date.month, start_date.day) <= (end_date.month, end_date.day):
@@ -790,12 +801,14 @@ def setting(value):
                                 try:
                                     print(f"Attempting to get local timezone from host environment")
                                     if is_docker == "True":
+                                        print("Docker environment detected =>")
                                         try:
                                             timezone = os.environ.get('TZ')
                                             if timezone is None:
                                                 print("Could not retrieve timezone information from docker 'TZ' environment variable.")
                                                 print("Attempting 'Docker Host'")
                                                 try:
+                                                    print("Docker Host Detected:", get_os())
                                                     system_tz = tzlocal.get_localzone()
                                                     timezone = str(system_tz)
                                                     print(f"Using locality {timezone} to adjust for airing dates.")
