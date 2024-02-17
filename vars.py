@@ -795,7 +795,7 @@ def setting(value):
                                         except Exception as e:
                                             print("Could not retrieve timezone information from docker 'TZ' environment variable.")
                                             print(f"An error occured: {e}")
-                                            print("Attempting 'Docker Host')
+                                            print("Attempting 'Docker Host'")
                                             try:
                                                 system_tz = tzlocal.get_localzone()
                                                 timezone = str(system_tz)
