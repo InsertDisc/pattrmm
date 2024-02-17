@@ -7,6 +7,7 @@ import requests
 import json
 import re
 import datetime
+import tzlocal
 today = datetime.datetime.today()
 import os
 library = ""
@@ -773,6 +774,78 @@ def setting(value):
         settings = settings_path
         with open(settings) as sf:
             pref = yaml.load(sf)
+
+            if value == 'timezone_locality':
+                try:
+                    use_local = pref['settings']['timezone']['use_local']
+                    if use_local == True:
+                        try:
+                            timezone_valid_sources = ('host', 'default', 'forced')
+                            timezone_source = pref['settings']['timezone']['source']
+                            if timezone_source not in timezone_valid_sources:
+                                print(f"{timezone_source} : invalid setting")
+                                print(f"Trying host locality.")
+                                timezone_source = 'host'
+                            if timezone_source == 'host':
+                                try:
+                                    print(f"Attempting to get local timezone from host environment")
+                                    if is_docker == "True":
+                                        try:
+                                            timezone = os.environ.get('TZ')
+                                        except Exception as e:
+                                            print("Could not retrieve timezone information from docker 'TZ' environment variable.")
+                                            print(f"An error occured: {e}")
+                                            print("Attempting 'Docker Host')
+                                            try:
+                                                system_tz = tzlocal.get_localzone()
+                                                timezone = str(system_tz)
+                                            except Exception as e:
+                                                print("Could not retrieve timezone information from 'Docker Host'.")
+                                                print(f"An error occured: {e}")
+                                                print("Falling back to Plex Meta Manager default 'America/New_York'")
+                                                timezone = "America/New_York"
+                                        entry = timezone
+                                        
+                                    if is_docker == "False":
+                                        try:
+                                            system_tz = tzlocal.get_localzone()
+                                            timezone = str(system_tz)
+                                            print(f'Found Timezone => "{timezone]" from host')
+                                        except Exception as e:
+                                            print("Could not retrieve timezone information from host.")
+                                            print(f"An error occured: {e}")
+                                            print("Falling back to Plex Meta Manager default 'America/New_York'")
+                                            timezone = "America/New_York"
+                                        entry = timezone
+                                    
+                                except Exception as e:
+                                    print(f'Failed to retrieve local timezone from host')
+                                    print(f"An error occured: {e}")
+                                    print(f"Falling back to 'default'...")
+                                    timezone_source = 'default'
+                            if timezone_source == 'forced':
+                                try:
+                                    timezone = pref['settings']['timezone']['locality']
+                                    print(f'Using user defined Timezone => "{timezone]"')
+                                except KeyError:
+                                    print(f'Timezone 'forced' locality missing or not found in settings.')
+                                    print(f'Check configuration/YAML structure')
+                                    print(f'Falling back to default...')
+                                    timezone_source = 'default'
+                                entry = timezone
+                            if timezone_source == 'default':
+                                timezone = 'America/New_York'
+                                entry = timezone
+                                        
+
+                    elif use_local == False:
+                        print("Using default Plex Meta Manager timezone for TMDB Discover builder")
+                        entry = 'America/New_York'
+                                
+                    
+                except KeyError:
+                    entry = False
+                
 
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
