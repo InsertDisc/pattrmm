@@ -836,7 +836,9 @@ def setting(value):
                             if timezone_source == 'default':
                                 timezone = 'America/New_York'
                                 entry = timezone
-                                        
+                        except Exception as e:
+                            print("Encountered an error while parsing timezone settings:")
+                            print(f"{e}")
 
                     elif use_local == False:
                         print("Using default Plex Meta Manager timezone for TMDB Discover builder")
