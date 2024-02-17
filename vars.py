@@ -810,7 +810,7 @@ def setting(value):
                                         try:
                                             system_tz = tzlocal.get_localzone()
                                             timezone = str(system_tz)
-                                            print(f'Found Timezone => "{timezone]" from host')
+                                            print(f'Found Timezone => "{timezone}" from host')
                                         except Exception as e:
                                             print("Could not retrieve timezone information from host.")
                                             print(f"An error occured: {e}")
