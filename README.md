@@ -16,13 +16,19 @@ PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that au
 
 ### Requirements
 
-Obviously, Plex-Meta-Manager (PMM) must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
+Obviously, Plex-Meta-Manager (PMM) must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. 
+Required Python modules:
+ - ruamel.yaml
+ - requests
+ - tzlocal
+These are included in requirements.txt. 
+If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
 
 
 ### Stand-alone setup
     
 1. Drop pattrymm.py in a subfolder of your Plex Meta Manager config folder (i.e. Plex-meta-manager/config/pattrmm/pattrmm.py) and run it. A settings file will be created in the newly created preferences folder. The script will stop.
-2. Fill in the appropriate settings in preferences/settings.yml (see [Settings file](#settings-file)). You can modify the appearance of the generated overlays file using the preferences/*-returning-soon-template.yml files. 
+2. Fill in the appropriate settings in preferences/settings.yml (see [Settings file](#settings-file)). You can modify the appearance of the generated overlays file using the preferences/*-status-template.yml files. 
 3. Run the script again after you make your changes to initiate a full cycle.
 
 To update the stand-alone version, you need to delete OR replace vars.py and replace pattrmm.py.
