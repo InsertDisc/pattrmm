@@ -828,7 +828,7 @@ def setting(value):
                                     timezone = pref['settings']['timezone']['locality']
                                     print(f'Using user defined Timezone => "{timezone}"')
                                 except KeyError:
-                                    print(f'Timezone 'forced' locality missing or not found in settings.')
+                                    print(f"Timezone 'forced' locality missing or not found in settings.")
                                     print(f'Check configuration/YAML structure')
                                     print(f'Falling back to default...')
                                     timezone_source = 'default'
