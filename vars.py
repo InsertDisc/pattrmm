@@ -792,7 +792,6 @@ def setting(value):
                                     if is_docker == "True":
                                         try:
                                             timezone = os.environ.get('TZ')
-                                            print(f"{timezone}<<==")
                                             if timezone is None:
                                                 print("Could not retrieve timezone information from docker 'TZ' environment variable.")
                                                 print("Attempting 'Docker Host'")
