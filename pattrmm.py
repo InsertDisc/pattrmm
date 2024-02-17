@@ -995,7 +995,7 @@ def setting(value):
                                     print(f"Attempting to get local timezone from host environment")
                                     if is_docker == "True":
                                         try:
-                                            timezone = os.environ.get('TZ')
+                                            timezone = os.environ.get('TZ', 'America/New_York')
                                             print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
                                             print("Could not retrieve timezone information from docker 'TZ' environment variable.")
