@@ -180,6 +180,16 @@ year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. Tr
 returning_soon_bgcolor: "#81007F"
 returning_soon_fontcolor: "#FFFFFF"
 
+settings:
+  timezone:
+    enable: True
+    source: host
+  dates:                  ## The date style options have not been moved to 'settings' as of yet ##
+    style: 1              ## However, we will be moving these settings here in the future ##
+    delimiter: "/"        ## You can prepare by predefining this section with these options ##
+    show_year: False      ## They are named slightly differently so change accordingly. ##
+    leading_zeros: True   ## Do not remove your current settings as of yet ##
+
 extra_overlays:
   new:
     use: True
@@ -289,6 +299,28 @@ returning-soon: False
 ### Standard PATTRMM options
 
 ```yaml
+settings:
+  timezone:
+    enable: True
+    # Enables specifying the timezone used for the TMDB Discover builder in PMM.
+    # Plex Meta Manager defaults to using 'America/New_York'
+    # Default setting is false and PATTRMM will specify the default in the generated files.
+
+    source: host
+    # Attempt to get the local timezone from first the Docker Environment TZ variable
+    # If Docker is not detected, fall back to Docker Host OS.
+
+    source: forced
+    # Allows specifying a specific timezone other than the host with the 'locality' setting.
+      timezone:
+        enable: True
+        source: forced
+        locality: Chile/Continental
+
+    source: default
+    # Use PMM default 'America/New_York'
+    # Does not need defined when 'enable' is set to False, or the timezone setting is missing.
+
 date_style: 1
     # This changes how the dates are formatted in the generated overlay files.
     #   1
