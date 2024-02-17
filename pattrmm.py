@@ -996,30 +996,35 @@ def setting(value):
                                     if is_docker == "True":
                                         try:
                                             timezone = os.environ.get('TZ')
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
                                             print("Could not retrieve timezone information from docker 'TZ' environment variable.")
                                             print(f"An error occured: {e}")
-                                            print("Attempting 'Docker Host')
+                                            print("Attempting 'Docker Host'")
                                             try:
                                                 system_tz = tzlocal.get_localzone()
                                                 timezone = str(system_tz)
+                                                print(f"Using locality {timezone} to adjust for airing dates.")
                                             except Exception as e:
                                                 print("Could not retrieve timezone information from 'Docker Host'.")
                                                 print(f"An error occured: {e}")
-                                                print("Falling back to Plex Meta Manager default 'America/New_York'")
+                                                print("Falling back to default")
                                                 timezone = "America/New_York"
+                                                print(f"Using locality {timezone} to adjust for airing dates.")
                                         entry = timezone
                                         
                                     if is_docker == "False":
                                         try:
                                             system_tz = tzlocal.get_localzone()
                                             timezone = str(system_tz)
-                                            print(f'Found Timezone => "{timezone]" from host')
+                                            print(f'Found timezone information from host')
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
                                             print("Could not retrieve timezone information from host.")
                                             print(f"An error occured: {e}")
-                                            print("Falling back to Plex Meta Manager default 'America/New_York'")
+                                            print("Falling back default")
                                             timezone = "America/New_York"
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         entry = timezone
                                     
                                 except Exception as e:
@@ -1030,25 +1035,32 @@ def setting(value):
                             if timezone_source == 'forced':
                                 try:
                                     timezone = pref['settings']['timezone']['locality']
-                                    print(f'Using user defined Timezone => "{timezone]"')
+                                    print(f'Using user defined Timezone => "{timezone}" to adjust for airing dates.')
+                                    entry = timezone
                                 except KeyError:
-                                    print(f'Timezone 'forced' locality missing or not found in settings.')
+                                    print(f"Timezone 'forced' locality missing or not found in settings.")
                                     print(f'Check configuration/YAML structure')
                                     print(f'Falling back to default...')
-                                    timezone_source = 'default'
-                                entry = timezone
+                                    timezone_source = 'default' 
                             if timezone_source == 'default':
                                 timezone = 'America/New_York'
+                                print("'default' timezone selected")
+                                print(f"Using locality {timezone} to adjust for airing dates.")
                                 entry = timezone
-                                        
+                        except Exception as e:
+                            print("Encountered an error while parsing timezone settings:")
+                            print(f"{e}")
 
                     elif use_local == False:
-                        print("Using default Plex Meta Manager timezone for TMDB Discover builder")
-                        entry = 'America/New_York'
+                        timezone = 'America/New_York'
+                        print(f"Using locality {timezone} to adjust for airing dates.")
+                        entry = timezone
                                 
                     
                 except KeyError:
-                    entry = False
+                    timezone = 'America/New_York'
+                    print(f"Using default locality '{timezone}' to adjust for airing dates.")
+                    entry = timezone
                 
 
             if value == 'rsback_color':
@@ -1567,7 +1579,6 @@ class SonarrApi:
         self.total_count = total_episodes
         return self
 
-
 """)
     create_vars_file.close()
 else:
@@ -1605,6 +1616,9 @@ plex_method_url = vars.plexApi('url')
 plex_method_token = vars.plexApi('token')
 tmdb_method_api_key = vars.tmdbApi('token')
 plex = Plex(plex_method_url, plex_method_token, tmdb_method_api_key)
+
+# get user defined timezone setting
+timezone_locality = vars.setting('timezone_locality')
 
 # overlay folder path
 pmm_overlay_folder = pmm_config_path_prefix + 'overlays'
@@ -2233,6 +2247,7 @@ templates:
         "api_key": tmdb_discover_key,
         "air_date.gte": tmdb_discover_search_date,
         "air_date.lte": tmdb_discover_search_date,
+        "timezone": timezone_locality,
         "include_null_first_air_dates": "false",
         "sort_by": "popularity.desc",
         "with_status": "0",
@@ -2315,8 +2330,6 @@ Shows: {total_results}''')
 
 
     # Generate Overlay body
-    # get user defined timezone setting
-    timezone_locality = vars.setting('timezone_locality')
     # define date ranges
     day_counter = 1
     last_air_date = date.today() - timedelta(days=14)
