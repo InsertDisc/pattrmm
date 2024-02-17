@@ -2357,8 +2357,8 @@ overlays:
 
         new_next_air_display = today.strftime(date_format)
         new_next_air_display_for_text = today.strftime(date_format_for_text)
-        new_considered_airing = date.today() - timedelta(days=15)
-        new_considered_airing_formatted = new_considered_airing.strftime("%m/%d/%Y")
+        new_first_aired_after = date.today() - timedelta(days=new_next_air_days)
+        new_first_aired_after_formatted = new_first_aired_after.strftime("%m/%d/%Y")
 
         for _ in range(15):
             new_airing_next_date = today + timedelta(days=new_next_air_counter)
@@ -2384,7 +2384,7 @@ overlays:
       with_status: 0
       limit: 500
     filters:
-      first_episode_aired: {new_next_air_days}
+      first_episode_aired.after: {new_first_aired_after_formatted}
 
   # Next Next
   {library}_Status_Next_Next_{new_next_air_display}:
@@ -2405,7 +2405,7 @@ overlays:
       with_status: 0
       limit: 500
     filters:
-      first_episode_aired: {new_next_air_days}
+      first_episode_aired.after: {new_first_aired_after_formatted}
 '''
 
             overlay_body = overlay_body + overlay_new_airing_next  # Append to overlay_body
@@ -2414,6 +2414,8 @@ overlays:
     if vars.setting('ovNew'):
         logging.info('"New" Overlay enabled, generating body...')
         new_days = vars.setting('ovNewDays')
+        new_first_aired_after = date.today() - timedelta(days=new_days)
+        new_first_aired_after_formatted = new_first_aired_after.strftime("%m/%d/%Y")
         new_text = vars.setting('ovNewText')
         new_font_color = vars.setting('ovNewFontColor')
         new_color = vars.setting('ovNewColor')
@@ -2439,7 +2441,7 @@ overlays:
         - production
         - ended
         - canceled
-      first_episode_aired: {new_days}
+      first_episode_aired.after: {new_first_aired_after_formatted}
 
   # New
   {library}_Status_New:
@@ -2461,7 +2463,7 @@ overlays:
         - production
         - ended
         - canceled
-      first_episode_aired: {new_days}
+      first_episode_aired.after: {new_first_aired_after_formatted}
       '''
         overlay_body = overlay_body + overlay_new
 
@@ -2557,7 +2559,7 @@ overlays:
     if vars.setting('ovAiringNext'):
         today = date.today()
         next_air_counter = 1
-        initial_weight = 56
+        initial_weight = 59
 
         logging.info('"Airing Next" Overlay enabled, generating...')
         airing_next_text = vars.setting('ovAiringNextText')
