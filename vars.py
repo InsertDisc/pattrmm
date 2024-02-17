@@ -792,6 +792,7 @@ def setting(value):
                                     if is_docker == "True":
                                         try:
                                             timezone = os.environ.get('TZ')
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
                                             print("Could not retrieve timezone information from docker 'TZ' environment variable.")
                                             print(f"An error occured: {e}")
@@ -799,23 +800,27 @@ def setting(value):
                                             try:
                                                 system_tz = tzlocal.get_localzone()
                                                 timezone = str(system_tz)
+                                                print(f"Using locality {timezone} to adjust for airing dates.")
                                             except Exception as e:
                                                 print("Could not retrieve timezone information from 'Docker Host'.")
                                                 print(f"An error occured: {e}")
-                                                print("Falling back to Plex Meta Manager default 'America/New_York'")
+                                                print("Falling back to default")
                                                 timezone = "America/New_York"
+                                                print(f"Using locality {timezone} to adjust for airing dates.")
                                         entry = timezone
                                         
                                     if is_docker == "False":
                                         try:
                                             system_tz = tzlocal.get_localzone()
                                             timezone = str(system_tz)
-                                            print(f'Found Timezone => "{timezone}" from host')
+                                            print(f'Found timezone information from host')
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         except Exception as e:
                                             print("Could not retrieve timezone information from host.")
                                             print(f"An error occured: {e}")
-                                            print("Falling back to Plex Meta Manager default 'America/New_York'")
+                                            print("Falling back default")
                                             timezone = "America/New_York"
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         entry = timezone
                                     
                                 except Exception as e:
@@ -826,27 +831,32 @@ def setting(value):
                             if timezone_source == 'forced':
                                 try:
                                     timezone = pref['settings']['timezone']['locality']
-                                    print(f'Using user defined Timezone => "{timezone}"')
+                                    print(f'Using user defined Timezone => "{timezone}" to adjust for airing dates.')
+                                    entry = timezone
                                 except KeyError:
                                     print(f"Timezone 'forced' locality missing or not found in settings.")
                                     print(f'Check configuration/YAML structure')
                                     print(f'Falling back to default...')
-                                    timezone_source = 'default'
-                                entry = timezone
+                                    timezone_source = 'default' 
                             if timezone_source == 'default':
                                 timezone = 'America/New_York'
+                                print("'default' timezone selected")
+                                print(f"Using locality {timezone} to adjust for airing dates.")
                                 entry = timezone
                         except Exception as e:
                             print("Encountered an error while parsing timezone settings:")
                             print(f"{e}")
 
                     elif use_local == False:
-                        print("Using default Plex Meta Manager timezone for TMDB Discover builder")
-                        entry = 'America/New_York'
+                        timezone = 'America/New_York'
+                        print(f"Using locality {timezone} to adjust for airing dates.")
+                        entry = timezone
                                 
                     
                 except KeyError:
-                    entry = False
+                    timezone = 'America/New_York'
+                    print(f"Using default locality '{timezone}' to adjust for airing dates.")
+                    entry = timezone
                 
 
             if value == 'rsback_color':
