@@ -987,7 +987,7 @@ def setting(value):
                     entry = False
             if value == 'ovNewDays':
                 try:
-                    entry = pref['extra_overlays']['new']['new_days']
+                    entry = pref['extra_overlays']['new']['days_new']
                 except KeyError:
                     entry = 21
             if value == 'ovNewColor':
@@ -1040,7 +1040,7 @@ def setting(value):
 
             if value == 'ovNewNextAirDays':
                 try:
-                    entry = pref['extra_overlays']['new_next_air']['new_next_air_days']
+                    entry = pref['extra_overlays']['new_next_air']['days_new']
                 except KeyError:
                     entry = 21
 
