@@ -21,6 +21,7 @@ Required Python modules:
  - ruamel.yaml
  - requests
  - tzlocal
+
 These are included in requirements.txt. 
 If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
 
@@ -199,6 +200,7 @@ settings:
 extra_overlays:
   new:
     use: True
+    days_new: 13
     bgcolor: "#008001"
     font_color: "#FFFFFF"
     text: "N E W  S E R I E S"
@@ -209,6 +211,7 @@ extra_overlays:
 
   new_next_air:
     use: True
+    days_new: 14
     bgcolor: "#008001"
     font_color: "#FFFFFF"
     text: "NEW · AIRING"
