@@ -276,7 +276,7 @@ class ExtendedLibraryList:
 
 class itemBase:
     def __init__(self, title, date, details):
-        self.title = re.sub("\s\(.*?\)","", title)
+        self.title = re.sub(r"\s\(.*?\)","", title)
         self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
         self.details = details
         
@@ -809,7 +809,7 @@ class Plex:
                values = data['MediaContainer']['Metadata']
                for result in values:
                    title = result['title']
-                   title = re.sub("\s\(.*?\)","", title)
+                   title = re.sub(r"\s\(.*?\)","", title)
                return title
             else:
                 return f"Error: {response.status_code} - {response.text}"
@@ -1939,7 +1939,7 @@ templates:
     # strip (words) and url format plex title #
     class PlexItem:
         def __init__(self, title, year, ratingKey):
-            self.title = re.sub("\s\(.*?\)","", title)
+            self.title = re.sub(r"\s\(.*?\)","", title)
             if year != "null":
                 self.year = datetime.strptime(year, '%Y-%m-%d').year
             else:
