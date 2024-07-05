@@ -2366,7 +2366,7 @@ Shows: {total_results}''')
 
     try:
         date_delimiter = vars.setting('delimiter')
-        allowed_delimiter_symbols = ['/', '-', '.', '_']
+        allowed_delimiter_symbols = ['/', '-', '.', '_', ' / ', ' - ', ' . ', ' _ ']
         if date_delimiter not in allowed_delimiter_symbols:
             date_delimiter = "/"
     except:
