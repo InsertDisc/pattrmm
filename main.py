@@ -10,7 +10,12 @@ if args.run == True:
     with open("pattrmm.py") as f:
         exec(f.read())
 
-
+if "RUN_NOW" in os.environ:
+    argument = os.environ["RUN_NOW"]
+    if argument == True:
+        with open("pattrmm.py") as f:
+            exec(f.read())
+        
 else:
     if "PATTRMM_TIME" in os.environ:
         runwhen = os.environ["PATTRMM_TIME"]
