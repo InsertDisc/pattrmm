@@ -46,6 +46,7 @@ services:
       - GUID=1000
       - TZ=America/New_York
       - PATTRMM_TIME=02:00  # Schedule run time
+      - RUN_NOW=False # setting this to True will function the same as a -run command line argument and ignore the PATTRMM_TIME.
     volumes:
       - /path/to/pattrmm/data:/data
       - /path/to/pattrmm/preferences:/preferences
