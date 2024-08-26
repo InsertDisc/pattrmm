@@ -8,7 +8,7 @@
 
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Plex Meta Manager](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
 
-> **_NOTE:_** The latest update changes the *-returning-soon.yml to *-returning-soon-metadata.yml. Make sure to update your pmm config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
+> **_NOTE:_** The latest update changes the *-returning-soon-metadata.yml to *-returning-soon-collection.yml. Make sure to update your pmm config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
 
 
 ## Installation
