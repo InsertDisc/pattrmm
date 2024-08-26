@@ -93,7 +93,7 @@ if not os.path.isfile(settings_file):
 libraries:
   TV Shows:                          # Plex Libraries to read from. Can enter multiple libraries.
     trakt_list_privacy: private
-    save_folder: "metadata/"
+    save_folder: "collections/"
     overlay_save_folder: "overlays/"
     font_path: "fonts/Juventus-Fans-Bold.ttf"
     refresh: 30                      # Full-refresh delay for library          
@@ -1706,27 +1706,27 @@ for library in loaded_settings_yaml['libraries']:
     # cache file for tmdb details
     cache_file = "./data/" + library_clean_path + "-tmdb-cache.json"
 
-    # returning soon metadata save folder
-    rs_metadata_folder = vars.librarySetting(library, 'save_folder')
-    pmm_rs_metadata_folder = pmm_config_path_prefix + rs_metadata_folder
-    if pmm_rs_metadata_folder != '':
-        pmm_rs_metadata_folder_exists = os.path.exists(pmm_rs_metadata_folder)
-        if not pmm_rs_metadata_folder_exists:
-            rs_metadata_subfolder_path = f"config/{rs_metadata_folder}"
-            print(f"Sub-folder {rs_metadata_subfolder_path} not found.")
+    # returning soon collection save folder
+    rs_collection_folder = vars.librarySetting(library, 'save_folder')
+    pmm_rs_collection_folder = pmm_config_path_prefix + rs_collection_folder
+    if pmm_rs_collection_folder != '':
+        pmm_rs_collection_folder_exists = os.path.exists(pmm_rs_collection_folder)
+        if not pmm_rs_collection_folder_exists:
+            rs_collection_subfolder_path = f"config/{rs_collection_folder}"
+            print(f"Sub-folder {rs_collection_subfolder_path} not found.")
             print(f"Attempting to create.")
-            logging.info(f"Sub-folder {rs_metadata_subfolder_path} not found.")
+            logging.info(f"Sub-folder {rs_collection_subfolder_path} not found.")
             logging.info(f"Attempting to create.")
             try:
-                os.makedirs(pmm_rs_metadata_folder)
-                print(f"{rs_metadata_subfolder_path} created successfully.")
-                logging.info(f"{rs_metadata_subfolder_path} created successfully.")
+                os.makedirs(pmm_rs_collection_folder)
+                print(f"{rs_collection_subfolder_path} created successfully.")
+                logging.info(f"{rs_collection_subfolder_path} created successfully.")
             except Exception as sf:
                 print(f"Exception: {str(sf)}")
                 logging.warning(f"Exception: {str(sf)}")
 
-    # returning-soon metadata file for collection
-    rs_metadata_file = pmm_rs_metadata_folder + library_clean_path + "-returning-soon-metadata.yml"
+    # returning-soon collection file
+    rs_collection_file = pmm_rs_collection_folder + library_clean_path + "-returning-soon-collection.yml"
 
     # returning soon overlay save folder
     rs_overlay_folder = vars.librarySetting(library, 'overlay_save_folder')
@@ -1806,14 +1806,14 @@ for library in loaded_settings_yaml['libraries']:
         print(library + " cache file present.")
         logging.info(library + " cache file present.")
 
-    # If returning-soon metadata file doesn't exist, create it
-    rs_metadata_file_exists = os.path.exists(rs_metadata_file)
-    if not rs_metadata_file_exists:
-        print("Creating " + library + " metadata collection file..")
-        logging.info("Creating " + library + " metadata collection file..")
-        create_rs_metadata_file = open(rs_metadata_file, "x")
+    # If returning-soon collection file doesn't exist, create it
+    rs_collection_file_exists = os.path.exists(rs_collection_file)
+    if not rs_collection_file_exists:
+        print("Creating " + library + " collection file..")
+        logging.info("Creating " + library + " collection file..")
+        create_rs_collection_file = open(rs_collection_file, "x")
         trakt_user_name = vars.traktApi('me')
-        create_rs_metadata_file.write(
+        create_rs_collection_file.write(
             f'''
 collections:
   Returning Soon:
@@ -1825,10 +1825,10 @@ collections:
     sync_mode: sync
     '''
         )
-        create_rs_metadata_file.close()
+        create_rs_collection_file.close()
     else:
-        print(library + " metadata file present.")
-        logging.info(library + " metadata file present.")
+        print(library + " collection file present.")
+        logging.info(library + " collection file present.")
 
     
     # If overlay template doesn't exist, create it
@@ -2436,6 +2436,7 @@ overlays:
         weight: 90
         back_color: "{upcoming_color}"
         vertical_align: {upcoming_vertical_align}
+        status: upcoming
     plex_all: true
     filters:
       tmdb_status:
@@ -2456,6 +2457,7 @@ overlays:
         vertical_align: {upcoming_vertical_align}
         horizontal_offset: {upcoming_horizontal_offset}
         vertical_offset: {upcoming_vertical_offset}
+        status: upcoming
     plex_all: true
     filters:
       tmdb_status:
@@ -2503,6 +2505,7 @@ overlays:
       group: banner_backdrop
       back_color: "{new_airing_next_color}"
       vertical_align: {new_airing_next_vertical_align}
+      status: new_airing_next
     tmdb_discover:
       air_date.gte: {new_airing_next_formatted}
       air_date.lte: {new_airing_next_formatted}
@@ -2512,7 +2515,7 @@ overlays:
     filters:
       first_episode_aired.after: {new_first_aired_after_formatted}
 
-  # Next Next
+  # New Next
   {library}_Status_Next_Next_{new_next_air_display}:
     template:
       name: {library}_Status
@@ -2524,6 +2527,7 @@ overlays:
       vertical_align: {new_airing_next_vertical_align}
       horizontal_offset: {new_airing_next_horizontal_offset}
       vertical_offset: {new_airing_next_vertical_offset}
+      status: new_airing_next
     tmdb_discover:
       air_date.gte: {new_airing_next_formatted}
       air_date.lte: {new_airing_next_formatted}
@@ -2559,6 +2563,7 @@ overlays:
         group: banner_backdrop
         back_color: "{new_color}"
         vertical_align: {new_vertical_align}
+        status: new
     plex_all: true
     filters:
       tmdb_status:
@@ -2581,6 +2586,7 @@ overlays:
         vertical_align: {new_vertical_align}
         horizontal_offset: {new_horizontal_offset}
         vertical_offset: {new_vertical_offset}
+        status: new
     plex_all: true
     filters:
       tmdb_status:
@@ -2619,6 +2625,7 @@ overlays:
         group: banner_backdrop
         back_color: "{airing_color}"
         vertical_align: {airing_vertical_align}
+        status: airing
     plex_all: true
     filters:
       tmdb_status:
@@ -2639,6 +2646,7 @@ overlays:
         vertical_align: {airing_vertical_align}
         horizontal_offset: {airing_horizontal_offset}
         vertical_offset: {airing_vertical_offset}
+        status: airing
     plex_all: true
     filters:
       tmdb_status:
@@ -2655,6 +2663,7 @@ overlays:
         group: banner_backdrop
         back_color: "{airing_color}"
         vertical_align: {airing_vertical_align}
+        status: airing_today
     tmdb_discover:
       air_date.gte: {airing_today_formatted}
       air_date.lte: {airing_today_formatted}
@@ -2674,6 +2683,7 @@ overlays:
         vertical_align: {airing_vertical_align}
         horizontal_offset: {airing_horizontal_offset}
         vertical_offset: {airing_vertical_offset}
+        status: airing_today
     tmdb_discover:
       air_date.gte: {airing_today_formatted}
       air_date.lte: {airing_today_formatted}
@@ -2718,6 +2728,7 @@ overlays:
       group: banner_backdrop
       back_color: "{airing_next_color}"
       vertical_align: {airing_next_vertical_align}
+      status: airing_next
     tmdb_discover:
       air_date.gte: {airing_next_formatted}
       air_date.lte: {airing_next_formatted}
@@ -2739,6 +2750,7 @@ overlays:
       vertical_align: {airing_next_vertical_align}
       horizontal_offset: {airing_next_horizontal_offset}
       vertical_offset: {airing_next_vertical_offset}
+      status: airing_next
     tmdb_discover:
       air_date.gte: {airing_next_formatted}
       air_date.lte: {airing_next_formatted}
@@ -2771,6 +2783,7 @@ overlays:
         group: banner_backdrop
         back_color: "{ended_color}"
         vertical_align: {ended_vertical_align}
+        status: ended
     plex_all: true
     filters:
       tmdb_status:
@@ -2788,6 +2801,7 @@ overlays:
         vertical_align: {ended_vertical_align}
         horizontal_offset: {ended_horizontal_offset}
         vertical_offset: {ended_vertical_offset}
+        status: ended
     plex_all: true
     filters:
       tmdb_status:
@@ -2815,7 +2829,7 @@ overlays:
         group: banner_backdrop
         back_color: "{canceled_color}"
         vertical_align: {canceled_vertical_align}
-
+        status: canceled
     plex_all: true
     filters:
       tmdb_status:
@@ -2833,6 +2847,7 @@ overlays:
         vertical_align: {canceled_vertical_align}
         horizontal_offset: {canceled_horizontal_offset}
         vertical_offset: {canceled_vertical_offset}
+        status: canceled
     plex_all: true
     filters:
       tmdb_status:
@@ -2860,6 +2875,7 @@ overlays:
         group: banner_backdrop
         back_color: "{returning_color}"
         vertical_align: {returning_vertical_align}
+        status: returning
     plex_all: true
     filters:
       tmdb_status:
@@ -2879,6 +2895,7 @@ overlays:
         vertical_align: {returning_vertical_align}
         horizontal_offset: {returning_horizontal_offset}
         vertical_offset: {returning_vertical_offset}
+        status: returning
     plex_all: true
     filters:
       tmdb_status:
@@ -2907,6 +2924,7 @@ overlays:
         group: banner_backdrop
         back_color: "{rs_color}"
         vertical_align: {rs_vertical_align}
+        status: returning_soon
     tmdb_discover:
       air_date.gte: {this_day}
       air_date.lte: {this_day}
@@ -2928,6 +2946,7 @@ overlays:
         vertical_align: {rs_vertical_align}
         horizontal_offset: {rs_horizontal_offset}
         vertical_offset: {rs_vertical_offset}
+        status: returning_soon
     tmdb_discover:
       air_date.gte: {this_day}
       air_date.lte: {this_day}
@@ -3111,8 +3130,8 @@ Extension setting found. Running 'In History' on {this_library}
 
                 if not in_history_file_exists:
                     try:
-                        print(f"Creating {this_library} 'In History' metadata file..")
-                        logging.info(f"Creating {this_library} 'In History' metadata file..")
+                        print(f"Creating {this_library} 'In History' collection file..")
+                        logging.info(f"Creating {this_library} 'In History' collection file..")
                         create_in_history_file = open(in_history_file, "x")
                         create_in_history_file.write(in_history_meta_str)
                         create_in_history_file.close()
@@ -3124,8 +3143,8 @@ Extension setting found. Running 'In History' on {this_library}
                     except Exception as e:
                         print(f"An error occurred: {e}")
                 else:
-                    print(f"Updating {this_library} 'In History' metadata file..")
-                    logging.info(f"Updating {this_library} 'In History' metadata file..")
+                    print(f"Updating {this_library} 'In History' collection file..")
+                    logging.info(f"Updating {this_library} 'In History' collectioin file..")
                     in_history_file_location = f"config/{in_history_settings.save_folder}{library_clean_path}-in-history.yml"
                     print(f"{in_history_file_location}")
                     logging.info(f"{in_history_file_location}")
@@ -3341,8 +3360,8 @@ Extension setting found. Running 'Sort by size' on {this_library}
 
                 if not by_size_file_exists:
                     try:
-                        print(f"Creating {this_library} 'By Size' metadata file..")
-                        logging.info(f"Creating {this_library} 'By Size' metadata file..")
+                        print(f"Creating {this_library} 'By Size' collection file..")
+                        logging.info(f"Creating {this_library} 'By Size' collection file..")
                         creata_by_size_file = open(by_size_file, "x")
                         creata_by_size_file.write(by_size_meta_str)
                         creata_by_size_file.close()
@@ -3354,8 +3373,8 @@ Extension setting found. Running 'Sort by size' on {this_library}
                     except Exception as e:
                         print(f"An error occurred: {e}")
                 else:
-                    print(f"Updating {this_library} 'By Size' metadata file..")
-                    logging.info(f"Updating {this_library} 'By Size' metadata file..")
+                    print(f"Updating {this_library} 'By Size' collection file..")
+                    logging.info(f"Updating {this_library} 'By Size' collection file..")
                     by_size_file_location = f"config/{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
                     print(f"{by_size_file_location}")
                     logging.info(f"{by_size_file_location}")
