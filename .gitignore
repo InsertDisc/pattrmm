@@ -1,0 +1,27 @@
+# PATTRMM generated files
+data/*
+preferences/*
+*-returning-soon-metadata.yml
+*-returning-soon-overlay.yml
+*-returning-soon-collection.yml
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution
+.idea
+.vscode
+.Python
+
+# Environments
+.env
+.venv
+.direnv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pattrmm-venv/
