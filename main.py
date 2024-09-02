@@ -12,7 +12,7 @@ if args.run == True:
 
 if "RUN_NOW" in os.environ:
     argument = os.environ["RUN_NOW"]
-    if argument == True:
+    if argument.lower() == "true":
         with open("pattrmm.py") as f:
             exec(f.read())
         
