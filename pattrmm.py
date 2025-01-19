@@ -82,6 +82,10 @@ log_setup()
 # preferences folder
 verify_or_create_folder("preferences", "preferences")
 
+# trakt list ids
+trakt_list_cache = "data/trakt_list_ids.yml"
+verify_or_create_file(trakt_list_cache, "Trakt List IDs")
+
 # settings file for pattrmm
 settings_file = "preferences/settings.yml"
 # If settings file doesn't exist, create it
@@ -315,7 +319,7 @@ class Extensions:
             me = traktApi('me')
             slug = cleanPath(self.extension_library)
             self.slug = slug
-            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/in-history-{slug}"
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/<<TEMP>>"
             try:
                 self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['in-history']['trakt_list_privacy']
             except KeyError:
@@ -399,6 +403,12 @@ class Extensions:
                 self.maximum = maximum
             except KeyError:
                 self.maximum = None
+                           
+            try:
+                limit = pref['libraries'][self.extension_library]['extensions']['by_size']['limit']
+                self.limit = limit
+            except KeyError:
+                self.limit = 500
 
             try:
                 self.save_folder = pref['libraries'][self.extension_library]['extensions']['by_size']['save_folder']
@@ -3090,6 +3100,251 @@ for this_library in extension_settings['libraries']:
                 print(f'''
 Extension setting found. Running 'In History' on {this_library}
 ''')
+                trakt_access = vars.traktApi('token')
+                trakt_api = vars.traktApi('client')
+                trakt_user_name = vars.traktApi('me')
+
+                def trakt_list_state(trakt_list_id):
+                    try:                        
+                        url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{trakt_list_id}/items"
+                        response = requests.get(url, headers={
+                            "Authorization": f"Bearer {trakt_access}",
+                            "trakt-api-version": "2",
+                            "trakt-api-key": trakt_api,
+                        })
+                        time.sleep(1.25)
+                        if response.status_code == 200:
+                            data = response.json()
+                            if not data:
+                                return "empty"
+                            return "valid"
+                        elif response.status_code == 404:
+                            return "not_found"
+                        else:
+                            raise Exception(f"Failed to fetch list items: {response.status_code} - {response.text}")
+                    except Exception as e:
+                        print(f"Trakt list state function error: {e}")
+
+                def update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug):
+                    try:
+                        print("Updating Trakt list cache data")
+                        with open(trakt_list_cache, 'r') as trakt_cache_file:
+                            data = yaml.load(trakt_cache_file)
+                            if data is None:
+                                data = {}
+        
+                        if 'lists' not in data:
+                            data['lists'] = {}
+                            
+
+                        if this_library not in data['lists']:
+                            data['lists'][this_library] = {}
+                            
+
+                        if trakt_list_name not in data['lists'][this_library]:
+                            data['lists'][this_library][trakt_list_cache_name] = {}
+                            
+
+                        data['lists'][this_library][trakt_list_cache_name]['id'] = trakt_list_id
+                        data['lists'][this_library][trakt_list_cache_name]['slug'] = trakt_list_slug
+                        
+
+                        with open(trakt_list_cache, 'w') as trakt_cache_file:
+                            yaml.dump(data, trakt_cache_file)
+                            print("Trakt cache file updated.")
+                    except Exception as e:
+                        print(f"Exception: {e}")
+
+                def validate_and_initialize(trakt_list_cache, trakt_list_cache_name, trakt_list_name, this_library):
+                    try:
+                        print("Validating trakt list links.")
+                        with open(trakt_list_cache, 'r') as trakt_cache_file:
+                            data = yaml.load(trakt_cache_file)
+                            if data is None:
+                                print("Initializing Trakt Cache file.")
+                                data = {}
+                                if 'lists' not in data:
+                                    data['lists'] = {}
+                                    print(f"Building: {data}")
+
+                                if this_library not in data['lists']:
+                                    data['lists'][this_library] = {}
+                                    print(f"Building: {data}")
+
+                                if trakt_list_cache_name not in data['lists'][this_library]:
+                                    data['lists'][this_library][trakt_list_cache_name] = {}
+                                    print(f"Building: {data}")
+
+                                create_status, trakt_list_id, trakt_list_slug = create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True)
+                                if create_status == 201:
+                                        data['lists'][this_library][trakt_list_cache_name]['id'] = trakt_list_id
+                                        data['lists'][this_library][trakt_list_cache_name]['slug'] = trakt_list_slug
+                                        print(f"Building: {data}")
+                                        update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug)
+                                        return True, trakt_list_id, trakt_list_slug
+                                else:
+                                    print(f"<<STATUS>> ({create_status})")
+                                    return False, None, None
+
+                            if data is not None:
+                                if 'lists' not in data:
+                                    data['lists'] = {}
+                                    print("Creating list structure")
+                                else:
+                                    print(f"Structure ok [lists]")
+
+                                if this_library not in data['lists']:
+                                    data['lists'][this_library] = {}
+                                    print(f"Adding {this_library} to [lists]")
+                                else:
+                                    print(f"Structure ok [lists][{this_library}]")
+
+                                if trakt_list_cache_name not in data['lists'][this_library]:
+                                    data['lists'][this_library][trakt_list_cache_name] = {}
+                                    print(f"Adding {trakt_list_cache_name} to [lists][{this_library}]")
+                                else:
+                                    print(f"Structure ok [lists][{this_library}][{trakt_list_cache_name}]")
+
+                                print("Checking for existing Trakt list id")
+                                trakt_list_id = (
+                                    data.get('lists', {})
+                                        .get(this_library, {})
+                                        .get(trakt_list_cache_name, {})
+                                        .get('id', None)
+                                )
+                                trakt_list_slug = (
+                                    data.get('lists', {})
+                                        .get(this_library, {})
+                                        .get(trakt_list_cache_name, {})
+                                        .get('slug', None)
+                                )
+                                
+                                if trakt_list_id is None:
+                                    print(f"No Trakt list id found for [lists][{this_library}][{trakt_list_cache_name}]")
+                                    print(f"Creating {trakt_list_name} list on Trakt")
+                                    create_status, trakt_list_id, trakt_list_slug = create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True)
+                                    if create_status == 201:
+                                        print(f"List ({trakt_list_name}) created <<OK>>")
+                                        data['lists'][this_library][trakt_list_cache_name]['id'] = trakt_list_id
+                                        data['lists'][this_library][trakt_list_cache_name]['slug'] = trakt_list_slug
+                                        update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug)
+                                        return True, trakt_list_id, trakt_list_slug
+                                    else:
+                                        print(f"Fail <<STATUS>> ({create_status})")
+                                        return False, None, None
+                                    
+                                elif trakt_list_id is not None:
+                                    print("ID found")
+                                    print("Validating Trakt List")
+                                    validate_trakt_list = trakt_list_state(trakt_list_id)
+                                    if validate_trakt_list == "not_found":
+                                        print(f"Trakt list {trakt_list_id} could not be found.")
+                                        print("Creating a new list and updating cache information.")
+                                        create_status, trakt_list_id, trakt_list_slug = create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True)
+                                        if create_status == 201:
+                                            print(f"List ({trakt_list_name}) created <<OK>>")
+                                            update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug)
+                                            return True, trakt_list_id, trakt_list_slug
+                                        else:
+                                            print(f"<<STATUS>> ({create_status})")
+                                            return False, None, None
+
+                                    elif validate_trakt_list == "empty":
+                                        print("Trakt list info valid. List exists but is empty")
+                                        return "EMPTY", trakt_list_id, trakt_list_slug
+
+                                    elif validate_trakt_list == "valid":
+                                        print("Trakt list is valid and populated")
+                                        return True, trakt_list_id, trakt_list_slug                           
+                    except Exception as e:
+                        print(f"Failed to validate. Error: {e}")
+
+        
+
+                def remove_trakt_list_items(list_id, items):
+                    remove_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{list_id}/items/remove"
+                    print(f"Removing items from trakt list ({list_id})")
+                    payload = {
+                        f"{plex.library.type(this_library)}s": []
+                    }
+                    if not items:
+                        print("The list of items is empty!")
+                        return
+                    for item in items:
+                        if item['type'] == plex.library.type(this_library):
+                            payload[f"{plex.library.type(this_library)}s"].append({
+                                "ids": item[f"{plex.library.type(this_library)}"]['ids']
+                            })
+                    if payload[f"{plex.library.type(this_library)}s"]:
+                        response = requests.post(remove_url, json=payload, headers={
+                            "Authorization": f"Bearer {trakt_access}",
+                            "trakt-api-version": "2",
+                            "trakt-api-key": f"{trakt_api}",
+                        })
+                        if response.status_code == 200:
+                            print(f"Successfully removed the {plex.library.type(this_library)}s from list {list_id}.")
+                        else:
+                            raise Exception(f"Failed to remove items from list {list_id}: {response.status_code} - {response.text}")
+                    else:
+                        print("No data to remove.")
+
+                def add_trakt_list_items(trakt_list_id, trakt_list_items):
+                    url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{trakt_list_id}/items"
+                    response = requests.post(url, headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {trakt_access}",
+                        "trakt_api_version": "2",
+                        "trakt-api-key": trakt_api,
+                    },
+                    data=trakt_list_items)
+                    time.sleep(1.25)
+                    if response.status_code == 201:
+                        print("Items successfully posted")
+                    return response
+                
+                def get_trakt_list_items(list_id):
+                    url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{list_id}/items"
+                    response = requests.get(url, headers={
+                        "Authorization": f"Bearer {trakt_access}",
+                        "trakt-api-version": "2",
+                        "trakt-api-key": trakt_api,
+                    })
+
+                    if response.status_code == 200:
+                        print("Trakt list items fetched.")
+                        list_items = response.json()
+                        return list_items
+                    else:
+                        raise Exception(f"Failed to fetch list items: {response.status_code} - {response.text}")
+
+                def create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True):
+                    api_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists"
+
+                    headers = {
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {trakt_access}",
+                        "trakt-api-version": "2",
+                        "trakt-api-key": trakt_api,
+                    }
+
+                    payload = {
+                        "name": trakt_list_name,
+                        "description": trakt_list_description,
+                        "privacy": trakt_list_privacy,
+                        "allow_comments": allow_comments,
+                    }
+
+                    response = requests.post(api_url, json=payload, headers=headers)
+                    create_status = response.status_code
+                    if response.status_code == 201:  # Created
+                        time.sleep(1.25)
+                        data = response.json()
+                        trakt_list_id = data['ids']['trakt']
+                        trakt_list_slug = data['ids']['slug']
+                        return create_status, trakt_list_id, trakt_list_slug
+                    else:
+                        raise Exception(f"Failed to create list: {response.status_code} - {response.text}")
+
                 logging.info(f"Extension setting found. Running 'In History' on {this_library}")
                 in_history_settings = vars.Extensions(this_library).in_history.settings()
                 pmm_in_history_folder = pmm_config_path_prefix + in_history_settings.save_folder
@@ -3109,7 +3364,6 @@ Extension setting found. Running 'In History' on {this_library}
                             print(f"Exception: {str(sf)}")
                             logging.warning(f"Exception: {str(sf)}")
                 in_history_range = in_history_settings.range
-                trakt_user_name = vars.traktApi('me')
                 library_clean_path = vars.cleanPath(in_history_settings.slug)
                 collection_title = in_history_settings.collection_title
                 in_history_meta = in_history_settings.meta
@@ -3137,14 +3391,14 @@ Extension setting found. Running 'In History' on {this_library}
                         create_in_history_file.close()
                         print(f"File created")
                         logging.info(f"File created")
-                        in_history_file_location = f"config/{in_history_settings.save_folder}{library_clean_path}-in-history.yml"
+                        in_history_file_location = f"{in_history_file}"
                         print(f"{in_history_file_location}")
                         logging.info(f"{in_history_file_location}")
                     except Exception as e:
                         print(f"An error occurred: {e}")
                 else:
                     print(f"Updating {this_library} 'In History' collection file..")
-                    logging.info(f"Updating {this_library} 'In History' collectioin file..")
+                    logging.info(f"Updating {this_library} 'In History' collection file..")
                     in_history_file_location = f"config/{in_history_settings.save_folder}{library_clean_path}-in-history.yml"
                     print(f"{in_history_file_location}")
                     logging.info(f"{in_history_file_location}")
@@ -3154,19 +3408,19 @@ Extension setting found. Running 'In History' on {this_library}
 
                         for key, value in loaded_in_history_yaml['collections'].items():
                             if key != collection_title:
-                                print(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
+                                print(f'''Collection name for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
-                                logging.info(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
+                                logging.info(f'''Collection name for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
                                 library_id = vars.plexGet(this_library)
                                 old_collection_id = plex.collection.id(key, library_id)
                                 delete_old_collection = plex.collection.delete(old_collection_id)
                                 if delete_old_collection:
-                                    print(f"Successfully removed old '{key}' collection.")
-                                    logging.info(f"Successfully removed old '{key}' collection.")
+                                    print(f"Successfully removed old '{key}' collection from Plex.")
+                                    logging.info(f"Successfully removed old '{key}' collection from Plex.")
                                 else:
-                                    print(f"Could not remove deprecated '{key}' collection.")
-                                    logging.warning(f"Could not remove deprecated '{key}' collection.")
+                                    print(f"Could not remove deprecated '{key}' collection from Plex.")
+                                    logging.warning(f"Could not remove deprecated '{key}' collection from Plex.")
 
                     with open(in_history_file, "w") as write_in_history_file:
                         write_in_history_file.write(in_history_meta_str)
@@ -3180,7 +3434,6 @@ Attempting to remove unused collection.''')
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
             ]
-                
                 
                 if in_history_range == 'day':
                     today = datetime.now()
@@ -3213,38 +3466,22 @@ Attempting to remove unused collection.''')
                 if description_identifier == 'movie':
                     description_type = 'Movies'
                     trakt_type = 'movies'
-                trakt_access = vars.traktApi('token')
-                trakt_api = vars.traktApi('client')
-                trakt_headers = {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + trakt_access + '',
-                    'trakt-api-version': '2',
-                    'trakt-api-key': '' + trakt_api + ''
-                    }
-                trakt_list_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists"
-                trakt_list_url_post = f"https://api.trakt.tv/users/{trakt_user_name}/lists/in-history-{library_clean_path}"
-                trakt_list_url_post_items = f"https://api.trakt.tv/users/{trakt_user_name}/lists/in-history-{library_clean_path}/items"
-                trakt_list_data = f'''
-{{
-    "name": "In History {this_library}",
-    "description": "{description_type} released this {in_history_range} in history.",
-    "privacy": "{in_history_settings.trakt_list_privacy}",
-    "display_numbers": true,
-    "allow_comments": true,
-    "sort_by": "rank",
-    "sort_how": "asc"
-}}
-    '''
-                print("Clearing " + this_library + " trakt list...")
-                logging.info("Clearing " + this_library + " trakt list...")
-                trakt_delete_list = requests.delete(trakt_list_url_post, headers=trakt_headers)
-                if trakt_delete_list.status_code == 201 or 200 or 204:
-                    print("List cleared")
-                time.sleep(1.25)
-                trakt_make_list = requests.post(trakt_list_url, headers=trakt_headers, data=trakt_list_data)
-                if trakt_make_list.status_code == 201 or 200 or 204:
-                    print("Initialization successful.")
-                time.sleep(1.25)
+    
+                # Prepare the list name
+                trakt_list_cache_name = f"{in_history_range}_in_history"
+                trakt_list_name=f"In History {this_library} - {in_history_range}"
+                trakt_list_description=f"{description_type} released this {in_history_range} in history."
+                trakt_list_privacy=f"{in_history_settings.trakt_list_privacy}"
+
+                valid, trakt_list_id, trakt_list_slug = validate_and_initialize(trakt_list_cache, trakt_list_cache_name, trakt_list_name, this_library)
+
+                if valid is True:
+                    if trakt_list_state(trakt_list_id) == "valid":
+                        print("List is validated")
+                        trakt_list_items = get_trakt_list_items(trakt_list_id)
+                        remove_trakt_list_items(trakt_list_id, trakt_list_items)
+                        time.sleep(1.5)
+                
                 trakt_list_items = '''
 {'''
                 trakt_list_items += f'''
@@ -3308,7 +3545,19 @@ Attempting to remove unused collection.''')
 }
 '''
                 
-                post_items = requests.post(trakt_list_url_post_items, headers=trakt_headers, data=trakt_list_items)
+                post_items = add_trakt_list_items(trakt_list_id, trakt_list_items)
+                
+                try:
+                    print("Updating collection file data...")
+                    with open(in_history_file, 'r') as in_history_collection_file:
+                        current_collection_data = yaml.load(in_history_collection_file)
+                        current_collection_data['collections'][collection_title]['trakt_list'] = f"https://trakt.tv/users/{trakt_user_name}/lists/{trakt_list_id}"
+                    with open(in_history_file, 'w') as in_history_collection_file:
+                            yaml.dump(current_collection_data, in_history_collection_file)
+                            print("Collection file url synced")
+                except Exception as e:
+                    print(f"Error updating collection file url: {e}")
+
                 if post_items.status_code == 201:
                     print(f'''
     Successfully posted This {in_history_range} In History items for {this_library}''')
@@ -3386,19 +3635,19 @@ Extension setting found. Running 'Sort by size' on {this_library}
                         
                         for key, value in check_BySize_Title['collections'].items():
                             if key != collection_title:
-                                print(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
+                                print(f'''Collection name for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
-                                logging.info(f'''Collection for {this_library} has been changed from {key} ==> {collection_title}
+                                logging.info(f'''Collection name for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
                                 library_id = vars.plexGet(this_library)
                                 old_collection_id = plex.collection.id(key, library_id)
                                 delete_old_collection = plex.collection.delete(old_collection_id)
                                 if delete_old_collection == True:
-                                    print(f"Successfully removed old '{key}' collection.")
-                                    logging.info(f"Successfully removed old '{key}' collection.")
+                                    print(f"Successfully removed old '{key}' collection from Plex.")
+                                    logging.info(f"Successfully removed old '{key}' collection from Plex.")
                                 if delete_old_collection == False:
-                                    print(f"Could not remove deprecated '{key}' collection.")
-                                    logging.warning(f"Could not remove deprecated '{key}' collection.")
+                                    print(f"Could not remove deprecated '{key}' collection from Plex.")
+                                    logging.warning(f"Could not remove deprecated '{key}' collection from Plex.")
 
                     with open(by_size_file, "w") as write_by_size_file:
                         write_by_size_file.write(by_size_meta_str)
@@ -3412,6 +3661,7 @@ Attempting to remove unused collection.''')
                 reverse_value = by_size_settings.reverse
                 minimum = by_size_settings.minimum
                 maximum =  by_size_settings.maximum
+                list_limit = by_size_settings.limit
                 movies_list = sorted(movies_list, key=lambda x: getattr(x, sort_key), reverse=reverse_value)
                 movies_list = [
                     movie for movie in movies_list
@@ -3420,8 +3670,12 @@ Attempting to remove unused collection.''')
                         (maximum is None or movie.size <= maximum)
                     )
                 ]
+                movies_list = movies_list[:list_limit]
 
                 print(f'''Sorting {this_library} by '{by_size_settings.order_by_field}.{by_size_settings.order_by_direction}'.''')
+                print(f"Minimum size: {minimum}")
+                print(f"Maximum size: {maximum}")
+                print(f"Limit: {list_limit}")
 
                 library_clean_path = vars.cleanPath(this_library)
                 trakt_user_name = vars.traktApi('me')
