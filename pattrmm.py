@@ -204,7 +204,7 @@ vars_file = 'vars.py'
 vars_file_exists = os.path.exists(vars_file)
 if not vars_file_exists:
     print("VARS module missing. Please download the needed vars module from the the 'Nightly' Repo.")
-    else:
+else:
     print("Vars module file present.")
 
 # Check if this is a Docker Build to format PMM config folder directory
