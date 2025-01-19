@@ -1,37 +1,35 @@
+import os
 import time
 import argparse
-import os
+
+# Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--run", action="store_true")
-parser.parse_args()
+parser.add_argument("--run", action="store_true", help="Run immediately.")
+parser.add_argument("--times", type=str, help="Comma-separated times to run, e.g., '02:00,04:30'")
 args = parser.parse_args()
 
-if args.run == True:
+# Get times
+run_times = args.times.split(",") if args.times else os.getenv("PATTRMM_TIMES", "02:00").split(",")
+run_now = args.run or os.getenv("RUN_NOW", "false").lower() == "true"
+
+# Run now
+if run_now:
+    print("Running immediately...")
     with open("pattrmm.py") as f:
         exec(f.read())
 
-if "RUN_NOW" in os.environ:
-    argument = os.environ["RUN_NOW"]
-    if argument.lower() == "true":
-        with open("pattrmm.py") as f:
-            exec(f.read())
-        
+# Schedule
 else:
-    if "PATTRMM_TIME" in os.environ:
-        runwhen = os.environ["PATTRMM_TIME"]
-    else:
-        runwhen = "02:00"
-    t = 1
-    
-    dtime_24hour = time.strptime(runwhen, "%H:%M")
-    dtime_12hour = time.strftime( "%I:%M %p", dtime_24hour )
-
-    print("Waiting for next run at " + str(dtime_12hour))
-    while t:
-        if runwhen == time.strftime('%H:%M'):
+    print(f"Waiting for the next run at: {', '.join(run_times)}")
+    while True:
+        current_time = time.strftime("%H:%M")
+        
+        if current_time in run_times:
+            print(f"Starting {current_time} run...")
             with open("pattrmm.py") as f:
                 exec(f.read())
-                time.sleep(60)
-                print("Waiting for next run at " + str(dtime_12hour))
-        time.sleep(.5)
-
+            
+            time.sleep(60)  # Wait a minute
+            print(f"Waiting for the next run at: {', '.join(run_times)}")
+        
+        time.sleep(1)  # Check every second

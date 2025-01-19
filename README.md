@@ -6,9 +6,9 @@
 [![Docker Nightly](https://img.shields.io/badge/Docker-develop-blue?style=plastic)](https://github.com/users/insertdisc/packages/container/package/pattrmm?tag=nightly)
 [![Discord](https://img.shields.io/discord/1171872202858188910?style=plastic&label=Discord&color=%252300bc8c)](https://discord.com/invite/7yUYdqgxkn)
 
-PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Plex Meta Manager](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
+PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Kometa](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
 
-> **_NOTE:_** The latest update changes the *-returning-soon-metadata.yml to *-returning-soon-collection.yml. Make sure to update your pmm config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
+> **_NOTE:_** The latest update changes the *-returning-soon-metadata.yml to *-returning-soon-collection.yml. Make sure to update your Kometa config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
 
 
 ## Installation
@@ -16,22 +16,22 @@ PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that au
 
 ### Requirements
 
-Obviously, Plex-Meta-Manager (PMM) must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. 
+Obviously, Kometa must be installed and setup on your machine. Additionally, Trakt MUST be setup in your Kometa installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-collection.yml and *-in-history.yml files will pull from. 
 Required Python modules:
  - ruamel.yaml
  - requests
  - tzlocal
 These are included in requirements.txt. 
-If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
+If you want to use the default template font you will also need the font from the extras folder in your Kometa fonts folder.
 
 
 ### Stand-alone setup
     
-1. Drop pattrymm.py in a subfolder of your Plex Meta Manager config folder (i.e. Plex-meta-manager/config/pattrmm/pattrmm.py) and run it. A settings file will be created in the newly created preferences folder. The script will stop.
+1. Drop pattrymm.py and vars.py in a subfolder of your Kometa config folder (i.e. Kometa/config/pattrmm/pattrmm.py Kometa/config/pattrmm/vars.py) and run pattrmm.py. A settings file will be created in the newly created preferences folder. The script will stop.
 2. Fill in the appropriate settings in preferences/settings.yml (see [Settings file](#settings-file)). You can modify the appearance of the generated overlays file using the preferences/*-status-template.yml files. 
 3. Run the script again after you make your changes to initiate a full cycle.
 
-To update the stand-alone version, you need to delete OR replace vars.py and replace pattrmm.py.
+To update the stand-alone version, you need to replace vars.py and pattrmm.py.
 
 
 ### Docker setup
@@ -45,12 +45,12 @@ services:
       - PUID=1000
       - GUID=1000
       - TZ=America/New_York
-      - PATTRMM_TIME=02:00  # Schedule run time
+      - PATTRMM_TIMES=02:00, 04:50  # Schedule run times
       - RUN_NOW=False # setting this to True will function the same as a -run command line argument and ignore the PATTRMM_TIME.
     volumes:
       - /path/to/pattrmm/data:/data
       - /path/to/pattrmm/preferences:/preferences
-      - /path/to/pmm/config:/config
+      - /path/to/kometa/config:/config
     restart: unless-stopped  
 ```
 
@@ -62,15 +62,15 @@ You can initialize the settings file for the docker version with this command:
 docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
-If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
+If you want to run Pattrmm now and not wait for `PATTRMM_TIMES`, use this command:
 
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:nightly --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/kometa/config:/config" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
-The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
+The Docker version runs daily at the specified PATTRMM_TIMES. These are in a 24 hour format.
 
 ### unRAID setup
 
@@ -79,7 +79,7 @@ Pattrmm now has a template available in the Community Applications for unRAID. T
 1. Head over to the `Apps` tab in your unRAID instance and search for `Pattrmm`. There should only be one template from Droppisalt.
 2. Select the `Install` button
 3. Choose which branch you want to run `latest`, `develop`, or `nightly`.
-4. Fill-in the required Paths and Environment Variables. **Make sure of the following:** The `/config` points to your `Plex-Meta-Manager` config.yml and NOT to the default folder that unRAID might point to (often `.../appdata/pattrmm`)
+4. Fill-in the required Paths and Environment Variables. **Make sure of the following:** The `/config` points to your `Kometa` config.yml and NOT to the default folder that unRAID might point to (often `.../appdata/pattrmm`)
     - See below for an example.
 5. Select `Apply`.
 
@@ -91,12 +91,12 @@ You can initialize the settings file for the docker version with this command:
 docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
-If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command:
+If you want to run Pattrmm now and not wait for `PATTRMM_TIMES`, use this command:
 
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm:nightly --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/kometa/config:/config" ghcr.io/insertdisc/pattrmm:nightly --run
 ```
 
 ![image](https://github.com/InsertDisc/pattrmm/assets/67336980/24e23d34-8d92-4afc-a0bc-138ecfcc3067)
@@ -163,6 +163,7 @@ libraries:
       by_size:
         minimum: 25                # Size in GB
         maximum: 90
+        limit: 125                 # list size limit
         order_by: size.desc
         collection_title: Movies sorted by size
         save_folder: collections/
@@ -262,7 +263,7 @@ extra_overlays:
 
 ```yaml
 save_folder: collections/
-    # Specify a location to write the returning soon metadata file to. Your PMM config folder
+    # Specify a location to write the returning soon metadata file to. Your Kometa config folder
     # (where your config.yml is), will always be the BASE location.
     # So, a save_folder of 'collections/'
     # would put your file in a 'collections' sub-folder. If this directory does not exist
@@ -270,15 +271,15 @@ save_folder: collections/
     # Default location is beside your config.yml and does not need specified.
 
 overlay_save_folder: overlays/
-    # Specify a location to write the returning soon overlay file to. Your PMM config folder
+    # Specify a location to write the returning soon overlay file to. Your Kometa config folder
     # (where your config.yml is), will always be the BASE location.
     # So, a save_folder of 'overlays/'
     # would put your file in a 'overlays' sub-folder. If this directory does not exist
     # PATTRMM will ATTEMPT to create it.
-    # Default location is the default PMM 'overlays' folder and does not need specified.
+    # Default location is the default Kometa 'overlays' folder and does not need specified.
 
 font_path: fonts/Juventus-Fans-Bold.ttf
-    # Specify a path to a font file to use for the overlays. Your PMM config folder
+    # Specify a path to a font file to use for the overlays. Your Kometa config folder
     # (where your config.yml is), will always be the BASE location.
     # Default font path is 'fonts/Juventus-Fans-Bold.ttf' and does not need specified.
 
@@ -309,7 +310,7 @@ returning-soon: False
 settings:
   timezone:
     enable: True
-    # Enables specifying the timezone used for the TMDB Discover builder in PMM.
+    # Enables specifying the timezone used for the TMDB Discover builder in Kometa.
     # Plex Meta Manager defaults to using 'America/New_York'
     # Default setting is false and PATTRMM will specify the default in the generated files.
 
@@ -325,7 +326,7 @@ settings:
         locality: Chile/Continental
 
     source: default
-    # Use PMM default 'America/New_York'
+    # Use Kometa default 'America/New_York'
     # Does not need defined when 'enable' is set to False, or the timezone setting is missing.
 
 date_style: 1
@@ -400,7 +401,7 @@ in-history:  #Enables the 'In History' extension for a library.
         # If an 'ending' year is not specified then the current year will be used as the initial year.
 
     save_folder: collections/
-        # Specify a location to write the extension metadata file to. Your PMM config folder
+        # Specify a location to write the extension collection file to. Your Kometa config folder
         # (where your config.yml is), will always be the BASE location.
         # So, a save_folder of 'collections/'
         # would put your file in a 'collections' sub-folder. If this directory does not exist
@@ -488,6 +489,9 @@ by_size:  #Enables the 'By Size' extension for a library.
         # This sets the maximum filesize to be included in the filtered list.
         # The default value has no upper limit. To use this extension with no
         # top limit, leave out this setting.
+
+    limit: 120
+        # Limit the size of the list to this length
           
     order_by: size.desc
         # Further sorting of the filtered list is possible with this option.
@@ -503,7 +507,7 @@ by_size:  #Enables the 'By Size' extension for a library.
         #   order_by: added.asc
 
     save_folder: collections/
-        # Specify a location to write the extension metadata file to. Your PMM config folder
+        # Specify a location to write the extension metadata file to. Your Kometa config folder
         # (where your config.yml is), will always be the BASE location.
         # So, a save_folder of 'collections/'
         # would put your file in a 'collections' sub-folder. If this directory does not exist

@@ -111,7 +111,7 @@ class Extensions:
             me = traktApi('me')
             slug = cleanPath(self.extension_library)
             self.slug = slug
-            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/in-history-{slug}"
+            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/<<TEMP>>"
             try:
                 self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['in-history']['trakt_list_privacy']
             except KeyError:
@@ -189,12 +189,21 @@ class Extensions:
                 self.minimum = minimum
             except KeyError:
                 self.minimum = 0
+                print(f"Using default minimum size: {self.minimum}")
 
             try:
                 maximum = pref['libraries'][self.extension_library]['extensions']['by_size']['maximum']
                 self.maximum = maximum
             except KeyError:
                 self.maximum = None
+                print(f"Using default maximum size: None")
+
+            try:
+                limit = pref['libraries'][self.extension_library]['extensions']['by_size']['limit']
+                self.limit = limit
+            except KeyError:
+                self.limit = 500
+                print(f"Using default limit: {self.limit}")
 
             try:
                 self.save_folder = pref['libraries'][self.extension_library]['extensions']['by_size']['save_folder']
@@ -1060,7 +1069,7 @@ def setting(value):
                 try:
                     entry = pref['extra_overlays']['new_next_air']['text']
                 except KeyError:
-                    entry = 'NEW · AIRING'
+                    entry = 'NEW - AIRING'
 
             if value == 'ovNewNext_horizontal_align':
                 try:
