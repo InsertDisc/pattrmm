@@ -572,7 +572,7 @@ by_size:  #Enables the 'By Size' extension for a library.
 
 ## What now
 
-- Add the ?-returning-soon-metadata.yml under the appropriate metadata section of the corresponding library you are having it scan.
+- Add the ?-returning-soon-collection.yml under the appropriate metadata section of the corresponding library you are having it scan.
 - Add the overlays/?-returning-soon-overlay.yml under the appropriate overlay section of the same library.
 - Don't forget to add any additional metadata files that any 'extensions' you are using create as well.
 
@@ -585,9 +585,9 @@ After the initial full cycle, only new entries in Plex will get detailed searche
 
 Any series that are not considered a returning series will not be updated upon following runs. Any series that loses it's 'Returning Series' status will be updated accordingly and removed from further searches.  This greatly speeds up the process of daily executions.
 
-Docker version runs daily at the specified PATTRMM_TIME value.
+Docker version runs daily at the specified PATTRMM_TIMES value.
 
-When creating a schedule or running manually, make sure to run PATTRMM before running Plex-Meta-Manager to get the latest overlay data into Plex.
+When creating a schedule or running manually, make sure to run PATTRMM before running Kometa to get the latest overlay data into Plex.
 
 
 ### Linux Scheduling Example
@@ -614,7 +614,7 @@ When using the standalone version you can create a service and run it using a ti
     # /etc/systemd/system/pattrmm.service
 
     [Unit]
-    Description=PATTRM
+    Description=PATTRMM
 
     [Service]
     User=USER
