@@ -9,7 +9,7 @@
 
 PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Kometa](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
 
-> **_NOTE:_** The latest update changes the *-returning-soon.yml to *-returning-soon-metadata.yml. Make sure to update your pmm config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
+> **_NOTE:_** The latest update changes the *-returning-soon.yml to *-returning-soon-metadata.yml. Make sure to update your Kometa config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
 
 
 ## Installation
@@ -17,7 +17,7 @@ PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that au
 
 ### Requirements
 
-Obviously, Kometa must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
+Obviously, Kometa must be installed and setup on your machine. Additionally, Trakt MUST be setup in your Kometa installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your Kometa fonts folder.
 
 
 ### Stand-alone setup
@@ -44,7 +44,7 @@ services:
     volumes:
       - /path/to/pattrmm/data:/data
       - /path/to/pattrmm/preferences:/preferences
-      - /path/to/pmm/config:/config
+      - /path/to/Kometa/config:/config
     restart: unless-stopped  
 ```
 
@@ -234,12 +234,12 @@ save_folder: collections/
     # Default location is beside your config.yml and does not need specified.
 
 overlay_save_folder: overlays/
-    # Specify a location to write the returning soon overlay file to. Your PMM config folder
+    # Specify a location to write the returning soon overlay file to. Your Kometa config folder
     # (where your config.yml is), will always be the BASE location.
     # So, a save_folder of 'overlays/'
     # would put your file in a 'overlays' sub-folder. If this directory does not exist
     # PATTRMM will ATTEMPT to create it.
-    # Default location is the default PMM 'overlays' folder and does not need specified.
+    # Default location is the default Kometa 'overlays' folder and does not need specified.
 
 trakt_list_privacy: private
     # Specify public/private trakt list privacy for returning soon list. Can be set per library.
@@ -337,7 +337,7 @@ in-history:  #Enables the 'In History' extension for a library.
         # If an 'ending' year is not specified then the current year will be used as the initial year.
 
     save_folder: collections/
-        # Specify a location to write the extension metadata file to. Your PMM config folder
+        # Specify a location to write the extension metadata file to. Your Kometa config folder
         # (where your config.yml is), will always be the BASE location.
         # So, a save_folder of 'collections/'
         # would put your file in a 'collections' sub-folder. If this directory does not exist
@@ -440,7 +440,7 @@ by_size:  #Enables the 'By Size' extension for a library.
         #   order_by: added.asc
 
     save_folder: collections/
-        # Specify a location to write the extension metadata file to. Your PMM config folder
+        # Specify a location to write the extension metadata file to. Your Kometa config folder
         # (where your config.yml is), will always be the BASE location.
         # So, a save_folder of 'collections/'
         # would put your file in a 'collections' sub-folder. If this directory does not exist
@@ -529,7 +529,7 @@ When using the standalone version you can create a service and run it using a ti
 
 1. Setup a virtual environment for PATTRMM. Navigate to your pattrmm install folder (`/path/to/pattrmm`) and execute:
     ```bash
-    python3 -m venv pmm-venv
+    python3 -m venv ptm-venv
     ```
 2. Install the requirements:
     ```bash
@@ -556,7 +556,7 @@ When using the standalone version you can create a service and run it using a ti
     Environment=LC_ALL=C.UTF-8
     Environment=LANG=C.UTF-8
     WorkingDirectory=/path/to/pattrmm
-    ExecStart=/path/to/pattrmm/pmm-venv/bin/python /path/to/pattrmm/pattrmm.py
+    ExecStart=/path/to/pattrmm/ptm-venv/bin/python /path/to/pattrmm/pattrmm.py
     ```
 
     Change USER and GROUP to reflect your user and group.
