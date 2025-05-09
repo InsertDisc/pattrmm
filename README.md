@@ -68,7 +68,7 @@ The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour f
 
 ### unRAID setup
 
-Pattrmm now has a template available in the Community Applications for unRAID. This should be the easiest way to use Pattrmm in unRAID.
+Pattrmm now has a template available in the Community Applications for unRAID. This should be the easiest way to use Pattrmm in unRAID. You can **NOT** use env variables for your Kometa setup(Plex URL / Password etc.) as Pattrmm must be able to read these variables. 
 
 1. Head over to the `Apps` tab in your unRAID instance and search for `Pattrmm`. There should only be one template from Droppisalt.
 2. Select the `Install` button
