@@ -7,7 +7,7 @@
 [![Discord](https://img.shields.io/discord/1171872202858188910?style=plastic&label=Discord&color=%252300bc8c)](https://discord.com/invite/7yUYdqgxkn)
 [!["Buy Me A Coffee"](https://github.com/user-attachments/assets/5c30b977-2d31-4266-830e-b8c993996ce7)](https://www.buymeacoffee.com/insertdisc)
 
-PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Plex Meta Manager](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
+PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates a 'Returning Soon' Trakt list in chronological order by date and matching metadata and overlay file for use in [Kometa](https://metamanager.wiki/en/latest/index.html). Extensions have been added to further PATTRMM's capabilities.
 
 > **_NOTE:_** The latest update changes the *-returning-soon.yml to *-returning-soon-metadata.yml. Make sure to update your pmm config file with the new filename if you've updated your script. If you want to use the new alignment options then you will also need to delete your old 'pattrmm/preferences/' template files.
 
@@ -17,12 +17,12 @@ PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that au
 
 ### Requirements
 
-Obviously, Plex-Meta-Manager (PMM) must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
+Obviously, Kometa must be installed and setup on your machine. Additionally, Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to. This is also what the *-returning-soon-metadata.yml and *-in-history.yml files will pull from. The only must-have module is ruamel.yaml. This is included in requirements.txt. Note, some environments may also need 'requests' installed. If you want to use the default template font you will also need the font from the extras folder in your pmm fonts folder.
 
 
 ### Stand-alone setup
     
-1. Drop pattrymm.py in a subfolder of your Plex Meta Manager config folder (i.e. Plex-meta-manager/config/pattrmm/pattrmm.py) and run it. A settings file will be created in the newly created preferences folder. The script will stop.
+1. Drop pattrymm.py in a subfolder of your Kometa config folder (i.e. Kometa/config/pattrmm/pattrmm.py) and run it. A settings file will be created in the newly created preferences folder. The script will stop.
 2. Fill in the appropriate settings in preferences/settings.yml (see [Settings file](#settings-file)). You can modify the appearance of the generated overlays file using the preferences/*-returning-soon-template.yml files. 
 3. Run the script again after you make your changes to initiate a full cycle.
 
@@ -61,7 +61,7 @@ If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/kometa/config:/config" ghcr.io/insertdisc/pattrmm --run
 ```
 
 The Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
@@ -73,7 +73,7 @@ Pattrmm now has a template available in the Community Applications for unRAID. T
 1. Head over to the `Apps` tab in your unRAID instance and search for `Pattrmm`. There should only be one template from Droppisalt.
 2. Select the `Install` button
 3. Choose which branch you want to run `latest`, `develop`, or `nightly`.
-4. Fill-in the required Paths and Environment Variables. **Make sure of the following:** The `/config` points to your `Plex-Meta-Manager` config.yml and NOT to the default folder that unRAID might point to (often `.../appdata/pattrmm`)
+4. Fill-in the required Paths and Environment Variables. **Make sure of the following:** The `/config` points to your `Kometa` config.yml and NOT to the default folder that unRAID might point to (often `.../appdata/pattrmm`)
     - See below for an example.
 5. Select `Apply`.
 
@@ -90,7 +90,7 @@ If you want to run Pattrmm now and not wait for `PATTRMM_TIME`, use this command
 *Replace the paths below with the appropriate location for the directories used.*
 
 ```bash
-docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/pmm/config:/config" ghcr.io/insertdisc/pattrmm --run
+docker run --rm -it -v "/path/to/pattrmm/preferences:/preferences" -v "/path/to/pattrmm/data:/data" -v "/path/to/kometa/config:/config" ghcr.io/insertdisc/pattrmm --run
 ```
 
 ![image](https://github.com/InsertDisc/pattrmm/assets/67336980/24e23d34-8d92-4afc-a0bc-138ecfcc3067)
@@ -226,7 +226,7 @@ extra_overlays:
 
 ```yaml
 save_folder: collections/
-    # Specify a location to write the returning soon metadata file to. Your PMM config folder
+    # Specify a location to write the returning soon metadata file to. Your Kometa config folder
     # (where your config.yml is), will always be the BASE location.
     # So, a save_folder of 'collections/'
     # would put your file in a 'collections' sub-folder. If this directory does not exist
@@ -520,7 +520,7 @@ Any series that are not considered a returning series will not be updated upon f
 
 Docker version runs daily at the specified PATTRMM_TIME value.
 
-When creating a schedule or running manually, make sure to run PATTRMM before running Plex-Meta-Manager to get the latest overlay data into Plex.
+When creating a schedule or running manually, make sure to run PATTRMM before running Kometa to get the latest overlay data into Plex.
 
 
 ### Linux Scheduling Example
