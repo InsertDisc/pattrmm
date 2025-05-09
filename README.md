@@ -597,7 +597,7 @@ When using the standalone version you can create a service and run it using a ti
 
 1. Setup a virtual environment for PATTRMM. Navigate to your pattrmm install folder (`/path/to/pattrmm`) and execute:
     ```bash
-    python3 -m venv pmm-venv
+    python3 -m venv ptm-venv
     ```
 2. Install the requirements:
     ```bash
@@ -624,7 +624,7 @@ When using the standalone version you can create a service and run it using a ti
     Environment=LC_ALL=C.UTF-8
     Environment=LANG=C.UTF-8
     WorkingDirectory=/path/to/pattrmm
-    ExecStart=/path/to/pattrmm/pmm-venv/bin/python /path/to/pattrmm/pattrmm.py
+    ExecStart=/path/to/pattrmm/ptm-venv/bin/python /path/to/pattrmm/pattrmm.py
     ```
 
     Change USER and GROUP to reflect your user and group.
