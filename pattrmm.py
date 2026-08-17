@@ -1,4 +1,4 @@
-#pattrmm:nightly by insertdisc
+#pattrmm:traktless by insertdisc
 
 # import dependencies
 import time
@@ -54,14 +54,14 @@ def log_setup():
     """Setup log formatter and handler"""
     log_path = LOG_DIR + '/' + MAIN_LOG
     need_roll = os.path.isfile(log_path)
-    
+
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     log_handler = RotatingFileHandler(log_path, backupCount=5)
     log_formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s', "%Y-%m-%d %H:%M:%S")
     log_handler.setFormatter(log_formatter)
     logger.addHandler(log_handler)
-    
+
     # roll log if already present
     if need_roll:
         logger.handlers[0].doRollover()
@@ -82,10 +82,6 @@ log_setup()
 # preferences folder
 verify_or_create_folder("preferences", "preferences")
 
-# trakt list ids
-trakt_list_cache = "data/trakt_list_ids.yml"
-verify_or_create_file(trakt_list_cache, "Trakt List IDs")
-
 # settings file for pattrmm
 settings_file = "preferences/settings.yml"
 # If settings file doesn't exist, create it
@@ -96,23 +92,21 @@ if not os.path.isfile(settings_file):
         '''
 libraries:
   TV Shows:                          # Plex Libraries to read from. Can enter multiple libraries.
-    trakt_list_privacy: private
     save_folder: "collections/"
     overlay_save_folder: "overlays/"
     font_path: "fonts/Juventus-Fans-Bold.ttf"
-    refresh: 30                      # Full-refresh delay for library          
+    refresh: 30                      # Full-refresh delay for library
     days_ahead: 30                   # How far ahead to consider 'Returning Soon'
     extensions:
       in-history:
         range: month
-        trakt_list_privacy: private
-        save_folder: "collections/"
+            save_folder: "collections/"
 
 settings:
   timezone:
     enable: True
     source: host
-    
+
 date_style: 1                        # 1 for mm/dd, 2 for dd/mm
 overlay_prefix: "RETURNING"          # Text to display before the dates.
 horizontal_align: center
@@ -147,10 +141,10 @@ extra_overlays:
     use: True
     bgcolor: "#008001"
     font_color: "#FFFFFF"
-    text: "NEW · AIRING"
+    text: "NEW Â· AIRING"
     horizontal_align: center
     vertical_align: top
-    
+
   airing:
     use: True
     bgcolor: "#006580"
@@ -158,7 +152,7 @@ extra_overlays:
     text: "A I R I N G"
     horizontal_align: center
     vertical_align: top
-    
+
   airing_next:
     use: True
     bgcolor: "#006580"
@@ -166,7 +160,7 @@ extra_overlays:
     text: "AIRING"
     horizontal_align: center
     vertical_align: top
-    
+
   returning:
     use: True
     bgcolor: "#81007F"
@@ -174,7 +168,7 @@ extra_overlays:
     text: "R E T U R N I N G"
     horizontal_align: center
     vertical_align: top
-    
+
   ended:
     use: True
     bgcolor: "#000000"
@@ -182,7 +176,7 @@ extra_overlays:
     text: "E N D E D"
     horizontal_align: center
     vertical_align: top
-    
+
   canceled:
     use: True
     bgcolor: "#CF142B"
@@ -264,13 +258,13 @@ for library in loaded_settings_yaml['libraries']:
     if plex.library.type(library) != 'show':
         print(f"{library} is not compatible with the 'Returning Soon' method. Skipping.")
         continue
-    
+
     if vars.librarySetting(library, 'returning-soon') is False:
         print(f"'Returning Soon' disabled for {library}. Skipping.")
         continue
 
     library_clean_path = vars.cleanPath(library)
-    
+
     # check for days_ahead assignment
     days_ahead = vars.librarySetting(library, 'days')
 
@@ -297,7 +291,7 @@ for library in loaded_settings_yaml['libraries']:
     delay = refresh_history + timedelta(days=refresh_days)
     if today >= delay.date():
         should_be_refreshed = True
-    else:    
+    else:
         should_be_refreshed = False
 
     # keys file for ratingKey and tmdb pairs
@@ -346,16 +340,16 @@ for library in loaded_settings_yaml['libraries']:
             except Exception as sf:
                 print(f"Exception: {str(sf)}")
                 logging.warning(f"Exception: {str(sf)}")
-    
+
     # generated overlay file path
     rs_overlay_file = pmm_rs_overlay_folder + library_clean_path + "-returning-soon-overlay.yml"
-    
+
     # overlay template path
     rs_overlay_template_file = "./preferences/" + library_clean_path + "-status-template.yml"
-    
+
     # font file path (font folder and font file)
     rs_overlay_font_path = vars.librarySetting(library, 'font_path')
-    
+
 
     # Just some information
     print("Checking folder structure for " + library + ".")
@@ -392,7 +386,7 @@ for library in loaded_settings_yaml['libraries']:
                 print("Keys data refresh delay for " + library + " not yet met.")
                 logging.info("Keys data refresh delay for " + library + " not yet met. Skipping status renewal.")
                 is_first_run = False
-            
+
 
     # If cache file doesn't exist, create it
     cache_file_exists = os.path.exists(cache_file)
@@ -412,25 +406,37 @@ for library in loaded_settings_yaml['libraries']:
         print("Creating " + library + " collection file..")
         logging.info("Creating " + library + " collection file..")
         create_rs_collection_file = open(rs_collection_file, "x")
-        trakt_user_name = vars.traktApi('me')
         create_rs_collection_file.write(
             f'''
 collections:
   Returning Soon:
-    trakt_list: https://trakt.tv/users/{trakt_user_name}/lists/returning-soon-{library_clean_path}
+    text_file: {rs_collection_folder}{library_clean_path}-returning-soon-collection.txt
     url_poster: https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/Returning%20Soon.jpg
     collection_order: custom
     visible_home: true
     visible_shared: true
     sync_mode: sync
-    '''
+'''
         )
         create_rs_collection_file.close()
     else:
         print(library + " collection file present.")
         logging.info(library + " collection file present.")
+        try:
+            with open(rs_collection_file, "r") as read_rs_collection_file:
+                data = yaml.load(read_rs_collection_file) or {}
+            data.setdefault("collections", {}).setdefault("Returning Soon", {})
+            collection = data["collections"]["Returning Soon"]
+            collection.pop("trakt" + "_list", None)
+            collection["text_file"] = f"{rs_collection_folder}{library_clean_path}-returning-soon-collection.txt"
+            collection["collection_order"] = "custom"
+            collection["sync_mode"] = "sync"
+            with open(rs_collection_file, "w") as write_rs_collection_file:
+                yaml.dump(data, write_rs_collection_file)
+        except Exception as e:
+            print(f"Error updating Returning Soon collection file: {e}")
+            logging.warning(f"Error updating Returning Soon collection file: {e}")
 
-    
     # If overlay template doesn't exist, create it
     rs_overlay_template_file_exists = os.path.exists(rs_overlay_template_file)
     if not rs_overlay_template_file_exists:
@@ -502,7 +508,7 @@ templates:
         print(library + " template file found.")
         logging.info(library + " template file found.")
 
-    
+
     # If overlay file doesn't exist, create it
     rs_overlay_file_exists = os.path.exists(rs_overlay_file)
     if not rs_overlay_file_exists:
@@ -571,7 +577,7 @@ templates:
 
 
 
-    # create access variables 
+    # create access variables
     #library = vars.setting('library')
     plex_call = vars.plexApi('url') + '/library/sections/' + vars.plexGet(library) + '/all'
     plex_url = re.sub("//lib", "/lib", plex_call)
@@ -584,7 +590,7 @@ templates:
     # gather list of entries in plex
     print("Gathering Plex entries...")
     logging.info("Gathering Plex entries...")
-    
+
 
     loaded_plex_series_json = json.loads(pretty_json(requests.get(plex_url, headers=plex_headers, params=plex_token).json()))
     plex_number_of_series = get_count(loaded_plex_series_json['MediaContainer']['Metadata'])
@@ -598,14 +604,14 @@ templates:
             logging.warning("Caution " + plex_series_entry['title'] + " does not have an originally available at date. May not be able to match.")
             search_list.append(PlexItem(plex_series_entry['title'],"null", plex_series_entry['ratingKey']))
         missing_data_counter += 1
-        
+
     print("Found " + get_count(loaded_plex_series_json['MediaContainer']['Metadata']) + " entries...")
 
     # search for tmdb id of each entry, will update to use stored keys to reduce unnecessary searches
     refresh_search_list = search_list
     search_list = json.loads(dict_to_json(search_list))
 
-    
+
     # No need to run a full lookup on subsequent runs
     if not is_first_run:
         read_keys_file = open(keys_file, "r")
@@ -637,8 +643,8 @@ templates:
                 new_search_list.remove(plex_item)
                 #print("Key data exists for " + plex_item['title'] + ". Removed from search list")
                 refresh_search_counter += 1
-                
-        # Output how many entries have existing data                   
+
+        # Output how many entries have existing data
         print("Found existing data for " + str(refresh_search_counter) + " titles. Removing from search list.")
         logging.info("Found existing data for " + str(refresh_search_counter) + " titles. Removing from search list.")
         print("")
@@ -676,10 +682,10 @@ templates:
             print(" Found ID ==> " + str(id) + " for " + '"' + query_plex_item['title'] + '"')
             logging.info(" Found ID ==> " + str(id) + " for " + '"' + query_plex_item['title'] + '"')
             # end adding to the list after the first match is found, else duplicate entries occur
-                
+
         # increment progress after a successful match
         missing_data_counter += 1
-    
+
     # Get details using the TMDB IDs.
     for key_pair_item in json.loads(dict_to_json(key_pairs_list)):
 
@@ -692,7 +698,7 @@ templates:
         }
 
         tmdb_request = requests.get(tmdb_url, headers=tmdb_headers, params=tmdb_parameters)
-        
+
         # If the page does not return successful
         if tmdb_request.status_code != 200:
             print("There was a problem accessing the resource for TMDB ID " + str(key_pair_item['tmdb_id']))
@@ -701,10 +707,10 @@ templates:
             if tmdb_request.status_code == 34:
                 print("This ID has been removed from TMDB, or is no longer accessible.")
                 print("Try refreshing the metadata for " + key_pair_item['title'])
-            
+
             continue
 
-        # If the page returns successful, get details.    
+        # If the page returns successful, get details.
         tmdb_series_entry = json.loads(pretty_json(tmdb_request.json()))
 
         print("Found details for " + tmdb_series_entry['name'] + " ( " + str(tmdb_series_entry['id']) + " )")
@@ -766,7 +772,7 @@ templates:
         series_to_update_list = []
         read_keys_file = open(keys_file, "r")
         loaded_keys_json = json.load(read_keys_file)
-        
+
         for update_key in loaded_keys_json:
 
             if update_key['status'] != "Returning Series":
@@ -789,7 +795,7 @@ templates:
                     print("This ID has been removed from TMDB, or is no longer accessible.")
                     print("Try refreshing the metadata for " + update_key['title'])
                     continue
-                
+
                 tmdb_series_entry = json.loads(pretty_json(tmdb_sub_request.json()))
 
                 tmdb_series_name = tmdb_series_entry['name'][:30] + '...' if len(tmdb_series_entry['name']) > 30 else tmdb_series_entry['name']
@@ -812,7 +818,7 @@ templates:
                     first_air_date = tmdb_series_entry['first_air_date']
                 else:
                     first_air_date = "null"
-                
+
                 series_to_update_list.append(TMDBSearch(update_key['title'], update_key['ratingKey'], update_key['tmdb_id'], tmdb_series_entry['status']))
                 if tmdb_series_entry['status'] == "Returning Series":
                     tmdb_details_list.append(
@@ -851,7 +857,7 @@ templates:
 
         except Exception as e:
             print(f"An error occurred updating the timestamp: {str(e)}")
-    print("-------------------------")        
+    print("-------------------------")
     print("Checking for missing data using TMDB DISCOVER...")
     logging.info("Checking for missing data using TMDB DISCOVER...")
 
@@ -972,7 +978,7 @@ Shows: {total_results}''')
     except:
         date_delimiter = "/"
 
-    
+
     if vars.setting('zeros'):
         day_format_code = "%d"
         month_format_code = "%m"
@@ -980,7 +986,7 @@ Shows: {total_results}''')
         if platform.system() == "Windows":
             month_format_code = "%#m"
             day_format_code = "%#d"
-            
+
         if platform.system() == "Linux" or platform.system() == "Darwin":
             month_format_code = "%-m"
             day_format_code = "%-d"
@@ -988,11 +994,11 @@ Shows: {total_results}''')
     if date_style == 1:
         month_day_format = "%m/%d"
         month_day_format_for_text = month_format_code + date_delimiter + day_format_code
-        
+
     if date_style == 2:
         month_day_format = "%d/%m"
         month_day_format_for_text = day_format_code + date_delimiter + month_format_code
-        
+
 
     if vars.setting('year'):
         year_format_code = "%Y"
@@ -1001,10 +1007,10 @@ Shows: {total_results}''')
     else:
         date_format = month_day_format + "/%Y"
         date_format_for_text = month_day_format_for_text
-    
+
     this_day_display = this_day_temporary.strftime(date_format)
     this_day_display_for_text = this_day_temporary.strftime(date_format_for_text)
-            
+
 
     prefix_text = vars.setting('prefix')
 
@@ -1373,7 +1379,7 @@ overlays:
         ended_vertical_align = vars.setting('ovEnded_vertical_align')
         ended_horizontal_offset = vars.setting('ovEnded_horizontal_offset')
         ended_vertical_offset = vars.setting('ovEnded_vertical_offset')
-        
+
         overlay_ended = f'''
   # Ended Banner
   {library}_Status_Ended_Banner:
@@ -1419,7 +1425,7 @@ overlays:
         canceled_vertical_align = vars.setting('ovCanceled_vertical_align')
         canceled_horizontal_offset = vars.setting('ovCanceled_horizontal_offset')
         canceled_vertical_offset = vars.setting('ovCanceled_vertical_offset')
-        
+
         overlay_canceled = f'''
   # Canceled_Banner
   {library}_Status_Canceled_Banner:
@@ -1562,11 +1568,11 @@ overlays:
 
         this_day_display = this_day_temporary.strftime(date_format)
         this_day_display_for_text = this_day_temporary.strftime(date_format_for_text)
-        
+
         overlay_body = overlay_body + overlay_rs_temporary
 
 
-    
+
     print(library + " overlay body generated. Writing to file.")
     logging.info(library + " overlay body generated. Writing to file.")
 
@@ -1584,7 +1590,6 @@ overlays:
     loaded_cache_json = json.load(read_cache_file)
     read_cache_file.close()
 
-    # this is for the trakt list
     print("Filtering " + library + " data...")
     logging.info("Filtering " + library + " data...")
     series_rs_list = filter(
@@ -1594,69 +1599,23 @@ overlays:
             x['next_air_date'] < str(next_air_date) and
             x['next_air_date'] > str(today) and
             x['last_air_date'] < str(last_air_date)),
-            loaded_cache_json)
+        loaded_cache_json)
     print("Sorting " + library + "...")
     logging.info("Sorting " + library + "...")
     series_rs_sorted_list = sorted_list(series_rs_list, 'next_air_date')
 
-    trakt_access = vars.traktApi('token')
-    trakt_api = vars.traktApi('client')
-    trakt_headers = {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + trakt_access + '',
-                    'trakt-api-version': '2',
-                    'trakt-api-key': '' + trakt_api + ''
-                    }
-    trakt_list_url = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists"
-    trakt_list_url_post = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library_clean_path + ""
-    trakt_list_url_post_show = "https://api.trakt.tv/users/" + vars.traktApi('me') + "/lists/returning-soon-" + library_clean_path + "/items"
-    trakt_list_privacy = vars.librarySetting(library, 'trakt_list_privacy')
-    trakt_list_data = f'''
-{{
-    "name": "Returning Soon {library}",
-    "description": "Season premiers and returns within the next {days_ahead} days.",
-    "privacy": "{trakt_list_privacy}",
-    "display_numbers": true,
-    "allow_comments": true,
-    "sort_by": "rank",
-    "sort_how": "asc"
-}}
-    '''
+    returning_soon_text_file = pmm_rs_collection_folder + library_clean_path + "-returning-soon-collection.txt"
+    print("Writing " + library + " Returning Soon text file...")
+    logging.info("Writing " + library + " Returning Soon text file...")
+    with open(returning_soon_text_file, "w") as returning_soon_file:
+        for series_item in series_rs_sorted_list:
+            print(f"{library} Returning Soon | + | {series_item['title']} | TMDB ID: {series_item['id']}")
+            logging.info(f"{library} Returning Soon | + | {series_item['title']} | TMDB ID: {series_item['id']}")
+            returning_soon_file.write(f"tmdb:{series_item['id']}\n")
 
-    print("Clearing " + library + " trakt list...")
-    logging.info("Clearing " + library + " trakt list...")
-    trakt_delete_list = requests.delete(trakt_list_url_post, headers=trakt_headers)
-    time.sleep(1.25)
-    logging.info("Initializing " + library + " trakt list...")
-    trakt_make_list = requests.post(trakt_list_url, headers=trakt_headers, data=trakt_list_data)
-    time.sleep(1.25)
-    trakt_list_show = '''
-{
-    "shows": [
-        '''
-    for series_item in series_rs_sorted_list:
-        print(f"""{library} Returning Soon | + | {series_item['title']} | TMDB ID: {series_item['id']}""")
-        logging.info(f"""{library} Returning Soon | + | {series_item['title']} | TMDB ID: {series_item['id']}""")
+    print("Wrote " + str(get_count(series_rs_sorted_list)) + " entries to Returning Soon text file.")
+    logging.info("Wrote " + str(get_count(series_rs_sorted_list)) + " entries to Returning Soon text file.")
 
-        trakt_list_show += f'''
-    {{
-    "ids": {{
-        "tmdb": "{str(series_item['id'])}"
-            }}
-    }},'''
-        
-        
-    trakt_list_show = trakt_list_show.rstrip(",")
-    trakt_list_show += '''
-]
-}
-'''
-    
-    post_show = requests.post(trakt_list_url_post_show, headers=trakt_headers, data=trakt_list_show)
-    if post_show.status_code == 201:
-        print("Success")
-        print("Added " + str(get_count(series_rs_sorted_list)) + " entries to Trakt.")
-        logging.info('Success: Added ' + str(get_count(series_rs_sorted_list)) + ' entries to Trakt.')
 end_time = time.time()
 elapsed_time = end_time - start_time
 minutes = int(elapsed_time // 60)
@@ -1683,258 +1642,13 @@ for this_library in extension_settings['libraries']:
         extensions = extension_settings['libraries'][this_library]['extensions']
 
         for extension_item in extensions:
-            
+
             if extension_item == 'in-history':
                 print(f'''
 ==================================================''')
                 print(f'''
 Extension setting found. Running 'In History' on {this_library}
 ''')
-                trakt_access = vars.traktApi('token')
-                trakt_api = vars.traktApi('client')
-                trakt_user_name = vars.traktApi('me')
-
-                def trakt_list_state(trakt_list_id):
-                    try:                        
-                        url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{trakt_list_id}/items"
-                        response = requests.get(url, headers={
-                            "Authorization": f"Bearer {trakt_access}",
-                            "trakt-api-version": "2",
-                            "trakt-api-key": trakt_api,
-                        })
-                        time.sleep(1.25)
-                        if response.status_code == 200:
-                            data = response.json()
-                            if not data:
-                                return "empty"
-                            return "valid"
-                        elif response.status_code == 404:
-                            return "not_found"
-                        else:
-                            raise Exception(f"Failed to fetch list items: {response.status_code} - {response.text}")
-                    except Exception as e:
-                        print(f"Trakt list state function error: {e}")
-
-                def update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug):
-                    try:
-                        print("Updating Trakt list cache data")
-                        with open(trakt_list_cache, 'r') as trakt_cache_file:
-                            data = yaml.load(trakt_cache_file)
-                            if data is None:
-                                data = {}
-        
-                        if 'lists' not in data:
-                            data['lists'] = {}
-                            
-
-                        if this_library not in data['lists']:
-                            data['lists'][this_library] = {}
-                            
-
-                        if trakt_list_name not in data['lists'][this_library]:
-                            data['lists'][this_library][trakt_list_cache_name] = {}
-                            
-
-                        data['lists'][this_library][trakt_list_cache_name]['id'] = trakt_list_id
-                        data['lists'][this_library][trakt_list_cache_name]['slug'] = trakt_list_slug
-                        
-
-                        with open(trakt_list_cache, 'w') as trakt_cache_file:
-                            yaml.dump(data, trakt_cache_file)
-                            print("Trakt cache file updated.")
-                    except Exception as e:
-                        print(f"Exception: {e}")
-
-                def validate_and_initialize(trakt_list_cache, trakt_list_cache_name, trakt_list_name, this_library):
-                    try:
-                        print("Validating trakt list links.")
-                        with open(trakt_list_cache, 'r') as trakt_cache_file:
-                            data = yaml.load(trakt_cache_file)
-                            if data is None:
-                                print("Initializing Trakt Cache file.")
-                                data = {}
-                                if 'lists' not in data:
-                                    data['lists'] = {}
-                                    print(f"Building: {data}")
-
-                                if this_library not in data['lists']:
-                                    data['lists'][this_library] = {}
-                                    print(f"Building: {data}")
-
-                                if trakt_list_cache_name not in data['lists'][this_library]:
-                                    data['lists'][this_library][trakt_list_cache_name] = {}
-                                    print(f"Building: {data}")
-
-                                create_status, trakt_list_id, trakt_list_slug = create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True)
-                                if create_status == 201:
-                                        data['lists'][this_library][trakt_list_cache_name]['id'] = trakt_list_id
-                                        data['lists'][this_library][trakt_list_cache_name]['slug'] = trakt_list_slug
-                                        print(f"Building: {data}")
-                                        update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug)
-                                        return True, trakt_list_id, trakt_list_slug
-                                else:
-                                    print(f"<<STATUS>> ({create_status})")
-                                    return False, None, None
-
-                            if data is not None:
-                                if 'lists' not in data:
-                                    data['lists'] = {}
-                                    print("Creating list structure")
-                                else:
-                                    print(f"Structure ok [lists]")
-
-                                if this_library not in data['lists']:
-                                    data['lists'][this_library] = {}
-                                    print(f"Adding {this_library} to [lists]")
-                                else:
-                                    print(f"Structure ok [lists][{this_library}]")
-
-                                if trakt_list_cache_name not in data['lists'][this_library]:
-                                    data['lists'][this_library][trakt_list_cache_name] = {}
-                                    print(f"Adding {trakt_list_cache_name} to [lists][{this_library}]")
-                                else:
-                                    print(f"Structure ok [lists][{this_library}][{trakt_list_cache_name}]")
-
-                                print("Checking for existing Trakt list id")
-                                trakt_list_id = (
-                                    data.get('lists', {})
-                                        .get(this_library, {})
-                                        .get(trakt_list_cache_name, {})
-                                        .get('id', None)
-                                )
-                                trakt_list_slug = (
-                                    data.get('lists', {})
-                                        .get(this_library, {})
-                                        .get(trakt_list_cache_name, {})
-                                        .get('slug', None)
-                                )
-                                
-                                if trakt_list_id is None:
-                                    print(f"No Trakt list id found for [lists][{this_library}][{trakt_list_cache_name}]")
-                                    print(f"Creating {trakt_list_name} list on Trakt")
-                                    create_status, trakt_list_id, trakt_list_slug = create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True)
-                                    if create_status == 201:
-                                        print(f"List ({trakt_list_name}) created <<OK>>")
-                                        data['lists'][this_library][trakt_list_cache_name]['id'] = trakt_list_id
-                                        data['lists'][this_library][trakt_list_cache_name]['slug'] = trakt_list_slug
-                                        update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug)
-                                        return True, trakt_list_id, trakt_list_slug
-                                    else:
-                                        print(f"Fail <<STATUS>> ({create_status})")
-                                        return False, None, None
-                                    
-                                elif trakt_list_id is not None:
-                                    print("ID found")
-                                    print("Validating Trakt List")
-                                    validate_trakt_list = trakt_list_state(trakt_list_id)
-                                    if validate_trakt_list == "not_found":
-                                        print(f"Trakt list {trakt_list_id} could not be found.")
-                                        print("Creating a new list and updating cache information.")
-                                        create_status, trakt_list_id, trakt_list_slug = create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True)
-                                        if create_status == 201:
-                                            print(f"List ({trakt_list_name}) created <<OK>>")
-                                            update_trakt_list_file(trakt_list_cache, trakt_list_cache_name, trakt_list_id, trakt_list_slug)
-                                            return True, trakt_list_id, trakt_list_slug
-                                        else:
-                                            print(f"<<STATUS>> ({create_status})")
-                                            return False, None, None
-
-                                    elif validate_trakt_list == "empty":
-                                        print("Trakt list info valid. List exists but is empty")
-                                        return "EMPTY", trakt_list_id, trakt_list_slug
-
-                                    elif validate_trakt_list == "valid":
-                                        print("Trakt list is valid and populated")
-                                        return True, trakt_list_id, trakt_list_slug                           
-                    except Exception as e:
-                        print(f"Failed to validate. Error: {e}")
-
-        
-
-                def remove_trakt_list_items(list_id, items):
-                    remove_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{list_id}/items/remove"
-                    print(f"Removing items from trakt list ({list_id})")
-                    payload = {
-                        f"{plex.library.type(this_library)}s": []
-                    }
-                    if not items:
-                        print("The list of items is empty!")
-                        return
-                    for item in items:
-                        if item['type'] == plex.library.type(this_library):
-                            payload[f"{plex.library.type(this_library)}s"].append({
-                                "ids": item[f"{plex.library.type(this_library)}"]['ids']
-                            })
-                    if payload[f"{plex.library.type(this_library)}s"]:
-                        response = requests.post(remove_url, json=payload, headers={
-                            "Authorization": f"Bearer {trakt_access}",
-                            "trakt-api-version": "2",
-                            "trakt-api-key": f"{trakt_api}",
-                        })
-                        if response.status_code == 200:
-                            print(f"Successfully removed the {plex.library.type(this_library)}s from list {list_id}.")
-                        else:
-                            raise Exception(f"Failed to remove items from list {list_id}: {response.status_code} - {response.text}")
-                    else:
-                        print("No data to remove.")
-
-                def add_trakt_list_items(trakt_list_id, trakt_list_items):
-                    url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{trakt_list_id}/items"
-                    response = requests.post(url, headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {trakt_access}",
-                        "trakt_api_version": "2",
-                        "trakt-api-key": trakt_api,
-                    },
-                    data=trakt_list_items)
-                    time.sleep(1.25)
-                    if response.status_code == 201:
-                        print("Items successfully posted")
-                    return response
-                
-                def get_trakt_list_items(list_id):
-                    url = f"https://api.trakt.tv/users/{trakt_user_name}/lists/{list_id}/items"
-                    response = requests.get(url, headers={
-                        "Authorization": f"Bearer {trakt_access}",
-                        "trakt-api-version": "2",
-                        "trakt-api-key": trakt_api,
-                    })
-
-                    if response.status_code == 200:
-                        print("Trakt list items fetched.")
-                        list_items = response.json()
-                        return list_items
-                    else:
-                        raise Exception(f"Failed to fetch list items: {response.status_code} - {response.text}")
-
-                def create_trakt_list(trakt_list_name, trakt_list_description, trakt_list_privacy, allow_comments=True):
-                    api_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists"
-
-                    headers = {
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {trakt_access}",
-                        "trakt-api-version": "2",
-                        "trakt-api-key": trakt_api,
-                    }
-
-                    payload = {
-                        "name": trakt_list_name,
-                        "description": trakt_list_description,
-                        "privacy": trakt_list_privacy,
-                        "allow_comments": allow_comments,
-                    }
-
-                    response = requests.post(api_url, json=payload, headers=headers)
-                    create_status = response.status_code
-                    if response.status_code == 201:  # Created
-                        time.sleep(1.25)
-                        data = response.json()
-                        trakt_list_id = data['ids']['trakt']
-                        trakt_list_slug = data['ids']['slug']
-                        return create_status, trakt_list_id, trakt_list_slug
-                    else:
-                        raise Exception(f"Failed to create list: {response.status_code} - {response.text}")
-
                 logging.info(f"Extension setting found. Running 'In History' on {this_library}")
                 in_history_settings = vars.Extensions(this_library).in_history.settings()
                 pmm_in_history_folder = pmm_config_path_prefix + in_history_settings.save_folder
@@ -2024,7 +1738,7 @@ Attempting to remove unused collection.''')
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
             ]
-                
+
                 if in_history_range == 'day':
                     today = datetime.now()
                     start_date = today
@@ -2048,35 +1762,13 @@ Attempting to remove unused collection.''')
                         last_day_of_month = first_day_of_month.replace(month=first_day_of_month.month + 1) - timedelta(days=1)
                     start_date = first_day_of_month
                     end_date = last_day_of_month
-                
+
                 description_identifier = plex.library.type(this_library)
                 if description_identifier == 'show':
                     description_type = 'Shows'
-                    trakt_type = 'shows'
                 if description_identifier == 'movie':
                     description_type = 'Movies'
-                    trakt_type = 'movies'
-    
-                # Prepare the list name
-                trakt_list_cache_name = f"{in_history_range}_in_history"
-                trakt_list_name=f"In History {this_library} - {in_history_range}"
-                trakt_list_description=f"{description_type} released this {in_history_range} in history."
-                trakt_list_privacy=f"{in_history_settings.trakt_list_privacy}"
 
-                valid, trakt_list_id, trakt_list_slug = validate_and_initialize(trakt_list_cache, trakt_list_cache_name, trakt_list_name, this_library)
-
-                if valid is True:
-                    if trakt_list_state(trakt_list_id) == "valid":
-                        print("List is validated")
-                        trakt_list_items = get_trakt_list_items(trakt_list_id)
-                        remove_trakt_list_items(trakt_list_id, trakt_list_items)
-                        time.sleep(1.5)
-                
-                trakt_list_items = '''
-{'''
-                trakt_list_items += f'''
-    "{trakt_type}": [
-        '''
                 print(f"Filtering ==> This '{in_history_range}' in history")
                 logging.info(f'Filtering ==> This {in_history_range} in history')
                 if in_history_settings.starting != 0:
@@ -2091,70 +1783,53 @@ Attempting to remove unused collection.''')
                 if in_history_settings.increment == 1:
                     print(f"Using all years")
                     logging.info(f"Using all years")
-                print(f'''
-''')
+
+                in_history_text_file = pmm_in_history_folder + library_clean_path + "-in-history.txt"
+                print(f"Writing {this_library} In History text file...")
+                logging.info(f"Writing {this_library} In History text file...")
+
                 library_list = plex.library.list(this_library)
                 library_list = sorted(library_list, key=lambda item: item.date)
                 library_list_in_range = [item for item in library_list if date_within_range(item.date, start_date, end_date)]
-                for entry in library_list_in_range:
-                    title_in_range = plex.item.info(entry.ratingKey)
-                    title_in_range_month = month_names[title_in_range.date.month - 1]
 
-                    if title_in_range.details.tmdb and title_in_range.details.imdb and title_in_range.details.tvdb == 'Null':
-                        continue
-                    
-                    if (in_history_settings.starting <= title_in_range.date.year <= in_history_settings.ending 
-                        and (in_history_settings.ending - title_in_range.date.year) % in_history_settings.increment == 0
-                        and title_in_range.date.year != today.year):
-                        print(f"In History | + | {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
-                        logging.info(f"In History | + | {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
-                        trakt_list_items += f'''
-    {{
-    "ids": {{'''
-                
-                        if title_in_range.details.tmdb != 'Null':
-                            trakt_list_items += f'''
-        "tmdb": "{title_in_range.details.tmdb}",'''
-                        if title_in_range.details.tvdb != 'Null':
-                            trakt_list_items += f'''
-        "tvdb": "{title_in_range.details.tvdb}",'''
-                        if title_in_range.details.imdb != 'Null':
-                            trakt_list_items += f'''
-        "imdb": "{title_in_range.details.imdb}",'''
-                        
-                        trakt_list_items = trakt_list_items.rstrip(",")
-                    
-                        trakt_list_items += f'''
-            }}
-    }},'''
-        
-        
-                trakt_list_items = trakt_list_items.rstrip(",")
-                trakt_list_items += '''
-]
-}
-'''
-                
-                post_items = add_trakt_list_items(trakt_list_id, trakt_list_items)
-                
+                with open(in_history_text_file, "w") as in_history_list_file:
+                    for entry in library_list_in_range:
+                        title_in_range = plex.item.info(entry.ratingKey)
+                        title_in_range_month = month_names[title_in_range.date.month - 1]
+
+                        if title_in_range.details.tmdb and title_in_range.details.imdb and title_in_range.details.tvdb == 'Null':
+                            continue
+
+                        if (in_history_settings.starting <= title_in_range.date.year <= in_history_settings.ending
+                            and (in_history_settings.ending - title_in_range.date.year) % in_history_settings.increment == 0
+                            and title_in_range.date.year != today.year):
+                            print(f"In History | + | {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
+                            logging.info(f"In History | + | {title_in_range.title} ({title_in_range_month} {title_in_range.date.day}, {title_in_range.date.year})")
+
+                            if title_in_range.details.tmdb != 'Null':
+                                in_history_list_file.write(f"tmdb:{title_in_range.details.tmdb}\n")
+                            elif title_in_range.details.tvdb != 'Null':
+                                in_history_list_file.write(f"tvdb:{title_in_range.details.tvdb}\n")
+                            elif title_in_range.details.imdb != 'Null':
+                                in_history_list_file.write(f"{title_in_range.details.imdb}\n")
+
                 try:
-                    print("Updating collection file data...")
                     with open(in_history_file, 'r') as in_history_collection_file:
-                        current_collection_data = yaml.load(in_history_collection_file)
-                        current_collection_data['collections'][collection_title]['trakt_list'] = f"https://trakt.tv/users/{trakt_user_name}/lists/{trakt_list_id}"
+                        data = yaml.load(in_history_collection_file) or {}
+                    data.setdefault('collections', {}).setdefault(collection_title, {})
+                    collection = data['collections'][collection_title]
+                    collection.pop('trakt' + '_list', None)
+                    collection['text_file'] = f"{in_history_settings.save_folder}{library_clean_path}-in-history.txt"
+                    collection['collection_order'] = 'custom'
+                    collection['sync_mode'] = 'sync'
                     with open(in_history_file, 'w') as in_history_collection_file:
-                            yaml.dump(current_collection_data, in_history_collection_file)
-                            print("Collection file url synced")
+                        yaml.dump(data, in_history_collection_file)
                 except Exception as e:
-                    print(f"Error updating collection file url: {e}")
+                    print(f"Error updating collection file text_file: {e}")
+                    logging.warning(f"Error updating collection file text_file: {e}")
 
-                if post_items.status_code == 201:
-                    print(f'''
-    Successfully posted This {in_history_range} In History items for {this_library}''')
-                    logging.info(f"Successfully posted This {in_history_range} In History items for {this_library}")
-
-
-
+                print(f"Successfully generated This {in_history_range} In History text file for {this_library}")
+                logging.info(f"Successfully generated This {in_history_range} In History text file for {this_library}")
 
             if extension_item == 'by_size' and plex.library.type(this_library) == 'movie':
                 print(f'''
@@ -2164,95 +1839,160 @@ Extension setting found. Running 'Sort by size' on {this_library}
 ''')
                 logging.info(f"Extension setting found. Running 'Sort by size' on {this_library}")
 
-
                 by_size_settings = vars.Extensions(this_library).by_size.settings()
-                pmm_by_size_folder = pmm_config_path_prefix + by_size_settings.save_folder
+
+                pmm_by_size_folder = (
+                    pmm_config_path_prefix +
+                    by_size_settings.save_folder
+                )
+
                 if pmm_by_size_folder != '':
                     pmm_by_size_folder_exists = os.path.exists(pmm_by_size_folder)
+
                     if not pmm_by_size_folder_exists:
                         by_size_subfolder_path = f"config/{by_size_settings.save_folder}"
+
                         print(f"Sub-folder {by_size_subfolder_path} not found.")
                         print(f"Attempting to create.")
+
                         logging.info(f"Sub-folder {by_size_subfolder_path} not found.")
                         logging.info(f"Attempting to create.")
+
                         try:
                             os.makedirs(pmm_by_size_folder)
+
                             print(f"{by_size_subfolder_path} created successfully.")
                             logging.info(f"{by_size_subfolder_path} created successfully.")
+
                         except Exception as sf:
                             print(f"Exception: {str(sf)}")
                             logging.warning(f"Exception: {str(sf)}")
-                trakt_user_name = vars.traktApi('me')
-                library_clean_path = vars.cleanPath(by_size_settings.slug)
+
+                library_clean_path = vars.cleanPath(this_library)
                 collection_title = by_size_settings.collection_title
+
+                # --------------------------------------------------
+                # Create/update the By Size collection YAML
+                # --------------------------------------------------
+
                 by_size_meta = by_size_settings.meta
+
                 try:
                     output_stream = StringIO()
                     yaml.dump(by_size_meta, output_stream)
+
                     by_size_meta_str = output_stream.getvalue()
+
                     output_stream.close()
-                    by_size_meta_str = by_size_meta_str.replace("'","")
+
+                    by_size_meta_str = by_size_meta_str.replace("'", "")
+
                 except Exception as e:
                     print(f"An error occurred: {e}")
-                by_size_file = f"{pmm_config_path_prefix}{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
+                    logging.warning(f"An error occurred: {e}")
+
+                by_size_file = (
+                    f"{pmm_config_path_prefix}"
+                    f"{by_size_settings.save_folder}"
+                    f"{library_clean_path}-by-size.yml"
+                )
+
                 by_size_file_exists = os.path.exists(by_size_file)
 
                 if not by_size_file_exists:
+
                     try:
                         print(f"Creating {this_library} 'By Size' collection file..")
                         logging.info(f"Creating {this_library} 'By Size' collection file..")
-                        creata_by_size_file = open(by_size_file, "x")
-                        creata_by_size_file.write(by_size_meta_str)
-                        creata_by_size_file.close()
-                        print(f"File created")
-                        logging.info(f"File created")
-                        by_size_file_location = f"config/{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
-                        print(f"{by_size_file_location}")
-                        logging.info(f"{by_size_file_location}")
+
+                        with open(by_size_file, "x") as create_by_size_file:
+                            create_by_size_file.write(by_size_meta_str)
+
+                        print("File created")
+                        logging.info("File created")
+
+                        by_size_file_location = (
+                            f"config/{by_size_settings.save_folder}"
+                            f"{library_clean_path}-by-size.yml"
+                        )
+
+                        print(by_size_file_location)
+                        logging.info(by_size_file_location)
+
                     except Exception as e:
                         print(f"An error occurred: {e}")
+                        logging.warning(f"An error occurred: {e}")
+
                 else:
+
                     print(f"Updating {this_library} 'By Size' collection file..")
                     logging.info(f"Updating {this_library} 'By Size' collection file..")
-                    by_size_file_location = f"config/{by_size_settings.save_folder}{library_clean_path}-by-size.yml"
-                    print(f"{by_size_file_location}")
-                    logging.info(f"{by_size_file_location}")
-    
-                    with open(by_size_file, "r") as read_by_size_file:
-                        check_BySize_Title = yaml.load(read_by_size_file)
-                        
-                        
-                        
-                        for key, value in check_BySize_Title['collections'].items():
+
+                    by_size_file_location = (
+                        f"config/{by_size_settings.save_folder}"
+                        f"{library_clean_path}-by-size.yml"
+                    )
+
+                    print(by_size_file_location)
+                    logging.info(by_size_file_location)
+
+                    try:
+                        with open(by_size_file, "r") as read_by_size_file:
+                            check_by_size_title = yaml.load(read_by_size_file)
+
+                        for key, value in check_by_size_title['collections'].items():
+
                             if key != collection_title:
+
                                 print(f'''Collection name for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
+
                                 logging.info(f'''Collection name for {this_library} has been changed from {key} ==> {collection_title}
 Attempting to remove unused collection.''')
+
                                 library_id = vars.plexGet(this_library)
                                 old_collection_id = plex.collection.id(key, library_id)
                                 delete_old_collection = plex.collection.delete(old_collection_id)
+
                                 if delete_old_collection == True:
                                     print(f"Successfully removed old '{key}' collection from Plex.")
                                     logging.info(f"Successfully removed old '{key}' collection from Plex.")
+
                                 if delete_old_collection == False:
                                     print(f"Could not remove deprecated '{key}' collection from Plex.")
                                     logging.warning(f"Could not remove deprecated '{key}' collection from Plex.")
 
-                    with open(by_size_file, "w") as write_by_size_file:
-                        write_by_size_file.write(by_size_meta_str)
+                        with open(by_size_file, "w") as write_by_size_file:
+                            write_by_size_file.write(by_size_meta_str)
+
                         print('')
-                        print(f'''{by_size_meta_str}''')
+                        print(by_size_meta_str)
+
                         logging.info('')
-                        logging.info(f'''{by_size_meta_str}''')
+                        logging.info(by_size_meta_str)
+
+                    except Exception as e:
+                        print(f"Error updating collection file: {e}")
+                        logging.warning(f"Error updating collection file: {e}")
+
+                # --------------------------------------------------
+                # Get and sort the Plex movies
+                # --------------------------------------------------
 
                 movies_list = plex.library.extended_list(this_library)
+
                 sort_key = by_size_settings.order_by_field
                 reverse_value = by_size_settings.reverse
                 minimum = by_size_settings.minimum
-                maximum =  by_size_settings.maximum
+                maximum = by_size_settings.maximum
                 list_limit = by_size_settings.limit
-                movies_list = sorted(movies_list, key=lambda x: getattr(x, sort_key), reverse=reverse_value)
+
+                movies_list = sorted(
+                    movies_list,
+                    key=lambda x: getattr(x, sort_key),
+                    reverse=reverse_value
+                )
+
                 movies_list = [
                     movie for movie in movies_list
                     if (
@@ -2260,107 +2000,106 @@ Attempting to remove unused collection.''')
                         (maximum is None or movie.size <= maximum)
                     )
                 ]
+
                 movies_list = movies_list[:list_limit]
 
-                print(f'''Sorting {this_library} by '{by_size_settings.order_by_field}.{by_size_settings.order_by_direction}'.''')
+                print(
+                    f"Sorting {this_library} by "
+                    f"'{by_size_settings.order_by_field}."
+                    f"{by_size_settings.order_by_direction}'."
+                )
+
                 print(f"Minimum size: {minimum}")
                 print(f"Maximum size: {maximum}")
                 print(f"Limit: {list_limit}")
 
-                library_clean_path = vars.cleanPath(this_library)
-                trakt_user_name = vars.traktApi('me')
-                trakt_access = vars.traktApi('token')
-                trakt_api = vars.traktApi('client')
-                trakt_headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + trakt_access + '',
-    'trakt-api-version': '2',
-    'trakt-api-key': '' + trakt_api + ''
-    }
-                trakt_list_url = f"https://api.trakt.tv/users/{trakt_user_name}/lists"
-                trakt_list_url_post = f"https://api.trakt.tv/users/{trakt_user_name}/lists/sorted-by-size-{library_clean_path}"
-                trakt_list_url_post_items = f"https://api.trakt.tv/users/{trakt_user_name}/lists/sorted-by-size-{library_clean_path}/items"
-                trakt_list_data = f'''
-{{
-    "name": "Sorted by size {this_library}",
-    "description": "{this_library}, sorted by size.",
-    "privacy": "private",
-    "display_numbers": true,
-    "allow_comments": true,
-    "sort_by": "rank",
-    "sort_how": "asc"
-}}
-    '''
-                print("Clearing " + this_library + " trakt list...")
-                logging.info("Clearing " + this_library + " trakt list...")
-                trakt_delete_list = requests.delete(trakt_list_url_post, headers=trakt_headers)
-                if trakt_delete_list.status_code == 201 or 200 or 204:
-                    print("List cleared")
-                    time.sleep(1.25)
-                trakt_make_list = requests.post(trakt_list_url, headers=trakt_headers, data=trakt_list_data)
-                if trakt_make_list.status_code == 201 or 200 or 204:
-                    print("Initialization successful.")
-                    time.sleep(1.25)
+                # --------------------------------------------------
+                # Generate the text file
+                # --------------------------------------------------
 
-                description_identifier = plex.library.type(this_library)
-                if description_identifier == 'show':
-                    description_type = 'Shows'
-                    trakt_type = 'shows'
-                if description_identifier == 'movie':
-                    description_type = 'Movies'
-                    trakt_type = 'movies'
+                by_size_text_file = (
+                    pmm_by_size_folder +
+                    library_clean_path +
+                    "-by-size.txt"
+                )
 
-                trakt_list_items = '''
-{'''
-                trakt_list_items += f'''
-    "{trakt_type}": [
-        '''
+                print(f"Writing {this_library} By Size text file...")
+                logging.info(f"Writing {this_library} By Size text file...")
 
-                for movie_info in movies_list:
+                with open(by_size_text_file, "w") as by_size_list_file:
 
-    
-                    print(f'''By Size | + | {movie_info.title}''')
-                    logging.info(f'''By Size | + | {movie_info.title}''')
+                    for movie_info in movies_list:
 
-                    movie_by_size = plex.item.info(movie_info.ratingKey)
-                    trakt_list_items += f'''
-    {{
-    "ids": {{'''
-                
-                    if movie_by_size.details.tmdb != 'Null':
-                        trakt_list_items += f'''
-    "tmdb": "{movie_by_size.details.tmdb}",'''
-                    if movie_by_size.details.tvdb != 'Null':
-                        trakt_list_items += f'''
-    "tvdb": "{movie_by_size.details.tvdb}",'''
-                    if movie_by_size.details.imdb != 'Null':
-                        trakt_list_items += f'''
-    "imdb": "{movie_by_size.details.imdb}",'''
-                        
-                    trakt_list_items = trakt_list_items.rstrip(",")
-                                    
-                    trakt_list_items += f'''
-            }}
-    }},'''
-        
-        
-                trakt_list_items = trakt_list_items.rstrip(",")
-                trakt_list_items += '''
-]
-}
-'''
+                        print(f"By Size | + | {movie_info.title}")
+                        logging.info(f"By Size | + | {movie_info.title}")
 
-                post_items = requests.post(trakt_list_url_post_items, headers=trakt_headers, data=trakt_list_items)
-                if post_items.status_code == 201:
-                    print(f'''
-    Successfully posted Sorted by size items for {this_library}''')
-                    logging.info(f"Successfully posted Sorted by size items for {this_library}")
+                        movie_by_size = plex.item.info(movie_info.ratingKey)
+
+                        if movie_by_size.details.tmdb != 'Null':
+                            by_size_list_file.write(
+                                f"tmdb:{movie_by_size.details.tmdb}\n"
+                            )
+
+                        elif movie_by_size.details.tvdb != 'Null':
+                            by_size_list_file.write(
+                                f"tvdb:{movie_by_size.details.tvdb}\n"
+                            )
+
+                        elif movie_by_size.details.imdb != 'Null':
+                            by_size_list_file.write(
+                                f"{movie_by_size.details.imdb}\n"
+                            )
+
+                # --------------------------------------------------
+                # Update YAML to use the text file
+                # --------------------------------------------------
+
+                try:
+                    with open(by_size_file, "r") as read_by_size_file:
+                        data = yaml.load(read_by_size_file) or {}
+
+                    data.setdefault('collections', {}).setdefault(
+                        collection_title, {}
+                    )
+
+                    collection = data['collections'][collection_title]
+
+                    # Remove the old Trakt list reference.
+                    collection.pop('trakt_list', None)
+
+                    # Use the generated text file instead.
+                    collection['text_file'] = (
+                        f"{by_size_settings.save_folder}"
+                        f"{library_clean_path}-by-size.txt"
+                    )
+
+                    collection['collection_order'] = 'custom'
+                    collection['sync_mode'] = 'sync'
+
+                    with open(by_size_file, "w") as write_by_size_file:
+                        yaml.dump(data, write_by_size_file)
+
+                except Exception as e:
+                    print(f"Error updating collection file text_file: {e}")
+                    logging.warning(
+                        f"Error updating collection file text_file: {e}"
+                    )
+
+                print(
+                    f"Successfully generated Sorted by size text file "
+                    f"for {this_library}"
+                )
+
+                logging.info(
+                    f"Successfully generated Sorted by size text file "
+                    f"for {this_library}"
+                )
 
             if extension_item == 'by_size' and plex.library.type(this_library) != 'movie':
-                print(f'''The 'By Size' extension is only valid for Movie libraries. {this_library} is not compatible and will be skipped.''')
-
-                    
-   
+                print(
+                    f"The 'By Size' extension is only valid for Movie libraries. "
+                    f"{this_library} is not compatible and will be skipped."
+                )
 
 
 
@@ -2383,7 +2122,7 @@ Extension setting found. Running 'Missing Episodes' on {this_library}
                     print(f"Attempting to create Missing Episodes Template file [preferences/{template_file_name}]")
                     logging.info(f"Attempting to create Missing Episodes Template file [preferences/{template_file_name}]")
                     try:
-                        
+
                         with open(template_file_path, "x") as missing_episodes_template_yaml:
                             missing_episodes_template = f'''
 templates:
@@ -2440,7 +2179,7 @@ templates:
                     missing_count = sonarr.missing_count
                     total_count = sonarr.total_count
 
-                            
+
                     # Output the details for each show
                     print(f'Scanning details...')
                     print(f"Show Name: {series_title}")
@@ -2461,7 +2200,7 @@ templates:
     {missing_episodes_settings.display_style_present}
     tvdb_show:
 '''
-                
+
                 for not_missing_id in tvdb_ids_not_missing_episodes:
                     if not_missing_id is not None:
                         missing_episodes_overlay_base += f'''      - {not_missing_id}
@@ -2471,7 +2210,7 @@ templates:
     {missing_episodes_settings.display_style_missing}
     tvdb_show:
 '''
-                
+
                 for missing_id in tvdb_ids_missing_episodes:
                     if missing_id is not None:
                         missing_episodes_overlay_base += f'''      - {missing_id}
@@ -2488,8 +2227,8 @@ templates:
                         yaml.dump(yaml.load(missing_episodes_overlay_base), write_body_to_overlay_file)
                         write_body_to_overlay_file.close()
                         print(f'''{this_library}-missing-episodes-overlay.yml file updated''')
-                
-                    
+
+
                 except Exception as write_error:
                     print(f'''There was a problem writing the {this_library} Missing Episodes overlay file''')
                     print(f'{write_error}')
@@ -2500,7 +2239,12 @@ templates:
         logging.info(f"No extensions set for {this_library}.")
         continue
     except Exception as e:
+        import traceback
+
         print(f"Exception Error: {str(e)}")
+        traceback.print_exc()
+
+        logging.exception("Extension error")
 
 
 
