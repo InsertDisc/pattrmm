@@ -1,4 +1,4 @@
-#vars:nightly
+#vars:traktless
 from ruamel.yaml import YAML
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -17,7 +17,7 @@ is_docker = os.environ.get('PATTRMM_DOCKER', "False")
 
 if is_docker == "True":
     configPathPrefix = "./config/"
-    
+
 
 if is_docker == "False":
     configPathPrefix = "../"
@@ -43,16 +43,16 @@ def get_os():
 def date_within_range(item_date, start_date, end_date):
     if (start_date.month, start_date.day) <= (end_date.month, end_date.day):
         return (
-            (start_date.month, start_date.day) <= 
-            (item_date.month, item_date.day) <= 
+            (start_date.month, start_date.day) <=
+            (item_date.month, item_date.day) <=
             (end_date.month, end_date.day)
         )
     else:
         return (
-            (item_date.month, item_date.day) >= 
-            (start_date.month, start_date.day) 
-            or 
-            (item_date.month, item_date.day) <= 
+            (item_date.month, item_date.day) >=
+            (start_date.month, start_date.day)
+            or
+            (item_date.month, item_date.day) <=
             (end_date.month, end_date.day)
         )
 
@@ -75,7 +75,7 @@ class itemBase:
         self.title = re.sub(r"\s\(.*?\)","", title)
         self.date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
         self.details = details
-        
+
 
 class itemDetails:
     def __init__(self, ratingKey, imdb, tmdb, tvdb):
@@ -92,26 +92,26 @@ class Extensions:
     def in_history(self):
         self.context = 'in_history'
         return self
-    
+
     @property
     def by_size(self):
         self.context = 'by_size'
         return self
-    
+
     @property
     def missing_episodes(self):
         self.context = 'missing_episodes'
         return self
-    
+
     def settings(self):
         if self.context == 'in_history':
             settings = settings_path
             with open(settings) as sf:
                 pref = yaml.load(sf)
-            me = traktApi('me')
+            ####me = traktApi('me')
             slug = cleanPath(self.extension_library)
             self.slug = slug
-            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/<<TEMP>>"
+            ####trakt_list_meta = f"https://trakt.tv/users/{me}/lists/<<TEMP>>"
             try:
                 self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['in-history']['trakt_list_privacy']
             except KeyError:
@@ -121,7 +121,7 @@ class Extensions:
                 range_lower = range.lower()
                 self.range = range_lower
             except KeyError:
-                self.range = 'day'        
+                self.range = 'day'
             try:
                 self.save_folder = pref['libraries'][self.extension_library]['extensions']['in-history']['save_folder']
             except KeyError:
@@ -160,26 +160,26 @@ class Extensions:
                 self.meta = {}
                 self.meta['collections'] = {}
                 self.meta['collections'][self.collection_title] = {}
-                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+####                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
                 self.meta['collections'][self.collection_title]['visible_home'] = 'true'
                 self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
                 self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
                 self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
                 self.meta['collections'][self.collection_title]['url_poster'] = poster_url
                 self.meta['collections'][self.collection_title].update(options)
-                
+
             except Exception as e:
                 return f"Error: {str(e)}"
             return self
-                
+
         if self.context == 'by_size':
             settings = settings_path
             with open(settings) as sf:
                 pref = yaml.load(sf)
-            me = traktApi('me')
+            ####me = traktApi('me')
             slug = cleanPath(self.extension_library)
             self.slug = slug
-            trakt_list_meta = f"https://trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
+            ####trakt_list_meta = f"https://trakt.tv/users/{me}/lists/sorted-by-size-{slug}"
             try:
                 self.trakt_list_privacy = pref['libraries'][self.extension_library]['extensions']['by_size']['trakt_list_privacy']
             except KeyError:
@@ -237,7 +237,7 @@ class Extensions:
                 print(f'''No list order setting found. Using default '{default_order_by}'.''')
                 logging.info(f'''No list order setting found. Using default '{default_order_by}'.''')
                 self.order_by = default_order_by
-            
+
             self.order_by_field, self.order_by_direction = self.order_by.split('.')
             if self.order_by_direction == 'desc':
                 self.reverse = True
@@ -257,17 +257,17 @@ class Extensions:
                 self.meta = {}
                 self.meta['collections'] = {}
                 self.meta['collections'][self.collection_title] = {}
-                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
+####                self.meta['collections'][self.collection_title]['trakt_list'] = trakt_list_meta
                 self.meta['collections'][self.collection_title]['visible_home'] = 'true'
                 self.meta['collections'][self.collection_title]['visible_shared'] = 'true'
                 self.meta['collections'][self.collection_title]['collection_order'] = 'custom'
                 self.meta['collections'][self.collection_title]['sync_mode'] = 'sync'
                 self.meta['collections'][self.collection_title].update(options)
-                
+
             except Exception as e:
                 return f"Error: {str(e)}"
             return self
-    
+
         if self.context == 'missing_episodes':
             settings = settings_path
             print(settings_path)
@@ -303,7 +303,7 @@ class Extensions:
             return self
 
 
-            
+
 
 class Plex:
     def __init__(self, plex_url, plex_token, tmdb_api_key):
@@ -316,12 +316,12 @@ class Plex:
     def library(self):
         self.context = 'library'
         return self  # Return self to allow method chaining
-    
+
     @property
     def collection(self):
         self.context = 'collection'
         return self  # Return self to allow method chaining
-    
+
     @property
     def item(self):
         self.context = 'item'
@@ -331,23 +331,23 @@ class Plex:
     def show(self):
         self.context = 'show'
         return self  # Return self to allow method chaining
-    
+
     @property
     def shows(self):
         self.context = 'shows'
         return self  # Return self to allow method chaining
-    
+
     @property
     def movie(self):
         self.context = 'movie'
         return self  # Return self to allow method chaining
-    
+
     @property
     def movies(self):
         self.context = 'movies'
         return self  # Return self to allow method chaining
-        
-    
+
+
     def type(self, library):
         library_details_url = f"{self.plex_url}/library/sections"
         library_details_url = re.sub("0//", "0/", library_details_url)
@@ -362,9 +362,9 @@ class Plex:
         return library_type
 
 
-    
+
     def info(self, ratingKey):
-        
+
         if self.context == 'item':
             movie_details_url = f"{self.plex_url}/library/metadata/{ratingKey}"
             movie_details_url = re.sub("0//", "0/", movie_details_url)
@@ -375,7 +375,7 @@ class Plex:
                 imdbID = "Null"
                 tmdbID = "Null"
                 tvdbID = "Null"
-                
+
                 data = response.json()
                 extendedDetails = response.json()
                 try:
@@ -402,8 +402,8 @@ class Plex:
                 except KeyError:
                     return itemBase(title=title, date=date, details=itemDetails(key, imdbID, tmdbID, tvdbID))
                 return itemBase(title=title, date=date, details=itemDetails(key, imdbID, tmdbID, tvdbID))
-                    
-    
+
+
     def list(self, library):
             try:
                 # Replace with the correct section ID and library URL
@@ -430,7 +430,7 @@ class Plex:
                     return f"Error: {response.status_code} - {response.text}"
             except Exception as e:
                 return f"Error: {str(e)}"
-                
+
     def extended_list(self, library):
             try:
                 # Replace with the correct section ID and library URL
@@ -470,7 +470,7 @@ class Plex:
                 else:
                     return f"Error: {response.status_code} - {response.text}"
             except Exception as e:
-                return f"Error: {str(e)}"        
+                return f"Error: {str(e)}"
 
     def id(self, name, library_id=None):
         if self.context == 'show':
@@ -492,14 +492,14 @@ class Plex:
                     return f"Error: {response.status_code} - {response.text}"
             except Exception as e:
                 return f"Error: {str(e)}"
-            
+
         if self.context == 'movie':
             try:
                 num = 1 + 1 # get movie id here
 
             except Exception as e:
                 return f"Error: {str(e)}"
-            
+
         if self.context == 'collection':
             try:
                 section_id = library_id
@@ -537,10 +537,10 @@ class Plex:
     def tmdb_id(self, rating_key):
         # Attempt to retrieve TMDB ID from Plex
         plex_tmdb_id = self.get_tmdb_id_from_plex(rating_key)
-        
+
         if plex_tmdb_id is not None:
             return plex_tmdb_id
-        
+
         # If not found in Plex, search TMDB
         if plex_tmdb_id == None:
             show_name = self.get_show_name(rating_key)
@@ -556,7 +556,7 @@ class Plex:
                     print("No results, searching again with year " + str(year))
                     logging.info("No results, searching again with year " + str(year))
                     search = self.search_tmdb_id(show_name, str(year))
-                    if search == None:              
+                    if search == None:
                          year -= 2
                          print("No results, searching again with year " + str(year))
                          logging.info("No results, searching again with year " + str(year))
@@ -565,16 +565,16 @@ class Plex:
                               print(show_name + " could not be matched.")
                               logging.info(show_name + " could not be matched.")
                               search = "null"
-                              
+
                 return search
-                
+
             if year == None:
                 print("")
                 print("No originally availabe year for " + show_name + ", cannot search for title reliably.")
                 logging.warning("No originally availabe year for " + show_name + ", cannot search for title reliably.")
                 search = "null"
                 return search
-            
+
 
 
     def get_tmdb_id_from_plex(self, rating_key):
@@ -605,10 +605,10 @@ class Plex:
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"
             }
-            
+
             # Make a request to get show details
             response = requests.get(show_details_url, headers=headers)
-            
+
             if response.status_code == 200:
                data = json.loads(json.dumps(response.json()))
                values = data['MediaContainer']['Metadata']
@@ -633,7 +633,7 @@ class Plex:
             return tmdb_search_result
 
         return "null"
-        
+
 
     def year(self, rating_key):
         try:
@@ -642,9 +642,9 @@ class Plex:
             show_details_url = re.sub("0//", "0/", show_details_url)
             headers = {"X-Plex-Token": self.plex_token,
                        "accept": "application/json"}
-            
+
             response = requests.get(show_details_url, headers=headers)
-            
+
             if response.status_code == 200:
                 data = json.loads(json.dumps(response.json()))
                 for result in data['MediaContainer']['Metadata']:
@@ -679,7 +679,7 @@ class Plex:
                     for item in tmdb_data['results']:
                         if item['first_air_date'][:4] == year:
                             id = item['id']
-                            
+
                             return id
                 if tmdb_data['total_results'] == 0:
                     return None
@@ -768,7 +768,7 @@ def librarySetting(library, value):
                     entry = pref['libraries'][library]['save_folder']
                 except KeyError:
                     entry = ''
-            
+
             if value == 'font_path':
                 try:
                     entry = pref['libraries'][library]['font_path']
@@ -839,9 +839,9 @@ def setting(value):
                                             print(f"  => Docker Host OS:", get_os())
                                             print("--Falling back to default--")
                                             timezone = "America/New_York"
-                                            print(f"Using locality {timezone} to adjust for airing dates.")    
+                                            print(f"Using locality {timezone} to adjust for airing dates.")
                                         entry = timezone
-                                        
+
                                     if is_docker == "False":
                                         try:
                                             system_tz = tzlocal.get_localzone()
@@ -855,7 +855,7 @@ def setting(value):
                                             timezone = "America/New_York"
                                             print(f"Using locality {timezone} to adjust for airing dates.")
                                         entry = timezone
-                                    
+
                                 except Exception as e:
                                     print(f'Failed to retrieve local time zone from host')
                                     print(f"An error occured: {e}")
@@ -870,7 +870,7 @@ def setting(value):
                                     print(f"Time zone 'forced' locality missing or not found in settings.")
                                     print(f'Check configuration/YAML structure')
                                     print(f'Falling back to default...')
-                                    timezone_source = 'default' 
+                                    timezone_source = 'default'
                             if timezone_source == 'default':
                                 timezone = 'America/New_York'
                                 print("'default' time zone selected")
@@ -884,13 +884,13 @@ def setting(value):
                         timezone = 'America/New_York'
                         print(f"Using locality {timezone} to adjust for airing dates.")
                         entry = timezone
-                                
-                    
+
+
                 except KeyError:
                     timezone = 'America/New_York'
                     print(f"Using default locality '{timezone}' to adjust for airing dates.")
                     entry = timezone
-                
+
 
             if value == 'rsback_color':
                 entry = pref['returning_soon_bgcolor']
@@ -1094,8 +1094,8 @@ def setting(value):
                     entry = pref['extra_overlays']['new_next_air']['vertical_offset']
                 except KeyError:
                     entry = '0'
-                 
-            
+
+
             if value == 'ovReturning':
                 try:
                     entry = pref['extra_overlays']['returning']['use']
@@ -1219,7 +1219,7 @@ def setting(value):
                 except KeyError:
                     entry = '0'
 
-            
+
             if value == 'ovEnded':
                 try:
                     entry = pref['extra_overlays']['ended']['use']
@@ -1352,7 +1352,7 @@ def plexGet(identifier):
         return key
 
 def cleanPath(string):
-        cleanedPath = re.sub(r'[^\w]+', '-', string)   
+        cleanedPath = re.sub(r'[^\w]+', '-', string)
         cleanedPath = cleanedPath.rstrip('-')
         while '--' in cleanedPath:
             cleanedPath = cleanedPath.replace('--', '-')
@@ -1381,7 +1381,7 @@ class SonarrApi:
         except requests.exceptions.RequestException as e:
             print(f"Connection to Sonarr failed: {e}")
             return False  # Connection failed
-            
+
 
     def get_series_list(self):
         response = requests.get(self.sonarr_series_endpoint, headers=self.sonarr_headers)
@@ -1393,7 +1393,7 @@ class SonarrApi:
         params = {'seriesId': series_id}
         response = requests.get(sonarr_episodes_endpoint, headers=self.sonarr_headers, params=params)
         response.raise_for_status()
-        
+
 
         episodes = response.json()
         available_missing_episodes = len([
@@ -1402,7 +1402,7 @@ class SonarrApi:
                                             and datetime.datetime.strptime(episode['airDateUtc'], "%Y-%m-%dT%H:%M:%SZ") < today
         ])
 
-        total_episodes = len([episode for episode in episodes if episode.get('airDateUtc') and episode['seasonNumber'] != 0 
+        total_episodes = len([episode for episode in episodes if episode.get('airDateUtc') and episode['seasonNumber'] != 0
                               and datetime.datetime.strptime(episode.get('airDateUtc'), "%Y-%m-%dT%H:%M:%SZ") < today])
         self.missing_count = available_missing_episodes
         self.total_count = total_episodes
