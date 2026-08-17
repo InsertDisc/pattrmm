@@ -1,10 +1,10 @@
-name: Build :nightly
+name: Build :traktless
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - nightly
+      - traktless
     paths:
       - 'main.py'
       - 'Dockerfile'
@@ -14,14 +14,14 @@ on:
     types: [closed]
 
 jobs:
-  build-and-push-nightly:
+  build-and-push-traktless:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: nightly
+          ref: traktless
 
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -50,8 +50,8 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: |
-            ghcr.io/insertdisc/pattrmm:nightly
-            ${{ secrets.DOCKER_HUB_USERNAME }}/pattrmm:nightly
+            ghcr.io/insertdisc/pattrmm:traktless
+            ${{ secrets.DOCKER_HUB_USERNAME }}/pattrmm:traktless
           cache-from: type=gha
           cache-to: type=gha,mode=max 
           
