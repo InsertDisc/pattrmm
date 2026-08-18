@@ -410,7 +410,7 @@ for library in loaded_settings_yaml['libraries']:
             f'''
 collections:
   Returning Soon:
-    text_file: {rs_collection_folder}{library_clean_path}-returning-soon-collection.txt
+    text_file: config/{rs_collection_folder}{library_clean_path}-returning-soon-collection.txt
     url_poster: https://raw.githubusercontent.com/meisnate12/Plex-Meta-Manager-Images/master/chart/Returning%20Soon.jpg
     collection_order: custom
     visible_home: true
@@ -428,7 +428,7 @@ collections:
             data.setdefault("collections", {}).setdefault("Returning Soon", {})
             collection = data["collections"]["Returning Soon"]
             collection.pop("trakt" + "_list", None)
-            collection["text_file"] = f"{rs_collection_folder}{library_clean_path}-returning-soon-collection.txt"
+            collection["text_file"] = f"config/{rs_collection_folder}{library_clean_path}-returning-soon-collection.txt"
             collection["collection_order"] = "custom"
             collection["sync_mode"] = "sync"
             with open(rs_collection_file, "w") as write_rs_collection_file:
