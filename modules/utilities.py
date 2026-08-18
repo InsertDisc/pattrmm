@@ -2,8 +2,8 @@ import os
 from ruamel.yaml import YAML
 from dataclasses import dataclass, fields
 from typing import Optional
-import requests
 import re
+from datetime import datetime
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -16,24 +16,6 @@ class Plex:
     def __post_init__(self):
         if self.url.endswith('/'):
             self.url = self.url[:-1]
-
-@dataclass
-class Trakt:
-    client_id: str
-    client_secret: str
-    authorization: dict
-    pin: Optional[str] = None
-    def __post_init__(self):
-        client_id = self.client_id
-        access_token = self.authorization['access_token']
-        headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + access_token + '',
-        'trakt-api-version': '2',
-        'trakt-api-key': client_id
-        }
-        self.username = requests.get('https://api.trakt.tv/users/me', headers=headers).json()['username']
-        
 
 @dataclass
 class Tmdb:
@@ -64,7 +46,6 @@ class Radarr:
 @dataclass
 class ConfigData:
     plex: Plex
-    trakt: Trakt
     tmdb: Tmdb
     tvdb: Tvdb
     sonarr: Sonarr
@@ -74,101 +55,91 @@ class ConfigData:
 class ConfigLoader:
     def __init__(self):
         self.settings = None
-        self.pmm_config = None
-        self.pmm_config_loaded = False
-        self.settings_loaded = False
+        self.meta_config = None
         self.load_configs()
+
+    def load_configs(self):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        settings_file = os.path.join(script_dir, '..', 'preferences', 'settings.yml')
+
+        with open(settings_file, 'r', encoding='utf-8') as file:
+            self.settings = yaml.load(file) or {}
+
+        meta_config_file = self.settings.get('settings', {}).get('kometa_config', 'config.yml')
+        config_file = os.path.join(base_path(), meta_config_file)
+
+        with open(config_file, 'r', encoding='utf-8') as file:
+            config_data = yaml.load(file) or {}
+
+        filtered_config = {}
+        for name, dataclass_type in ConfigData.__annotations__.items():
+            values = config_data.get(name, {}) or {}
+            values = {key: value for key, value in values.items() if key in dataclass_type.__dataclass_fields__}
+            filtered_config[name] = dataclass_type(**values)
+
+        self.meta_config = ConfigData(**filtered_config)
 
     @property
     def settings_data(self):
         return self.settings
 
     @property
-    def pmm_config_data(self):
-        return self.pmm_config
+    def meta_config_data(self):
+        return self.meta_config
 
-    def load_configs(self):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        settings_file_path = os.path.join(script_dir, '..', 'Preferences', 'settings.yml') 
 
-        with open(settings_file_path, 'r') as file:
-            self.settings = yaml.load(file)
-        
-        if os.environ.get('PATTRMM_DOCKER') == 'True':
-            config_file_path = os.path.join(script_dir, 'config', 'config.yml')
-        else:
-            config_file_path = os.path.join(script_dir, '..', '..', 'config.yml')
+def get_core_settings(core_name: str, allowed_instances: int = 1, default_settings: dict | None = None):
+    default_settings = default_settings or {}
+    settings = ConfigLoader().settings or {}
+    result = {}
 
-        with open(config_file_path, 'r') as file:
-            config_data_dict = yaml.load(file)
-            self.pmm_config_loaded = True
+    for library, configured_cores in settings.get('libraries', {}).items():
+        instances = []
+        for core in configured_cores or []:
+            if core_name not in core:
+                continue
 
-        filtered_config_data = {}
+            value = core[core_name]
+            if value is None:
+                value = {}
+            if isinstance(value, list):
+                instances.extend(value)
+            else:
+                instances.append(value)
 
-        for dataclass_key_name, dataclass_key_type in ConfigData.__annotations__.items():
-            dataclass_attribute_data = config_data_dict.get(dataclass_key_name, {})
-            valid_keys = {data_attribute.name for data_attribute in fields(dataclass_key_type)}
-            filtered_attribute_data = {key: value for key, value in dataclass_attribute_data.items() if key in valid_keys}
-            filtered_config_data[dataclass_key_name] = dataclass_key_type(**filtered_attribute_data)
+        if allowed_instances and len(instances) > allowed_instances:
+            raise ValueError(f"'{core_name}' can only be configured {allowed_instances} time(s) in {library}.")
 
-        self.pmm_config = ConfigData(**filtered_config_data)
+        merged_instances = []
+        for instance in instances:
+            merged = {**default_settings, **instance}
+            for key in ('collection', 'overlay'):
+                if key in default_settings:
+                    merged[key] = {**default_settings[key], **instance.get(key, {})}
+            merged_instances.append(merged)
 
-def get_core_settings(core_name: str, allowed_instances: int, default_settings: dict) -> list:
-    processed_settings = {}
+        if merged_instances:
+            result[library] = merged_instances
 
-    data = ConfigLoader().settings
+    return result
 
-    for library_name, cores in data['libraries'].items():
-        core_count = sum(
-            isinstance(core, dict) and core_name in core for core in cores
-        )
-        if core_count > allowed_instances:
-            print(f"The '{core_name}' constructor is instanced in {library_name} {core_count} times, allowed ({allowed_instances}), skipping {core_name} for {library_name}")
-            continue
-        library_settings = []
-
-        has_core = False
-        core_values = []
-
-        for core in cores:
-            if isinstance(core, dict) and core_name in core:
-                has_core = True
-                if core[core_name] is None:  # Check if core settings are empty
-                    library_settings.append(default_settings)
-                    continue
-                core_values.append(core[core_name])
-
-        if has_core:
-            for core in core_values:
-                merged_settings = {**default_settings, **core}
-                filtered_settings = {
-                    key: value for key, value in merged_settings.items() if key in default_settings
-                }
-
-                for key, value in default_settings.items():
-                    if key not in filtered_settings:
-                        if isinstance(value, dict):
-                            filtered_settings[key] = {
-                                k: v for k, v in value.items() if k in merged_settings.get(key, {})
-                            }
-                        else:
-                            filtered_settings[key] = value
-
-                    elif isinstance(value, dict) and isinstance(filtered_settings[key], dict):
-                        default_subsettings = value
-                        filtered_settings[key].update({
-                            k: v for k, v in default_subsettings.items() if k not in filtered_settings[key]
-                        })
-
-                library_settings.append(filtered_settings)
-
-            processed_settings[library_name] = library_settings
-
-    return processed_settings
 
 def clean_string(string):
-        cleaned_string = re.sub(r'[^\w]+', '-', string).rstrip('-')
-        return cleaned_string
+    cleaned_string = re.sub(r'[^\w]+', '-', string)
+    cleaned_string = re.sub(r'-+', '-', cleaned_string)
+    return cleaned_string.rstrip('-')
+
+
+def to_dict(obj):
+    if isinstance(obj, list):
+        return [to_dict(item) for item in obj]
+    elif hasattr(obj, "__dict__"):
+        obj_dict = obj.__dict__.copy()
+        for key, value in obj_dict.items():
+            obj_dict[key] = to_dict(value)
+        return obj_dict
+    else:
+        return obj
 
 def base_path():
     if os.environ.get('PATTRMM_DOCKER') == 'True':
@@ -201,3 +172,33 @@ def date_within_range(item_date, start_date, end_date): #Returns True or False
             (item_date.month, item_date.day) <= 
             (end_date.month, end_date.day)
         )
+
+def log_title(item):
+    display_title = item[:30] + '...' if len(item) > 30 else item
+    return display_title
+
+def current_date():
+    return datetime.now().strftime("%Y-%m-%d")
+
+def file_exists(path):
+    directory = os.path.dirname(path)
+    if not os.path.exists(directory):
+        print(f"Creating directory {directory}")
+        try:
+            os.makedirs(directory)
+            print(f"Successfully created directory {directory}")
+        except OSError as e:
+            print(f"Failed to create directory {directory}: {e}")
+            return False
+    
+    if not os.path.exists(path):
+        print(f"Creating file {path}")
+        try:
+            with open(path, 'w') as file:
+                file.write('')
+            print(f"Successfully created file {path}")
+        except IOError as e:
+            print(f"Failed to create file {path}: {e}")
+            return False
+    
+    return True
