@@ -1,38 +1,56 @@
 libraries:
-  Anime:                         # Plex Libraries to read from. Can enter multiple libraries.
-  - by_size: 
-      direction: desc
-      collection:
-        visible_home: true
-  - by_size:
-      minimum: 1
-      maximum: 10
-      trakt_list_privacy: public
-      direction: desc
-      collection_title: Order my pickles
-      collection:
-        visible_home: False
-        sort_title: "!2234"
-  - in-history:
-      range: month
-  - in-history:
+  Anime:
+    - in_history:
+        range: day
+        collection_name: This day in history
+        collection:
+          sync_mode: sync
+    - in_history:
+        range: week
+        collection_name: This week in history
+        collection:
+          sync_mode: sync
+    - in_history:
+        range: month
+        collection_name: This month in history
+        collection:
+          sync_mode: sync
   Series:
-  - returning-soon:
-      refresh: 30
-      days_ahead: 90
-      collection:
-        sync_mode: sync
-      overlay:
-        back_color: "#65437899"
-        horizontal_align: center
-        back_align: left
-  - by_size:
-      direction: desc
-  - in-history:
-      range: month
-      collection_title: My Series In History by month
-  - missing_episodes:
-      style: dot
+    - in_history:
+        range: day
+        collection_name: This day in history
+    - extended_status:
+        returning_soon:
+          enabled: True
+          mode: all
+          collection_title: Returning Soon
+          collection_save_dir: collections/
+          overlay_save_dir: overlays/
+          days_ahead: 90
+          collection:
+            name: Returning Soon
+            sync_mode: sync
+          overlay:
+            text: RETURNING {{MM/DD}}
+            text_color: "#FFFFFF"
+            background_color: "#00000066"
+        airing_next:
+          enabled: True
+          mode: overlay
+          collection_title: Currently Airing
+        new_airing_next:
+          enabled: True
+          mode: collection
+          collection_title: Newly Airing
   Movies:
-  - by_size:
-      minimum: 5
+    - by_size:
+        limit: 24
+        order: desc
+        min: 5GB
+        max: 25GB
+        collection:
+          sync_mode: append
+          sort_title: "!1234"
+settings:
+  kometa_config: config.yml
+  data_source: tmdb
