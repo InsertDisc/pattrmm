@@ -1819,7 +1819,7 @@ Attempting to remove unused collection.''')
                     data.setdefault('collections', {}).setdefault(collection_title, {})
                     collection = data['collections'][collection_title]
                     collection.pop('trakt' + '_list', None)
-                    collection['text_file'] = f"{in_history_settings.save_folder}{library_clean_path}-in-history.txt"
+                    collection['text_file'] = f"config/{in_history_settings.save_folder}{library_clean_path}-in-history.txt"
                     collection['collection_order'] = 'custom'
                     collection['sync_mode'] = 'sync'
                     with open(in_history_file, 'w') as in_history_collection_file:
@@ -2069,7 +2069,7 @@ Attempting to remove unused collection.''')
 
                     # Use the generated text file instead.
                     collection['text_file'] = (
-                        f"{by_size_settings.save_folder}"
+                        f"config/{by_size_settings.save_folder}"
                         f"{library_clean_path}-by-size.txt"
                     )
 
