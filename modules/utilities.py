@@ -112,8 +112,15 @@ def get_core_settings(
                 instances.extend(value)
             else:
                 instances.append(value)
-
-        if allowed_instances:
+        # Check if there are more instances of a core configured for a library than the core is made to handle. 
+        # Inform and truncate if true.
+        if allowed_instances and len(instances) > allowed_instances:
+            print(
+                f"[Config] {library}: {core_name} has "
+                f"{len(instances)} instances configured, "
+                f"but only {allowed_instances} allowed. "
+                f"Ignoring {len(instances) - allowed_instances}."
+            )
             instances = instances[:allowed_instances]
 
         merged_instances = []
