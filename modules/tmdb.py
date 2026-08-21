@@ -13,52 +13,56 @@ region = config.tmdb.region
 
 @dataclass
 class LastEpisode:
-    id: int
-    name: str
-    air_date: str
-    episode_number: int
-    season_number: int
-    episode_type: str
+    id: Optional[int]
+    name: Optional[str]
+    air_date: Optional[str]
+    episode_number: Optional[int]
+    season_number: Optional[int]
+    episode_type: Optional[str]
+
 
 @dataclass
 class NextEpisode:
-    id: int
-    name: str
-    air_date: str
-    episode_number: int
-    season_number: int
-    episode_type: str
+    id: Optional[int]
+    name: Optional[str]
+    air_date: Optional[str]
+    episode_number: Optional[int]
+    season_number: Optional[int]
+    episode_type: Optional[str]
+
 
 @dataclass
 class SpokenLanguages:
-    english_name: str
-    iso_639_1: str
-    name: str
+    english_name: Optional[str]
+    iso_639_1: Optional[str]
+    name: Optional[str]
+
 
 @dataclass
 class ShowDetails:
-    show_id: int
-    name: str
-    first_air_date: str
-    last_air_date: str
+    show_id: Optional[int]
+    name: Optional[str]
+    first_air_date: Optional[str]
+    last_air_date: Optional[str]
     last_episode_to_air: LastEpisode
     next_episode_to_air: NextEpisode
-    original_language: str
-    popularity: float
-    status: str
+    original_language: Optional[str]
+    popularity: Optional[float]
+    status: Optional[str]
     spoken_languages: List[SpokenLanguages]
+
 
 @dataclass
 class MovieDetails:
-    id: int
+    id: Optional[int]
     imdb_id: Optional[str]
-    original_language: str
-    original_title: str
-    popularity: float
-    release_date: str
+    original_language: Optional[str]
+    original_title: Optional[str]
+    popularity: Optional[float]
+    release_date: Optional[str]
     spoken_languages: List[SpokenLanguages]
-    status: str
-    title: str
+    status: Optional[str]
+    title: Optional[str]
 
 
 
