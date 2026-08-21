@@ -64,7 +64,9 @@ class ConfigLoader:
 
         with open(settings_file, 'r', encoding='utf-8') as file:
             self.settings = yaml.load(file) or {}
-
+            
+        self.settings.setdefault('settings', {})
+        self.settings['settings'].setdefault('cache_expiry', 30)
         meta_config_file = self.settings.get('settings', {}).get('kometa_config', 'config.yml')
         config_file = os.path.join(base_path(), meta_config_file)
 
@@ -88,41 +90,63 @@ class ConfigLoader:
         return self.meta_config
 
 
-def get_core_settings(core_name: str, allowed_instances: int = 1, default_settings: dict | None = None):
+def get_core_settings(
+    core_name: str,
+    allowed_instances: int = 1,
+    default_settings: dict | None = None
+):
     default_settings = default_settings or {}
     settings = ConfigLoader().settings or {}
     result = {}
 
     for library, configured_cores in settings.get('libraries', {}).items():
         instances = []
+
         for core in configured_cores or []:
             if core_name not in core:
                 continue
 
-            value = core[core_name]
-            if value is None:
-                value = {}
+            value = core[core_name] or {}
+
             if isinstance(value, list):
                 instances.extend(value)
             else:
                 instances.append(value)
 
-        if allowed_instances and len(instances) > allowed_instances:
-            raise ValueError(f"'{core_name}' can only be configured {allowed_instances} time(s) in {library}.")
+        if allowed_instances:
+            instances = instances[:allowed_instances]
 
         merged_instances = []
+
         for instance in instances:
-            merged = {**default_settings, **instance}
-            for key in ('collection', 'overlay'):
-                if key in default_settings:
-                    merged[key] = {**default_settings[key], **instance.get(key, {})}
-            merged_instances.append(merged)
+
+            def merge(defaults, values):
+                merged = {}
+
+                for key, default in defaults.items():
+                    value = values.get(key, default)
+
+                    if isinstance(default, dict) and isinstance(value, dict):
+                        if key in ('collection', 'overlay'):
+                            merged[key] = {
+                                **default,
+                                **value
+                            }
+                        else:
+                            merged[key] = merge(default, value)
+                    else:
+                        merged[key] = value
+
+                return merged
+
+            merged_instances.append(
+                merge(default_settings, instance)
+            )
 
         if merged_instances:
             result[library] = merged_instances
 
     return result
-
 
 def clean_string(string):
     cleaned_string = re.sub(r'[^\w]+', '-', string)
