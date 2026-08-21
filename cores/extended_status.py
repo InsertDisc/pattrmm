@@ -4,228 +4,490 @@ import os
 
 from ruamel.yaml import YAML
 
+from modules.cache_handler import load_shows_cache as load_cache
 from modules.plex import PlexApi
 from modules.tmdb import TmdbApi
-from modules.utilities import ConfigLoader, clean_string, current_date, get_core_settings, path_constructor, to_dict
+from modules.utilities import (
+    clean_string,
+    current_date,
+    get_core_settings,
+    path_constructor,
+    to_dict,
+)
 
 yaml = YAML()
 yaml.preserve_quotes = True
-
+today = date.today()
 plex = PlexApi()
 tmdb = TmdbApi()
 
 
 @dataclass
 class ReturningSoon:
+    enabled: bool
+    mode: str
     days_ahead: int
-    refresh: int
-    collection_name: str
-    collection_save_folder: str
-    overlay_save_folder: str
-    text: str
+    collection_dir: str
+    overlay_dir: str
+    collection: dict
+    overlay: dict
+
+@dataclass
+class NewStatus:
+    enabled: bool
+    mode: str
+    considered_new: str
+    collection_dir: str
+    overlay_dir: str
+    collection: dict
+    overlay: dict
+
+@dataclass
+class GeneralStatus:
+    enabled: bool
+    mode: str
+    collection_dir: str
+    overlay_dir: str
     collection: dict
     overlay: dict
 
 
-def run():
-    default_settings = {
-        'days_ahead': 45,
-        'refresh': 7,
-        'collection_name': 'Returning Soon',
-        'collection_save_folder': 'collections/',
-        'overlay_save_folder': 'overlays/',
-        'text': 'RETURNING',
-        'collection': {
-            'collection_order': 'custom',
-            'sync_mode': 'sync'
-        },
-        'overlay': {
-            'weight': 35,
-            'group': 'returning_soon',
-            'horizontal_align': 'center',
-            'vertical_align': 'top',
-            'horizontal_offset': 0,
-            'vertical_offset': 0,
-            'font_color': '#FFFFFF',
-            'back_color': '#81007F'
-        }
-    }
+def status(message):
+    print(f"[Extended Status] {message}")
 
-    core_settings = get_core_settings('returning_soon', 1, default_settings)
+
+def run():
+    status("Starting Extended Status...")
+
+    default_settings = {
+        'returning_soon': {
+            'enabled': False,
+            'mode': 'all',
+            'days_ahead': 45,
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Returning Soon',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'RETURNING {{MM/DD}}',
+                'group': 'returning_soon',
+                'weight': 35,
+                'back_color': '#81007F',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'airing': {
+            'enabled': False,
+            'mode': 'all',
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Currently Airing',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'AIRING',
+                'group': 'airing',
+                'weight': 50,
+                'back_color': '#343399',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'airing_next': {
+            'enabled': False,
+            'mode': 'all',
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Airing Next',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'AIRING {{MM}}/{{DD}}',
+                'group': 'airing_next',
+                'weight': 55,
+                'back_color': '#343399',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'new': {
+            'enabled': False,
+            'mode': 'all',
+            'considered_new': 14,
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'New Series',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'N E W  S E R I E S',
+                'group': 'new',
+                'weight': 60,
+                'back_color': '#008001',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'new_airing_next': {
+            'enabled': False,
+            'mode': 'all',
+            'considered_new': 14,
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'New - Airing {{MM}}/{{DD}}',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'NEW · AIRING',
+                'group': 'new_next_air',
+                'weight': 65,
+                'back_color': '#008001',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'upcoming': {
+            'enabled': False,
+            'mode': 'all',
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Upcoming',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'U P C O M I N G',
+                'group': 'upcoming',
+                'weight': 90,
+                'back_color': '#FC4E03',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'returning': {
+            'enabled': False,
+            'mode': 'overlay',
+            'days': 7,
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Recently Returned',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'R E T U R N I N G',
+                'group': 'returning',
+                'weight': 30,
+                'back_color': '#81007F',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'ended': {
+            'enabled': False,
+            'mode': 'overlay',
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Ended',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'E N D E D',
+                'group': 'ended',
+                'weight': 20,
+                'back_color': '#000000',
+                'color': '#FFFFFF',
+            },
+        },
+
+        'canceled': {
+            'enabled': False,
+            'mode': 'overlay',
+            'collection_dir': 'collections/',
+            'overlay_dir': 'overlays/',
+            'collection': {
+                'name': 'Canceled',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'text': 'C A N C E L E D',
+                'group': 'canceled',
+                'weight': 20,
+                'back_color': '#CF142B',
+                'color': '#FFFFFF',
+            },
+        },
+}
+
+    status("Loading Extended Status settings")
+
+    core_settings = get_core_settings('extended_status', 1, default_settings)
+
+    status(f"Found {len(core_settings)} library configuration(s)")
 
     for library_name, instances in core_settings.items():
+        status(f"Processing: {library_name}")
+
         library = plex.library(library_name)
+
         if library.type != 'show':
-            print(f"'{library_name}' is not a Show library. Skipping Returning Soon.")
+            status(
+                f"Skipping {library_name}: "
+                "not a Show library"
+            )
             continue
 
-        for settings in instances:
+        for extended_status in instances:
+            settings = extended_status.get(
+                'returning_soon',
+                {}
+            )
+
             returning_soon = ReturningSoon(**settings)
+
+            if not returning_soon.enabled:
+                continue
+
             library_slug = clean_string(library_name)
-            cache_path = path_constructor('data/cache/', f'{library_slug}_cache.yaml')
 
-            media_items = library.contents()
-            cache_data = {'full_sync': current_date(), 'shows': []}
+            cutoff = (
+                today
+                + timedelta(days=returning_soon.days_ahead)
+            )
 
-            if os.path.exists(cache_path):
-                with open(cache_path, 'r', encoding='utf-8') as cache_file:
-                    cache_data = yaml.load(cache_file) or cache_data
-
-            cached = {}
-            for entry in cache_data.get('shows', []):
-                if isinstance(entry, dict):
-                    cached.update(entry)
-
-            plex_keys = {str(item.id.rating_key) for item in media_items}
-            for key in list(cached):
-                if key not in plex_keys:
-                    del cached[key]
-
-            full_sync = True
-            if cache_data.get('full_sync'):
-                try:
-                    full_sync = (date.today() - datetime.strptime(str(cache_data['full_sync']), '%Y-%m-%d').date()).days >= returning_soon.refresh
-                except (TypeError, ValueError):
-                    full_sync = True
-
-            items_to_lookup = media_items if full_sync else [
-                item for item in media_items if str(item.id.rating_key) not in cached
-            ]
-
-            if full_sync:
-                cached = {}
-                cache_data['full_sync'] = current_date()
-                print(f"{library_name}: refreshing TMDB cache")
-
-            for item in items_to_lookup:
-                show = plex.show(item.id.rating_key)
-                tmdb_id = show.id.tmdb
-
-                if not tmdb_id and show.id.imdb:
-                    tmdb_id = tmdb.external_source(show.id.imdb, 'imdb_id', 'show')
-                if not tmdb_id and show.id.tvdb:
-                    tmdb_id = tmdb.external_source(show.id.tvdb, 'tvdb_id', 'show')
-                if not tmdb_id:
-                    print(f"{show.title}: no TMDB ID found. Skipping cache entry.")
-                    continue
-
-                details = tmdb.show(tmdb_id).details()
-                if details:
-                    cached[str(item.id.rating_key)] = {
-                        'title': details.name,
-                        'status': details.status,
-                        'ids': {
-                            'tmdb': str(details.show_id),
-                            'tvdb': show.id.tvdb,
-                            'imdb': show.id.imdb
-                        },
-                        'dates': {
-                            'year': item.date.year,
-                            'added': item.date.added_date,
-                            'available': item.date.available_date
-                        },
-                        'next_episode': to_dict(details.next_episode_to_air),
-                        'last_episode': to_dict(details.last_episode_to_air)
-                    }
-
-            today = date.today()
-            if cache_data.get('last_run') != current_date():
-                for key, entry in cached.items():
-                    if entry.get('status') != 'Returning Series':
-                        continue
-
-                    next_air = (entry.get('next_episode') or {}).get('air_date')
-                    if next_air and next_air != 'null' and next_air > current_date():
-                        continue
-
-                    tmdb_id = (entry.get('ids') or {}).get('tmdb')
-                    if not tmdb_id:
-                        continue
-
-                    details = tmdb.show(tmdb_id).details()
-                    if details:
-                        entry['status'] = details.status
-                        entry['next_episode'] = to_dict(details.next_episode_to_air)
-                        entry['last_episode'] = to_dict(details.last_episode_to_air)
-
-                cache_data['last_run'] = current_date()
-
-            cache_data['full_sync'] = cache_data.get('full_sync', current_date())
-            cache_data['shows'] = [{key: value} for key, value in cached.items()]
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-            with open(cache_path, 'w', encoding='utf-8') as cache_file:
-                yaml.dump(cache_data, cache_file)
-
-            cutoff = today + timedelta(days=returning_soon.days_ahead)
             selected = []
+            cached = load_cache(library_name)
+
             for entry in cached.values():
-                if entry.get('status') != 'Returning Series':
+                title = entry.get('title', 'Unknown')
+
+                status_value = entry.get('status')
+
+                if status_value != 'Returning Series':
                     continue
 
-                next_air = (entry.get('next_episode') or {}).get('air_date')
-                last_air = (entry.get('last_episode') or {}).get('air_date')
-                tmdb_id = (entry.get('ids') or {}).get('tmdb')
+                next_air = (
+                    entry.get('next_episode') or {}
+                ).get('air_date')
 
-                if not tmdb_id or not next_air or next_air == 'null':
+                last_air = (
+                    entry.get('last_episode') or {}
+                ).get('air_date')
+
+                tmdb_id = (
+                    entry.get('ids') or {}
+                ).get('tmdb')
+
+                if not tmdb_id:
                     continue
-                if next_air <= current_date() or next_air > cutoff.isoformat():
+
+                if not next_air or next_air == 'null':
                     continue
-                if last_air and last_air >= (today - timedelta(days=14)).isoformat():
+
+                if next_air <= current_date():
+                    continue
+
+                if next_air > cutoff.isoformat():
+                    continue
+
+                if (
+                    last_air
+                    and last_air >= (
+                        today - timedelta(days=14)
+                    ).isoformat()
+                ):
                     continue
 
                 selected.append(entry)
 
-            selected.sort(key=lambda item: item['next_episode']['air_date'])
-
-            collection_file = path_constructor(
-                returning_soon.collection_save_folder,
-                f'{library_slug}-returning-soon.yml'
-            )
-            text_file = path_constructor(
-                returning_soon.collection_save_folder,
-                f'{library_slug}-returning-soon.txt'
-            )
-            overlay_file = path_constructor(
-                returning_soon.overlay_save_folder,
-                f'{library_slug}-returning-soon-overlay.yml'
+            selected.sort(
+                key=lambda item: item['next_episode']['air_date']
             )
 
-            os.makedirs(os.path.dirname(collection_file), exist_ok=True)
-            os.makedirs(os.path.dirname(overlay_file), exist_ok=True)
+            status(
+                f"{library_name}: "
+                f"{len(selected)} Returning Soon title(s)"
+            )
 
-            with open(text_file, 'w', encoding='utf-8') as output:
-                output.write('\n'.join(f"tmdb:{item['ids']['tmdb']}" for item in selected))
-                if selected:
-                    output.write('\n')
-
-            collection = dict(returning_soon.collection)
-            collection.pop('trakt_list', None)
-            collection.pop('trakt_list_url', None)
-            collection['text_file'] = f"config/{returning_soon.collection_save_folder}{library_slug}-returning-soon.txt"
-
-            with open(collection_file, 'w', encoding='utf-8') as output:
-                yaml.dump({'collections': {returning_soon.collection_name: collection}}, output)
-
-            overlays = {}
             for item in selected:
-                air_date = item['next_episode']['air_date']
-                date_text = datetime.strptime(air_date, '%Y-%m-%d').strftime('%m/%d')
-                overlay_key = f'{library_slug}_Returning_{air_date}'
+                status(
+                    f"  {item['title']} "
+                    f"({item['next_episode']['air_date']})"
+                )
 
-                if overlay_key not in overlays:
-                    overlay = dict(returning_soon.overlay)
-                    overlay['name'] = f"text({returning_soon.text} {date_text})"
-                    overlays[overlay_key] = {
-                        'tmdb_show': [],
-                        'overlay': overlay
-                    }
+            write_collection = (
+                returning_soon.mode in ('all', 'collection')
+            )
 
-                overlays[overlay_key]['tmdb_show'].append(item['ids']['tmdb'])
+            write_overlay = (
+                returning_soon.mode in ('all', 'overlay')
+            )
 
-            with open(overlay_file, 'w', encoding='utf-8') as output:
-                yaml.dump({'overlays': overlays}, output)
+            if write_collection:
+                collection_file = path_constructor(
+                    returning_soon.collection_dir,
+                    f'{library_slug}-returning-soon.yml'
+                )
 
-            print(f"{library_name}: Returning Soon -> {len(selected)} titles")
+                text_file = path_constructor(
+                    returning_soon.collection_dir,
+                    f'{library_slug}-returning-soon-collection.txt'
+                )
+
+                os.makedirs(
+                    os.path.dirname(collection_file),
+                    exist_ok=True
+                )
+
+                with open(
+                    text_file,
+                    'w',
+                    encoding='utf-8'
+                ) as output:
+                    output.write(
+                        '\n'.join(
+                            f"tmdb:{item['ids']['tmdb']}"
+                            for item in selected
+                        )
+                    )
+
+                    if selected:
+                        output.write('\n')
+
+                collection = dict(
+                    returning_soon.collection
+                )
+
+                collection.pop('name', None)
+                collection.pop('trakt_list', None)
+                collection.pop('trakt_list_url', None)
+
+                collection['text_file'] = (
+                    f"config/{returning_soon.collection_dir}"
+                    f"{library_slug}-returning-soon-collection.txt"
+                )
+
+                with open(
+                    collection_file,
+                    'w',
+                    encoding='utf-8'
+                ) as output:
+                    yaml.dump(
+                        {
+                            'collections': {
+                                returning_soon.collection['name']:
+                                    collection
+                            }
+                        },
+                        output
+                    )
+
+                status(
+                    f"Collection files written: "
+                    f"{len(selected)} title(s)"
+                )
+
+            if write_overlay:
+                overlay_file = path_constructor(
+                    returning_soon.overlay_dir,
+                    f'{library_slug}-returning-soon-overlay.yml'
+                )
+
+                os.makedirs(
+                    os.path.dirname(overlay_file),
+                    exist_ok=True
+                )
+
+                overlays = {}
+
+                for item in selected:
+                    air_date = item['next_episode']['air_date']
+
+                    date_text = datetime.strptime(
+                        air_date,
+                        '%Y-%m-%d'
+                    ).strftime('%m/%d')
+
+                    overlay_key = (
+                        f'{library_slug}_Returning_{air_date}'
+                    )
+
+                    if overlay_key not in overlays:
+                        overlay = dict(
+                            returning_soon.overlay
+                        )
+
+                        overlay_text = (
+                            overlay.get(
+                                'text',
+                                'RETURNING {{MM/DD}}'
+                            ).replace(
+                                '{{MM/DD}}',
+                                date_text
+                            )
+                        )
+
+                        overlay['text'] = (
+                            f'text({overlay_text})'
+                        )
+
+                        if 'text_color' in overlay:
+                            overlay['font_color'] = (
+                                overlay.pop('text_color')
+                            )
+
+                        if 'background_color' in overlay:
+                            overlay['back_color'] = (
+                                overlay.pop('background_color')
+                            )
+
+                        overlays[overlay_key] = {
+                            'tmdb_show': [],
+                            'overlay': overlay
+                        }
+
+                    overlays[overlay_key]['tmdb_show'].append(
+                        item['ids']['tmdb']
+                    )
+
+                with open(
+                    overlay_file,
+                    'w',
+                    encoding='utf-8'
+                ) as output:
+                    yaml.dump(
+                        {'overlays': overlays},
+                        output
+                    )
+
+                status(
+                    f"Overlay written: "
+                    f"{len(overlays)} group(s)"
+                )
+
+            print(
+                f"{library_name}: Returning Soon -> "
+                f"{len(selected)} titles"
+            )
+
+    status("Returning Soon complete")
 
 
 if __name__ == '__main__':
