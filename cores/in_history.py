@@ -17,8 +17,7 @@ class InHistory:
     starting: int
     ending: int | None
     increment: int
-    collection_name: str
-    collection_save_folder: str
+    collection_dir: str
     collection: dict
 
 
@@ -28,9 +27,9 @@ def run():
         'starting': 0,
         'ending': None,
         'increment': 1,
-        'collection_name': 'In History',
-        'collection_save_folder': 'collections/',
+        'collection_dir': 'collections/',
         'collection': {
+            'name': 'This {{range}} in history'
             'collection_order': 'custom',
             'sync_mode': 'sync'
         }
@@ -111,8 +110,9 @@ def run():
                 if selected:
                     output.write('\n')
 
-            title = history.collection_name.replace('{{range}}', history.range).replace('{{Range}}', history.range.capitalize())
+            title = history.collection['name'].replace('{{range}}', history.range).replace('{{Range}}', history.range.capitalize())
             collection = dict(history.collection)
+            collection.pop('name', None)
             collection.pop('trakt_list', None)
             collection.pop('trakt_list_url', None)
             collection['text_file'] = f'config/{history.collection_save_folder}{library_slug}-{history.range}-in-history.txt'
