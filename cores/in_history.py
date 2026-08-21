@@ -94,11 +94,11 @@ def run():
                     selected.append(f'imdb:{ids.imdb}')
 
             text_file = path_constructor(
-                history.collection_save_folder,
+                history.collection_dir,
                 f'{library_slug}-{history.range}-in-history.txt'
             )
             collection_file = path_constructor(
-                history.collection_save_folder,
+                history.collection_dir,
                 f'{library_slug}-{history.range}-in-history.yml'
             )
             selected = list(dict.fromkeys(selected))
@@ -115,7 +115,7 @@ def run():
             collection.pop('name', None)
             collection.pop('trakt_list', None)
             collection.pop('trakt_list_url', None)
-            collection['text_file'] = f'config/{history.collection_save_folder}{library_slug}-{history.range}-in-history.txt'
+            collection['text_file'] = f'config/{history.collection_dir}{library_slug}-{history.range}-in-history.txt'
 
             with open(collection_file, 'w', encoding='utf-8') as output:
                 yaml.dump({'collections': {title: collection}}, output)
