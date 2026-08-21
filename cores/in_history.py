@@ -29,7 +29,7 @@ def run():
         'increment': 1,
         'collection_dir': 'collections/',
         'collection': {
-            'name': 'This {{range}} in history'
+            'name': 'This {{range}} in history',
             'collection_order': 'custom',
             'sync_mode': 'sync'
         }
