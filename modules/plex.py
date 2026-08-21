@@ -17,8 +17,9 @@ class ItemDetails:
 
 
 class ItemID:
-    def __init__(self, rating_key=None, tmdb=None, imdb=None, tvdb=None):
+    def __init__(self, rating_key=None, guid=None, tmdb=None, imdb=None, tvdb=None):
         self.rating_key = rating_key
+        self.guid = guid
         self.tmdb = tmdb
         self.imdb = imdb
         self.tvdb = tvdb
@@ -119,7 +120,8 @@ class PlexApi:
                                     ItemDetails(
                                         title=media_item['title'],
                                         id=ItemID(
-                                            rating_key=media_item['ratingKey']
+                                            rating_key=media_item['ratingKey'], 
+                                            guid=media_item['guid']
                                         ),
                                         date=ItemDate(
                                             available_date=media_item.get('originallyAvailableAt'),
@@ -145,7 +147,8 @@ class PlexApi:
                                     ItemDetails(
                                         title=media_item['title'],
                                         id=ItemID(
-                                            rating_key=media_item['ratingKey']
+                                            rating_key=media_item['ratingKey'],
+                                            guid=media_item['guid']
                                         ),
                                         date=ItemDate(
                                             available_date=media_item.get('originallyAvailableAt'),
@@ -189,6 +192,8 @@ class PlexApi:
 
                 show_title = show_data.get('title', 'Unknown Show Title')
                 rating_key = show_data.get('ratingKey', 'Unknown rating key')
+                guid = show_data.get('guid', 'Unknown Plex GUID')
+                
                 available_date = show_data.get('originallyAvailableAt')
                 show_year = show_data.get('year')
 
@@ -206,6 +211,7 @@ class PlexApi:
                 self.title = show_title
                 self.id = ItemID(
                     rating_key=rating_key,
+                    guid=guid,
                     tmdb=tmdb_id,
                     imdb=imdb_id,
                     tvdb=tvdb_id
@@ -238,6 +244,8 @@ class PlexApi:
 
             movie_title = movie_data.get('title', 'Unknown Movie Title')
             rating_key = movie_data.get('ratingKey', 'Unknown rating key')
+            guid = movie_data.get('guid', 'Unknown Plex GUID')
+            
             available_date = movie_data.get('originallyAvailableAt')
             movie_year = movie_data.get('year')
 
@@ -257,6 +265,7 @@ class PlexApi:
             self.title = movie_title
             self.id = ItemID(
                 rating_key=rating_key,
+                guid=guid,
                 tmdb=tmdb_id,
                 imdb=imdb_id,
                 tvdb=tvdb_id
@@ -291,6 +300,7 @@ class PlexApi:
                 season_num = str(episode['parentIndex']).zfill(2)
                 episode_num = str(episode['index']).zfill(2)
                 rating_key = episode['ratingKey']
+                guid = episode.get('guid', 'Unknown Plex GUID')
                 available_date = episode.get('originallyAvailableAt')
 
                 added_at_str = episode['addedAt']
@@ -306,7 +316,8 @@ class PlexApi:
                 return ItemDetails(
                     title=title,
                     id=ItemID(
-                        rating_key=rating_key
+                        rating_key=rating_key,
+                        guid=guid
                     ),
                     date=ItemDate(
                         available_date=available_date,
@@ -343,6 +354,7 @@ class PlexApi:
                         season_num = str(episode['parentIndex']).zfill(2)
                         episode_num = str(episode['index']).zfill(2)
                         rating_key = episode['ratingKey']
+                        guid = episode.get('guid', 'Unknown Plex GUID')
                         available_date = episode.get('originallyAvailableAt')
 
                         added_at_str = episode['addedAt']
@@ -359,7 +371,8 @@ class PlexApi:
                             ItemDetails(
                                 title=title,
                                 id=ItemID(
-                                    rating_key=rating_key
+                                    rating_key=rating_key,
+                                    guid=guid
                                 ),
                                 date=ItemDate(
                                     available_date=available_date,
