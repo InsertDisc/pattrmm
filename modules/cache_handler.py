@@ -18,6 +18,7 @@ config = ConfigLoader()
 
 cache_expiry = config.settings_data['settings']['cache_expiry']
 
+
 # Cached show data is returned as dataclasses.
 # Access show data via attributes:
 # show.ids.guid, show.title, show.dates.added,
@@ -60,21 +61,28 @@ class Show:
     last_episode: Episode
 
 
-def status(message):
-    print(f"[Cache] {message}")
+def status(library_name, message):
+    print(f"[Cache][{library_name}] {message}")
 
 
 def load_shows_cache(library_name):
-    status(f"Loading {library_name} cache...")
+    status(library_name, "Loading cache")
 
-    status(f"Gathering Plex data for {library_name}")
+    status(
+        library_name,
+        "Gathering Plex data"
+    )
+
     library = plex.library(library_name)
     library_slug = clean_string(library_name)
     cache_path = f'data/cache/{library_slug}_cache.json'
 
     media_items = library.contents()
 
-    status(f"{len(media_items)} show(s) found in Plex")
+    status(
+        library_name,
+        f"{len(media_items)} show(s) found in Plex"
+    )
 
     cache_data = {
         'full_sync': None,
@@ -82,13 +90,26 @@ def load_shows_cache(library_name):
     }
 
     if os.path.exists(cache_path):
-        with open(cache_path, 'r', encoding='utf-8') as cache_file:
+        with open(
+            cache_path,
+            'r',
+            encoding='utf-8'
+        ) as cache_file:
             try:
-                cache_data = json.load(cache_file) or cache_data
+                cache_data = (
+                    json.load(cache_file)
+                    or cache_data
+                )
             except json.JSONDecodeError:
-                status("Invalid cache found. Full sync required.")
+                status(
+                    library_name,
+                    "Invalid cache found. Full sync required."
+                )
     else:
-        status("No existing cache found. Full sync required.")
+        status(
+            library_name,
+            "No existing cache found. Full sync required."
+        )
 
     cached = {}
 
@@ -98,11 +119,18 @@ def load_shows_cache(library_name):
             status=entry.get('status', 'Unknown'),
             ids=ShowIds(**entry.get('ids', {})),
             dates=ShowDates(**entry.get('dates', {})),
-            next_episode=Episode(**(entry.get('next_episode') or {})),
-            last_episode=Episode(**(entry.get('last_episode') or {}))
+            next_episode=Episode(
+                **(entry.get('next_episode') or {})
+            ),
+            last_episode=Episode(
+                **(entry.get('last_episode') or {})
+            )
         )
 
-    status(f"{len(cached)} show(s) in cache")
+    status(
+        library_name,
+        f"{len(cached)} show(s) in cache"
+    )
 
     plex_keys = {
         str(item.id.rating_key)
@@ -118,6 +146,7 @@ def load_shows_cache(library_name):
 
     if removed_cache_entries:
         status(
+            library_name,
             f"Removed {removed_cache_entries} "
             f"show(s) no longer in Plex"
         )
@@ -138,9 +167,11 @@ def load_shows_cache(library_name):
 
         except (TypeError, ValueError):
             status(
+                library_name,
                 "Invalid full sync date. "
                 "Forcing full sync."
             )
+
             full_sync = True
 
     items_to_lookup = (
@@ -155,22 +186,26 @@ def load_shows_cache(library_name):
 
     if full_sync:
         cached = {}
+
         cache_data['full_sync'] = current_date()
         cache_data['last_run'] = current_date()
 
         status(
-            f"Performing full TMDB refresh "
+            library_name,
+            f"[Full Sync] Performing TMDB refresh "
             f"({len(items_to_lookup)} show(s))"
         )
 
     elif items_to_lookup:
         status(
-            f"{len(items_to_lookup)} new show(s) "
-            f"require TMDB lookup"
+            library_name,
+            f"[New Shows] {len(items_to_lookup)} "
+            f"show(s) require TMDB lookup"
         )
 
     for item in items_to_lookup:
         show = plex.show(item.id.rating_key)
+
         tmdb_id = show.id.tmdb
         lookup_source = "Plex"
 
@@ -180,6 +215,7 @@ def load_shows_cache(library_name):
                 'imdb_id',
                 'show'
             )
+
             lookup_source = "IMDb"
 
         if not tmdb_id and show.id.tvdb:
@@ -188,12 +224,14 @@ def load_shows_cache(library_name):
                 'tvdb_id',
                 'show'
             )
+
             lookup_source = "TVDB"
 
         if not tmdb_id:
             status(
-                f"Lookup failed: {show.title} "
-                f"(no TMDB ID)"
+                library_name,
+                f"[TMDB Lookup] Failed: "
+                f"{show.title} (no TMDB ID)"
             )
             continue
 
@@ -201,8 +239,9 @@ def load_shows_cache(library_name):
 
         if not details:
             status(
-                f"Lookup failed: {show.title} "
-                f"(no TMDB details)"
+                library_name,
+                f"[TMDB Lookup] Failed: "
+                f"{show.title} (no TMDB details)"
             )
             continue
 
@@ -233,13 +272,19 @@ def load_shows_cache(library_name):
         )
 
         status(
-            f"Lookup: {details.name} "
+            library_name,
+            f"[TMDB Lookup] {details.name} "
             f"({lookup_source}, TMDB {details.show_id})"
         )
 
     if cache_data.get('last_run') != current_date():
         refreshed = 0
         unchanged = 0
+
+        status(
+            library_name,
+            "[Daily Refresh] Starting"
+        )
 
         for key, entry in cached.items():
             if entry.status != 'Returning Series':
@@ -259,30 +304,55 @@ def load_shows_cache(library_name):
             if not tmdb_id:
                 continue
 
+            status(
+                library_name,
+                f"[Daily Refresh] Checking: "
+                f"{entry.title}"
+            )
+
             details = tmdb.show(tmdb_id).details()
 
             if not details:
                 status(
-                    f"Refresh failed: "
+                    library_name,
+                    f"[Daily Refresh] Refresh failed: "
                     f"{entry.title}"
                 )
                 continue
 
             new_status = details.status
+
             new_next_episode = Episode(
                 **to_dict(details.next_episode_to_air)
             )
+
             new_last_episode = Episode(
                 **to_dict(details.last_episode_to_air)
             )
 
-            changed = (
-                entry.status != new_status
-                or entry.next_episode != new_next_episode
-                or entry.last_episode != new_last_episode
-            )
+            changes = []
 
-            if changed:
+            if entry.status != new_status:
+                changes.append(
+                    f"status: "
+                    f"{entry.status} -> {new_status}"
+                )
+
+            if entry.next_episode != new_next_episode:
+                changes.append(
+                    f"next_episode: "
+                    f"{entry.next_episode} -> "
+                    f"{new_next_episode}"
+                )
+
+            if entry.last_episode != new_last_episode:
+                changes.append(
+                    f"last_episode: "
+                    f"{entry.last_episode} -> "
+                    f"{new_last_episode}"
+                )
+
+            if changes:
                 entry.status = new_status
                 entry.next_episode = new_next_episode
                 entry.last_episode = new_last_episode
@@ -290,33 +360,60 @@ def load_shows_cache(library_name):
                 refreshed += 1
 
                 status(
-                    f"Updated: {entry.title}"
+                    library_name,
+                    f"[Daily Refresh] Updated: "
+                    f"{entry.title}"
                 )
+
+                for change in changes:
+                    status(
+                        library_name,
+                        f"[Daily Refresh]   {change}"
+                    )
+
             else:
                 unchanged += 1
 
         cache_data['last_run'] = current_date()
 
         status(
-            f"Daily refresh complete: "
-            f"{refreshed} show(s) updated, "
+            library_name,
+            f"[Daily Refresh] Complete: "
+            f"{refreshed} updated, "
             f"{unchanged} unchanged"
         )
 
     else:
-        status("Daily refresh skipped: already ran today")
+        status(
+            library_name,
+            "[Daily Refresh] Skipped: "
+            "already ran today"
+        )
+
     cache_data['shows'] = {
         key: asdict(value)
         for key, value in cached.items()
     }
 
-    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    os.makedirs(
+        os.path.dirname(cache_path),
+        exist_ok=True
+    )
 
-    with open(cache_path, 'w', encoding='utf-8') as cache_file:
-        json.dump(cache_data, cache_file, indent=2)
+    with open(
+        cache_path,
+        'w',
+        encoding='utf-8'
+    ) as cache_file:
+        json.dump(
+            cache_data,
+            cache_file,
+            indent=2
+        )
 
     status(
-        f"Cache operation complete."
+        library_name,
+        "Cache operation complete"
     )
 
     return cached
