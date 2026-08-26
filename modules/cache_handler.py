@@ -239,6 +239,7 @@ def load_shows_cache(library_name):
 
     if cache_data.get('last_run') != current_date():
         refreshed = 0
+        unchanged = 0
 
         for key, entry in cached.items():
             if entry.status != 'Returning Series':
@@ -267,31 +268,43 @@ def load_shows_cache(library_name):
                 )
                 continue
 
-            entry.status = details.status
-            entry.next_episode = Episode(
+            new_status = details.status
+            new_next_episode = Episode(
                 **to_dict(details.next_episode_to_air)
             )
-            entry.last_episode = Episode(
+            new_last_episode = Episode(
                 **to_dict(details.last_episode_to_air)
             )
 
-            refreshed += 1
-
-            status(
-                f"Updated: {entry.title}"
+            changed = (
+                entry.status != new_status
+                or entry.next_episode != new_next_episode
+                or entry.last_episode != new_last_episode
             )
+
+            if changed:
+                entry.status = new_status
+                entry.next_episode = new_next_episode
+                entry.last_episode = new_last_episode
+
+                refreshed += 1
+
+                status(
+                    f"Updated: {entry.title}"
+                )
+            else:
+                unchanged += 1
 
         cache_data['last_run'] = current_date()
 
-        if refreshed:
-            status(
-                f"Daily refresh complete: "
-                f"{refreshed} show(s) updated"
-            )
+        status(
+            f"Daily refresh complete: "
+            f"{refreshed} show(s) updated, "
+            f"{unchanged} unchanged"
+        )
 
     else:
         status("Daily refresh skipped: already ran today")
-
     cache_data['shows'] = {
         key: asdict(value)
         for key, value in cached.items()
