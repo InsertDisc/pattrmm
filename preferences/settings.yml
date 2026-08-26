@@ -1,16 +1,23 @@
 libraries:
   Anime:
+    - extended_status:
+        returning_soon:
+          enabled: true
+          days_ahead: 180
     - in_history:
+        enabled: true
         range: day
         collection:
           name: This day in history
           sync_mode: sync
     - in_history:
+        enabled: true
         range: week
         collection:
           name: This week in history
           sync_mode: sync
     - in_history:
+        enabled: true
         range: month
         collection:
           name: This month is history
@@ -31,19 +38,27 @@ libraries:
             name: Returning Soon
             sync_mode: sync
           overlay:
-            text: "RETURNING {{MM}}/{{DD}}"
-            text_color: "#FFFFFF"
-            background_color: "#00000066"
+            status_text: "RETURNING {{M}} / {{DD}}"
+            status_font_color: "#FFFFFE"
         airing_next:
           enabled: True
           mode: overlay
           collection:
             name: Currently Airing
+        airing:
+          enabled: True
+        new:
+          enabled: True
+          mode: all
+          collection:          
+            name: New Series
         new_airing_next:
           enabled: True
-          mode: collection
-          collection:          
-            name: Newly Airing
+          mode: all
+          collection:
+            name: New - Airing
+          overlay:
+            status_text: 'New - Airing {{MM}} / {{DD}}'
   Movies:
     - by_size:
         limit: 24
