@@ -319,6 +319,13 @@ def status(section, message):
         f"[Extended Status][{section}] "
         f"{message}"
     )
+
+
+def library_status(library_name, section, message):
+    print(
+        f"[{library_name}][Extended Status][{section}] "
+        f"{message}"
+    )
 ## formatting function end
 
 
@@ -573,33 +580,28 @@ def run():
 ### Returning Soon ###
 ######################
 
-            ## grab returning_soon settings
             settings = extended_status.get(
                 'returning_soon',
                 {}
             )
 
-            ## format the settings with the dataclass
             returning_soon = ReturningSoon(**settings)
 
-            ## skip if this status is disabled
             if returning_soon.enabled:
 
-                status(
+                library_status(
+                    library_name,
                     "Returning Soon",
-                    f"{library_name}: checking"
+                    "checking"
                 )
 
-                ## how far ahead to consider
                 cutoff = (
                     today
                     + timedelta(days=returning_soon.days_ahead)
                 )
 
-                ## initialize a list to hold the results
                 selected = []
 
-                ## loop through cached items to filter
                 for show in cached.values():
 
                     status_value = show.status
@@ -637,30 +639,28 @@ def run():
                     key=lambda item: item.next_episode.air_date
                 )
 
-                status(
+                library_status(
+                    library_name,
                     "Returning Soon",
-                    f"{library_name}: "
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    status(
+                    library_status(
+                        library_name,
                         "Returning Soon",
                         f"  {item.title} "
                         f"({item.next_episode.air_date})"
                     )
 
-                ## Check status mode for collection output.
                 write_collection = (
                     returning_soon.mode in ('all', 'collection')
                 )
 
-                ## Check status mode for overlay output.
                 write_overlay = (
                     returning_soon.mode in ('all', 'overlay')
                 )
 
-                ## Write collection file.
                 if write_collection:
                     count = write_collection_files(
                         selected_list=selected,
@@ -670,14 +670,13 @@ def run():
                         collection=returning_soon.collection
                     )
 
-                    status(
+                    library_status(
+                        library_name,
                         "Returning Soon",
                         f"Collection files written: "
                         f"{count} title(s)"
                     )
 
-                ## Build dated overlays and add them to the
-                ## shared template overlay dictionary.
                 if write_overlay:
                     dated_overlays = build_date_overlays(
                         selected=selected,
@@ -702,9 +701,10 @@ def run():
 
             if new_airing_next.enabled:
 
-                status(
+                library_status(
+                    library_name,
                     "New - Airing Next",
-                    f"{library_name}: checking"
+                    "checking"
                 )
 
                 cutoff = (
@@ -743,14 +743,15 @@ def run():
                     key=lambda item: item.next_episode.air_date
                 )
 
-                status(
+                library_status(
+                    library_name,
                     "New - Airing Next",
-                    f"{library_name}: "
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    status(
+                    library_status(
+                        library_name,
                         "New - Airing Next",
                         f"  {item.title} "
                         f"({item.next_episode.air_date})"
@@ -773,7 +774,8 @@ def run():
                         collection=new_airing_next.collection
                     )
 
-                    status(
+                    library_status(
+                        library_name,
                         "New - Airing Next",
                         f"Collection files written: "
                         f"{count} title(s)"
@@ -803,9 +805,10 @@ def run():
 
             if new_status.enabled:
 
-                status(
+                library_status(
+                    library_name,
                     "New",
-                    f"{library_name}: checking"
+                    "checking"
                 )
 
                 cutoff = (
@@ -840,14 +843,15 @@ def run():
                     key=lambda item: item.dates.first_air_date
                 )
 
-                status(
+                library_status(
+                    library_name,
                     "New",
-                    f"{library_name}: "
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    status(
+                    library_status(
+                        library_name,
                         "New",
                         f"  {item.title}"
                     )
@@ -869,7 +873,8 @@ def run():
                         collection=new_status.collection
                     )
 
-                    status(
+                    library_status(
+                        library_name,
                         "New",
                         f"Collection files written: "
                         f"{count} title(s)"
@@ -890,25 +895,21 @@ def run():
 ### Airing Next ###
 ###################
 
-            ## Airing Next
-            ## grab airing_next settings
             settings = extended_status.get(
                 'airing_next',
                 {}
             )
 
-            ## format the settings with the dataclass
             airing_next = Airing(**settings)
 
-            ## skip if this status is disabled
             if airing_next.enabled:
 
-                status(
+                library_status(
+                    library_name,
                     "Airing Next",
-                    f"{library_name}: checking"
+                    "checking"
                 )
 
-                ## get currently airing shows
                 selected = get_airing_shows(
                     cached,
                     today,
@@ -916,25 +917,24 @@ def run():
                     airing_next.days_behind
                 )
 
-                status(
+                library_status(
+                    library_name,
                     "Airing Next",
-                    f"{library_name}: "
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    status(
+                    library_status(
+                        library_name,
                         "Airing Next",
                         f"  {item.title} "
                         f"({item.next_episode.air_date})"
                     )
 
-                ## Check status mode for collection output.
                 write_collection = (
                     airing_next.mode in ('all', 'collection')
                 )
 
-                ## Check status mode for overlay output.
                 write_overlay = (
                     airing_next.mode in ('all', 'overlay')
                 )
@@ -948,13 +948,13 @@ def run():
                         collection=airing_next.collection
                     )
 
-                    status(
+                    library_status(
+                        library_name,
                         "Airing Next",
                         f"Collection files written: "
                         f"{count} title(s)"
                     )
 
-                ## Airing Next uses the dated overlays.
                 if write_overlay:
                     dated_overlays = build_date_overlays(
                         selected=selected,
@@ -970,24 +970,21 @@ def run():
 ### Airing ###
 ##############
 
-            ## grab airing settings
             settings = extended_status.get(
                 'airing',
                 {}
             )
 
-            ## format the settings with the dataclass
             airing = Airing(**settings)
 
-            ## skip if this status is disabled
             if airing.enabled:
 
-                status(
+                library_status(
+                    library_name,
                     "Airing",
-                    f"{library_name}: checking"
+                    "checking"
                 )
 
-                ## get currently airing shows
                 selected = get_airing_shows(
                     cached,
                     today,
@@ -995,25 +992,24 @@ def run():
                     airing.days_behind
                 )
 
-                status(
+                library_status(
+                    library_name,
                     "Airing",
-                    f"{library_name}: "
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    status(
+                    library_status(
+                        library_name,
                         "Airing",
                         f"  {item.title} "
                         f"({item.next_episode.air_date})"
                     )
 
-                ## Check status mode for collection output.
                 write_collection = (
                     airing.mode in ('all', 'collection')
                 )
 
-                ## Check status mode for overlay output.
                 write_overlay = (
                     airing.mode in ('all', 'overlay')
                 )
@@ -1027,17 +1023,14 @@ def run():
                         collection=airing.collection
                     )
 
-                    status(
+                    library_status(
+                        library_name,
                         "Airing",
                         f"Collection files written: "
                         f"{count} title(s)"
                     )
 
                 if write_overlay:
-
-                    ## Use the general status overlay builder
-                    ## with no dates.
-
                     overlays.update(
                         build_overlays(
                             selected=selected,
@@ -1064,10 +1057,10 @@ def run():
                 )
             )
 
-            status(
+            library_status(
+                library_name,
                 "Core",
-                f"Overlay written: "
-                f"{count} overlay(s)"
+                f"Overlay written: {count} overlay(s)"
             )
 
     status(
