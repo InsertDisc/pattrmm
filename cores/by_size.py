@@ -1,13 +1,12 @@
 from dataclasses import dataclass
-import os
-
-from ruamel.yaml import YAML
 
 from modules.plex import PlexApi
-from modules.utilities import clean_string, get_core_settings, path_constructor
+from modules.utilities import (
+    clean_string,
+    get_core_settings,
+    write_collection_files
+)
 
-yaml = YAML()
-yaml.preserve_quotes = True
 plex = PlexApi()
 
 
@@ -19,6 +18,15 @@ class BySize:
     limit: int
     collection_dir: str
     collection: dict
+
+
+## Just formatting some info
+def status(library_name, message):
+    print(
+        f"[{library_name}][By Size] "
+        f"{message}"
+    )
+## formatting function end
 
 
 def run():
@@ -35,7 +43,11 @@ def run():
         }
     }
 
-    core_settings = get_core_settings('by_size', 1, default_settings)
+    core_settings = get_core_settings(
+        'by_size',
+        1,
+        default_settings
+    )
 
     for library_name, instances in core_settings.items():
         library = plex.library(library_name)
@@ -47,6 +59,11 @@ def run():
 
         for settings in instances:
             by_size = BySize(**settings)
+
+            status(
+                library_name,
+                "checking"
+            )
 
             field, direction = by_size.order_by.split('.', 1)
             reverse = direction == 'desc'
@@ -63,6 +80,12 @@ def run():
                 )
 
             items = []
+
+            if library.type == 'show':
+                status(
+                    library_name,
+                    "calculating show sizes"
+                )
 
             for item in media_items:
                 if library.type == 'show':
@@ -114,73 +137,29 @@ def run():
 
             items = items[:by_size.limit]
 
-            ids = []
+            selected = [
+                item
+                for item, size in items
+            ]
 
-            for item, size in items:
-                if item.id.guid and item.id.guid != 'null':
-                    ids.append(
-                        item.id.guid
-                    )
+            status(
+                library_name,
+                f"{len(selected)} title(s)"
+            )
 
             library_slug = clean_string(library_name)
 
-            text_file = path_constructor(
-                by_size.collection_dir,
-                f'{library_slug}-by-size.txt'
+            count = write_collection_files(
+                selected_list=selected,
+                library_slug=library_slug,
+                description='by-size',
+                collection_dir=by_size.collection_dir,
+                collection=by_size.collection
             )
 
-            collection_file = path_constructor(
-                by_size.collection_dir,
-                f'{library_slug}-by-size.yml'
-            )
-
-            os.makedirs(
-                os.path.dirname(text_file),
-                exist_ok=True
-            )
-
-            with open(
-                text_file,
-                'w',
-                encoding='utf-8'
-            ) as output:
-                output.write(
-                    '\n'.join(ids)
-                )
-
-                if ids:
-                    output.write('\n')
-
-            collection = dict(
-                by_size.collection
-            )
-
-            collection.pop('trakt_list', None)
-            collection.pop('trakt_list_url', None)
-            collection.pop('name')
-
-            collection['text_file'] = (
-                f'config/{by_size.collection_dir}'
-                f'{library_slug}-by-size.txt'
-            )
-
-            with open(
-                collection_file,
-                'w',
-                encoding='utf-8'
-            ) as output:
-                yaml.dump(
-                    {
-                        'collections': {
-                            by_size.collection['name']: collection
-                        }
-                    },
-                    output
-                )
-
-            print(
-                f"{library_name}: By Size -> "
-                f"{len(ids)} titles"
+            status(
+                library_name,
+                f"Collection files written: {count} title(s)"
             )
 
 
