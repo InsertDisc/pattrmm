@@ -1,7 +1,7 @@
+import json
 import os
+from dataclasses import asdict, dataclass
 from datetime import date, datetime
-
-from ruamel.yaml import YAML
 
 from modules.plex import PlexApi
 from modules.tmdb import TmdbApi
@@ -12,14 +12,52 @@ from modules.utilities import (
     to_dict,
 )
 
-yaml = YAML()
-yaml.preserve_quotes = True
-
 plex = PlexApi()
 tmdb = TmdbApi()
 config = ConfigLoader()
 
 cache_expiry = config.settings_data['settings']['cache_expiry']
+
+# Cached show data is returned as dataclasses.
+# Access show data via attributes:
+# show.ids.guid, show.title, show.dates.added,
+# show.status, show.next_episode.air_date,
+# show.next_episode.episode_number
+
+@dataclass
+class Episode:
+    id: int | None = None
+    name: str | None = None
+    air_date: str | None = None
+    episode_number: int | None = None
+    season_number: int | None = None
+    episode_type: str | None = None
+
+
+@dataclass
+class ShowIds:
+    guid: str | None = None
+    tmdb: str | None = None
+    tvdb: str | None = None
+    imdb: str | None = None
+
+
+@dataclass
+class ShowDates:
+    year: int | None = None
+    added: str | None = None
+    first_air_date: str | None = None
+    last_air_date: str | None = None
+
+
+@dataclass
+class Show:
+    title: str
+    status: str
+    ids: ShowIds
+    dates: ShowDates
+    next_episode: Episode
+    last_episode: Episode
 
 
 def status(message):
@@ -29,34 +67,42 @@ def status(message):
 def load_shows_cache(library_name):
     status(f"Loading {library_name} cache...")
 
+    status(f"Gathering Plex data for {library_name}")
     library = plex.library(library_name)
     library_slug = clean_string(library_name)
-    cache_path = f'data/cache/{library_slug}_cache.yaml'
+    cache_path = f'data/cache/{library_slug}_cache.json'
 
     media_items = library.contents()
 
     status(f"{len(media_items)} show(s) found in Plex")
 
     cache_data = {
-        'full_sync': current_date(),
-        'shows': []
+        'full_sync': None,
+        'shows': {}
     }
 
     if os.path.exists(cache_path):
-        with open(
-            cache_path,
-            'r',
-            encoding='utf-8'
-        ) as cache_file:
-            cache_data = yaml.load(cache_file) or cache_data
+        with open(cache_path, 'r', encoding='utf-8') as cache_file:
+            try:
+                cache_data = json.load(cache_file) or cache_data
+            except json.JSONDecodeError:
+                status("Invalid cache found. Full sync required.")
     else:
         status("No existing cache found. Full sync required.")
 
     cached = {}
 
-    for entry in cache_data.get('shows', []):
-        if isinstance(entry, dict):
-            cached.update(entry)
+    for key, entry in cache_data.get('shows', {}).items():
+        cached[key] = Show(
+            title=entry.get('title', 'Unknown'),
+            status=entry.get('status', 'Unknown'),
+            ids=ShowIds(**entry.get('ids', {})),
+            dates=ShowDates(**entry.get('dates', {})),
+            next_episode=Episode(**(entry.get('next_episode') or {})),
+            last_episode=Episode(**(entry.get('last_episode') or {}))
+        )
+
+    status(f"{len(cached)} show(s) in cache")
 
     plex_keys = {
         str(item.id.rating_key)
@@ -110,6 +156,7 @@ def load_shows_cache(library_name):
     if full_sync:
         cached = {}
         cache_data['full_sync'] = current_date()
+        cache_data['last_run'] = current_date()
 
         status(
             f"Performing full TMDB refresh "
@@ -159,43 +206,45 @@ def load_shows_cache(library_name):
             )
             continue
 
-        cached[str(item.id.rating_key)] = {
-            'title': details.name,
-            'status': details.status,
-            'ids': {
-                'guid': show.id.guid,
-                'tmdb': str(details.show_id),
-                'tvdb': show.id.tvdb,
-                'imdb': show.id.imdb
-            },
-            'dates': {
-                'year': item.date.year,
-                'added': item.date.added_date,
-                'available': item.date.available_date or details.first_air_date
-            },
-            'next_episode': to_dict(
-                details.next_episode_to_air
+        cached[str(item.id.rating_key)] = Show(
+            title=details.name,
+            status=details.status,
+            ids=ShowIds(
+                guid=show.id.guid,
+                tmdb=str(details.show_id),
+                tvdb=show.id.tvdb,
+                imdb=show.id.imdb
             ),
-            'last_episode': to_dict(
-                details.last_episode_to_air
+            dates=ShowDates(
+                year=item.date.year,
+                added=item.date.added_date,
+                first_air_date=(
+                    details.first_air_date
+                    or item.date.available_date
+                ),
+                last_air_date=details.last_air_date
+            ),
+            next_episode=Episode(
+                **to_dict(details.next_episode_to_air)
+            ),
+            last_episode=Episode(
+                **to_dict(details.last_episode_to_air)
             )
-        }
+        )
 
         status(
             f"Lookup: {details.name} "
-            f"(TMDB {details.show_id}, {lookup_source})"
+            f"({lookup_source}, TMDB {details.show_id})"
         )
 
     if cache_data.get('last_run') != current_date():
         refreshed = 0
 
         for key, entry in cached.items():
-            if entry.get('status') != 'Returning Series':
+            if entry.status != 'Returning Series':
                 continue
 
-            next_air = (
-                entry.get('next_episode') or {}
-            ).get('air_date')
+            next_air = entry.next_episode.air_date
 
             if (
                 next_air
@@ -204,9 +253,7 @@ def load_shows_cache(library_name):
             ):
                 continue
 
-            tmdb_id = (
-                entry.get('ids') or {}
-            ).get('tmdb')
+            tmdb_id = entry.ids.tmdb
 
             if not tmdb_id:
                 continue
@@ -216,22 +263,22 @@ def load_shows_cache(library_name):
             if not details:
                 status(
                     f"Refresh failed: "
-                    f"{entry.get('title', 'Unknown')}"
+                    f"{entry.title}"
                 )
                 continue
 
-            entry['status'] = details.status
-            entry['next_episode'] = to_dict(
-                details.next_episode_to_air
+            entry.status = details.status
+            entry.next_episode = Episode(
+                **to_dict(details.next_episode_to_air)
             )
-            entry['last_episode'] = to_dict(
-                details.last_episode_to_air
+            entry.last_episode = Episode(
+                **to_dict(details.last_episode_to_air)
             )
 
             refreshed += 1
 
             status(
-                f"Updated: {entry.get('title', 'Unknown')}"
+                f"Updated: {entry.title}"
             )
 
         cache_data['last_run'] = current_date()
@@ -242,34 +289,21 @@ def load_shows_cache(library_name):
                 f"{refreshed} show(s) updated"
             )
 
-    cache_data['full_sync'] = cache_data.get(
-        'full_sync',
-        current_date()
-    )
+    else:
+        status("Daily refresh skipped: already ran today")
 
-    cache_data['shows'] = [
-        {key: value}
+    cache_data['shows'] = {
+        key: asdict(value)
         for key, value in cached.items()
-    ]
+    }
 
-    os.makedirs(
-        os.path.dirname(cache_path),
-        exist_ok=True
-    )
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
 
-    with open(
-        cache_path,
-        'w',
-        encoding='utf-8'
-    ) as cache_file:
-        yaml.dump(
-            cache_data,
-            cache_file
-        )
+    with open(cache_path, 'w', encoding='utf-8') as cache_file:
+        json.dump(cache_data, cache_file, indent=2)
 
     status(
-        f"Cache complete: {len(cached)} show(s) "
-        f"→ {cache_path}"
+        f"Cache operation complete."
     )
 
     return cached
