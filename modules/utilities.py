@@ -233,3 +233,117 @@ def file_exists(path):
             return False
     
     return True
+
+def format_date_text(text, date_value):
+    date_object = datetime.strptime(
+        date_value,
+        '%Y-%m-%d'
+    )
+
+    return (
+        text
+        .replace('{{MMMM}}', date_object.strftime('%B'))
+        .replace('{{DDDD}}', date_object.strftime('%A'))
+        .replace('{{YYYY}}', date_object.strftime('%Y'))
+        .replace('{{YYYY}}', date_object.strftime('%Y'))
+        .replace('{{MM}}', date_object.strftime('%m'))
+        .replace('{{M}}', str(date_object.month))
+        .replace('{{DD}}', date_object.strftime('%d'))
+        .replace('{{D}}', str(date_object.day))
+        .replace('{{YY}}', date_object.strftime('%y'))
+    )
+
+def write_collection_files(
+    selected_list: list,      # List of selected Plex show objects
+    library_slug: str,        # Cleaned library name used in file names
+    description: str,         # Description name used in collection/file names
+    collection_dir: str,      # Directory where collection files are written
+    collection: dict,         # Collection settings
+) -> int:
+    collection_file = path_constructor(
+        collection_dir,
+        f'{library_slug}-{description}-collection.yml'
+    )
+
+    text_file = path_constructor(
+        collection_dir,
+        f'{library_slug}-{description}-collection.txt'
+    )
+
+    os.makedirs(
+        os.path.dirname(collection_file),
+        exist_ok=True
+    )
+
+    with open(
+        text_file,
+        'w',
+        encoding='utf-8'
+    ) as output:
+        output.write(
+            '\n'.join(
+                f'plex_id:{item.ids.guid}'
+                for item in selected_list
+            )
+        )
+
+        if selected_list:
+            output.write('\n')
+
+    collection_data = dict(collection)
+
+    collection_data.pop('name', None)
+    collection_data.pop('trakt_list', None)
+    collection_data.pop('trakt_list_url', None)
+
+    collection_data['text_file'] = (
+        f'config/{collection_dir}'
+        f'{library_slug}-{description}-collection.txt'
+    )
+
+    with open(
+        collection_file,
+        'w',
+        encoding='utf-8'
+    ) as output:
+        yaml.dump(
+            {
+                'collections': {
+                    collection['name']: collection_data
+                }
+            },
+            output
+        )
+
+    return len(selected_list)
+## end collection file write function
+
+
+def write_overlay_file(
+    overlay_data: dict,         # Complete overlay document including 'overlays'
+    library_slug: str,          # Cleaned library name used in the file name
+    description: str,           # Description used in the file name
+    overlay_dir: str,           # Directory where the overlay file is written
+) -> int:
+    overlay_file = path_constructor(
+        overlay_dir,
+        f'{library_slug}-{description}-overlay.yml'
+    )
+
+    os.makedirs(
+        os.path.dirname(overlay_file),
+        exist_ok=True
+    )
+
+    with open(
+        overlay_file,
+        'w',
+        encoding='utf-8'
+    ) as output:
+        yaml.dump(
+            overlay_data,
+            output
+        )
+
+    return len(overlay_data.get('overlays', {}))
+## end overlay file write function
