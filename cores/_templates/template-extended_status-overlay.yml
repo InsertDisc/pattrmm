@@ -1,0 +1,58 @@
+templates:
+  # {library} STATUS BANNER
+  {library}_Status_Banner:
+    sync_mode: sync
+    builder_level: show
+    overlay:
+      name: backdrop
+      horizontal_offset: <<banner_horizontal_offset>>
+      horizontal_align: <<banner_horizontal_align>>
+      vertical_offset: <<banner_vertical_offset>>
+      vertical_align: <<banner_vertical_align>>
+      group: <<banner_group>>
+      weight: <<weight>>
+      back_color: <<banner_back_color>>
+      back_width: <<banner_back_width>>
+      back_height: <<banner_back_height>>
+
+    default:
+      banner_group: banner_backdrop
+      banner_horizontal_align: center
+      banner_vertical_align: top
+      banner_horizontal_offset: 0
+      banner_vertical_offset: 0
+      banner_back_width: 1000
+      banner_back_height: 90
+
+  # {library} STATUS
+  {library}_Status:
+    sync_mode: sync
+    builder_level: show
+    overlay:
+      name: text(<<status_text>>)
+      horizontal_offset: <<status_horizontal_offset>>
+      horizontal_align: <<status_horizontal_align>>
+      vertical_offset: <<status_vertical_offset>>
+      vertical_align: <<status_vertical_align>>
+      font: <<status_font>>
+      font_size: <<status_font_size>>
+      font_color: <<status_font_color>>
+      group: <<status_group>>
+      weight: <<weight>>
+      back_color: <<status_back_color>>
+      back_width: <<status_back_width>>
+      back_height: <<status_back_height>>
+      back_align: <<status_back_align>>
+
+    default:
+      status_font: config/fonts/Juventus-Fans-Bold.ttf
+      status_group: banner_text
+      status_horizontal_align: center
+      status_vertical_align: top
+      status_horizontal_offset: 0
+      status_vertical_offset: 10
+      status_font_size: 70
+      status_back_color: "#00000000"
+      status_back_align: center
+      status_back_height: 90
+      status_back_width: 1000
