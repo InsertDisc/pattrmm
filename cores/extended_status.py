@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import os
 
 from ruamel.yaml import YAML
@@ -11,13 +11,13 @@ from modules.utilities import (
     clean_string,
     current_date,
     get_core_settings,
-    path_constructor,
-    to_dict,
+    write_collection_files,
+    write_overlay_file,
+    format_date_text
 )
 
 yaml = YAML()
 yaml.preserve_quotes = True
-today = date.today()
 plex = PlexApi()
 tmdb = TmdbApi()
 
@@ -32,11 +32,23 @@ class ReturningSoon:
     collection: dict
     overlay: dict
 
+
 @dataclass
 class NewStatus:
     enabled: bool
     mode: str
     considered_new: str
+    collection_dir: str
+    overlay_dir: str
+    collection: dict
+    overlay: dict
+
+@dataclass
+class Airing:
+    enabled: bool
+    mode: str
+    days_ahead: int
+    days_behind: int
     collection_dir: str
     overlay_dir: str
     collection: dict
@@ -52,12 +64,269 @@ class GeneralStatus:
     overlay: dict
 
 
+## Copy and format template file for each library
+def ensure_overlay_template(
+    library_name: str,
+    template_file: str,
+    source_file: str
+):
+    if os.path.exists(template_file):
+        return
+
+    os.makedirs(
+        os.path.dirname(template_file),
+        exist_ok=True
+    )
+
+    with open(
+        source_file,
+        'r',
+        encoding='utf-8'
+    ) as source:
+        template = source.read()
+
+    template = template.replace(
+        '{library}',
+        library_name
+    )
+
+    with open(
+        template_file,
+        'w',
+        encoding='utf-8'
+    ) as output:
+        output.write(template)
+## end template copy
+
+
+## Universal status function to build and format all 'dated' overlays.
+def build_date_overlays(
+    selected,
+    library_slug,
+    status_name,
+    overlay
+):
+    overlays = {}
+
+    for item in selected:
+        air_date = item.next_episode.air_date
+
+        banner_key = (
+            f'{library_slug}_{status_name}_{air_date}_Banner'
+        )
+
+        status_key = (
+            f'{library_slug}_{status_name}_{air_date}'
+        )
+
+        if banner_key not in overlays:
+            status_settings = {}
+            banner_settings = {}
+
+            for key, value in overlay.items():
+
+            ## keep the status_text from getting dumped as it gets transformed
+            ## dumping the key diredtly results in the original text with
+            ## date placeholders being inserted as well
+                
+                if key.startswith('status_') and key != 'status_text':
+                    status_settings[key] = value
+                elif key.startswith('banner_'):
+                    banner_settings[key] = value
+
+            status_settings['status_text'] = format_date_text(
+                overlay['status_text'],
+                air_date
+            )
+
+            overlays[banner_key] = {
+                'template': {
+                    'name': f'{library_slug}_Status_Banner',
+                    'weight': overlay['weight'],
+                    **banner_settings,
+                },
+                'plex_id': []
+            }
+
+            overlays[status_key] = {
+                'template': {
+                    'name': f'{library_slug}_Status',
+                    'weight': overlay['weight'],
+                    **status_settings,
+                },
+                'plex_id': []
+            }
+
+        overlays[banner_key]['plex_id'].append(
+            item.ids.guid
+        )
+
+        overlays[status_key]['plex_id'].append(
+            item.ids.guid
+        )
+
+    return overlays
+## end of dated overlay builder
+
+## build non dated overlay list ##
+def build_overlays(
+    selected,
+    library_slug,
+    status_name,
+    overlay
+):
+    overlays = {}
+
+    status_settings = {}
+    banner_settings = {}
+
+    for key, value in overlay.items():
+
+        if key.startswith('status_'):
+            status_settings[key] = value
+        elif key.startswith('banner_'):
+            banner_settings[key] = value
+
+    banner_key = (
+        f'{library_slug}_{status_name}_Banner'
+    )
+
+    status_key = (
+        f'{library_slug}_{status_name}'
+    )
+
+    overlays[banner_key] = {
+        'template': {
+            'name': f'{library_slug}_Status_Banner',
+            'weight': overlay['weight'],
+            **banner_settings,
+        },
+        'plex_id': []
+    }
+
+    overlays[status_key] = {
+        'template': {
+            'name': f'{library_slug}_Status',
+            'weight': overlay['weight'],
+            **status_settings,
+        },
+        'plex_id': []
+    }
+
+    for item in selected:
+        overlays[banner_key]['plex_id'].append(
+            item.ids.guid
+        )
+
+        overlays[status_key]['plex_id'].append(
+            item.ids.guid
+        )
+
+    return overlays
+
+## Get shows that are considered newly airing
+def get_new_shows(cached, today, considered_new):
+    cutoff = (
+        today - timedelta(days=considered_new)
+    ).isoformat()
+
+    selected = []
+
+    for show in cached.values():
+
+        first_air = show.dates.first_air_date
+        plex_id = show.ids.guid
+
+        if not plex_id:
+            continue
+
+        if not first_air or first_air == 'null':
+            continue
+
+        if first_air < cutoff:
+            continue
+
+        if first_air > today.isoformat():
+            continue
+
+        selected.append(show)
+
+    selected.sort(
+        key=lambda item: item.dates.first_air_date
+    )
+
+    return selected
+
+## Get shows that are currently airing.
+def get_airing_shows(
+    cached,
+    today,
+    days_ahead,
+    days_behind
+):
+    last_cutoff = (
+        today - timedelta(days=days_behind)
+    ).isoformat()
+
+    next_cutoff = (
+        today + timedelta(days=days_ahead)
+    ).isoformat()
+
+    selected = []
+
+    for show in cached.values():
+
+        next_air = show.next_episode.air_date
+        last_air = show.last_episode.air_date
+        plex_id = show.ids.guid
+
+        if not plex_id:
+            continue
+
+        if not next_air or next_air == 'null':
+            continue
+
+        if not last_air or last_air == 'null':
+            continue
+
+        ## Last episode must have aired within
+        ## the previous N days, including today.
+        if last_air < last_cutoff:
+            continue
+
+        ## Next episode must air within the next
+        ## N days, including today.
+        if next_air < current_date():
+            continue
+
+        if next_air > next_cutoff:
+            continue
+
+        selected.append(show)
+
+    selected.sort(
+        key=lambda item: item.next_episode.air_date
+    )
+
+    return selected
+## end airing filter
+
+## Just formatting some info
 def status(message):
     print(f"[Extended Status] {message}")
+## formatting function end
 
 
+## Main logic
 def run():
+    today = date.today()
     status("Starting Extended Status...")
+
+    ## Define default settings for each status
+    ## Dated overlays can use {{MM}} -> 04, {{M}} -> 4, {{MMMM}} -> April
+    ## {{DD}} -> 09, {{D}} -> 9, {{DDDD}} -> Tuesday
+    ## {{YYYY}} -> 2026, {{YY}} -> 26
+    ## If built with the build_date_overlay function
 
     default_settings = {
         'returning_soon': {
@@ -72,17 +341,18 @@ def run():
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'RETURNING {{MM/DD}}',
-                'group': 'returning_soon',
+                'status_text': 'RETURNING {{MM}}/{{DD}}',
                 'weight': 35,
-                'back_color': '#81007F',
-                'color': '#FFFFFF',
+                'banner_back_color': '#81007F',
+                'status_font_color': '#FFFFFF',
             },
         },
 
         'airing': {
             'enabled': False,
             'mode': 'all',
+            'days_ahead': 14,
+            'days_behind':14,
             'collection_dir': 'collections/',
             'overlay_dir': 'overlays/',
             'collection': {
@@ -91,17 +361,18 @@ def run():
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'AIRING',
-                'group': 'airing',
+                'status_text': 'AIRING',
                 'weight': 50,
-                'back_color': '#343399',
-                'color': '#FFFFFF',
+                'banner_back_color': '#343399',
+                'status_font_color': '#FFFFFF',
             },
         },
 
         'airing_next': {
             'enabled': False,
             'mode': 'all',
+            'days_ahead': 14,
+            'days_behind': 14,
             'collection_dir': 'collections/',
             'overlay_dir': 'overlays/',
             'collection': {
@@ -110,11 +381,10 @@ def run():
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'AIRING {{MM}}/{{DD}}',
-                'group': 'airing_next',
+                'status_text': 'AIRING {{MM}}/{{DD}}',
                 'weight': 55,
-                'back_color': '#343399',
-                'color': '#FFFFFF',
+                'banner_back_color': '#343399',
+                'status_font_color': '#FFFFFF',
             },
         },
 
@@ -130,11 +400,11 @@ def run():
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'N E W  S E R I E S',
-                'group': 'new',
+                'status_text': 'NEW',
+                'group': 'new_next_air',
                 'weight': 60,
-                'back_color': '#008001',
-                'color': '#FFFFFF',
+                'banner_back_color': '#008001',
+                'status_font_color': '#FFFFFF',
             },
         },
 
@@ -145,16 +415,16 @@ def run():
             'collection_dir': 'collections/',
             'overlay_dir': 'overlays/',
             'collection': {
-                'name': 'New - Airing {{MM}}/{{DD}}',
+                'name': 'New - Airing',
                 'collection_order': 'custom',
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'NEW · AIRING',
+                'status_text': 'NEW - AIRING {{MM}} / {{DD}}',
                 'group': 'new_next_air',
                 'weight': 65,
-                'back_color': '#008001',
-                'color': '#FFFFFF',
+                'banner_back_color': '#008001',
+                'status_font_color': '#FFFFFF',
             },
         },
 
@@ -234,19 +504,67 @@ def run():
                 'color': '#FFFFFF',
             },
         },
-}
+    }
 
     status("Loading Extended Status settings")
 
-    core_settings = get_core_settings('extended_status', 1, default_settings)
+    core_settings = get_core_settings(
+        'extended_status',
+        1,
+        default_settings
+    )
 
-    status(f"Found {len(core_settings)} library configuration(s)")
+    status(
+        f"Found {len(core_settings)} library configuration(s)"
+    )
 
     for library_name, instances in core_settings.items():
         status(f"Processing: {library_name}")
 
+        ## load stored dates and update cache for this library
+        cached = load_cache(library_name)
+
+        ## get a clean library name for files
+        library_slug = clean_string(library_name)
+
+        ## define and check template files for overlays
+        template_file = (
+            f'data/templates/'
+            f'{library_slug}-extended_status-template.yml'
+        )
+
+        source_file = (
+            'cores/_templates/'
+            'template-extended_status-overlay.yml'
+        )
+
+        ensure_overlay_template(
+            library_name=library_name,
+            template_file=template_file,
+            source_file=source_file
+        )
+
+        ## Load the overlay template once for this library.
+        with open(
+            template_file,
+            'r',
+            encoding='utf-8'
+        ) as template:
+            overlay_data = yaml.load(template) or {}
+
+        overlays = overlay_data.setdefault(
+            'overlays',
+            {}
+        )
+
+        # Check the library type
+        status(
+            f"Checking Library type for ->{library_name}<-"
+        )
+
         library = plex.library(library_name)
 
+        ## skip if not a 'show' library
         if library.type != 'show':
             status(
                 f"Skipping {library_name}: "
@@ -254,240 +572,483 @@ def run():
             )
             continue
 
+        ## loop through extended_status settings instance
         for extended_status in instances:
+
+######################
+### Returning Soon ###
+######################
+
+            ## grab returning_soon settings
             settings = extended_status.get(
                 'returning_soon',
                 {}
             )
 
+            ## format the settings with the dataclass
             returning_soon = ReturningSoon(**settings)
 
-            if not returning_soon.enabled:
-                continue
+            ## skip if this status is disabled
+            if returning_soon.enabled:
 
-            library_slug = clean_string(library_name)
+                ## how far ahead to consider
+                cutoff = (
+                    today
+                    + timedelta(days=returning_soon.days_ahead)
+                )
 
-            cutoff = (
-                today
-                + timedelta(days=returning_soon.days_ahead)
+                ## initialize a list to hold the results
+                selected = []
+
+                ## loop through cached items to filter
+                for show in cached.values():
+
+                    status_value = show.status
+
+                    if status_value != 'Returning Series':
+                        continue
+
+                    next_air = show.next_episode.air_date
+                    last_air = show.last_episode.air_date
+                    plex_id = show.ids.guid
+
+                    if not plex_id:
+                        continue
+
+                    if not next_air or next_air == 'null':
+                        continue
+
+                    if next_air <= current_date():
+                        continue
+
+                    if next_air > cutoff.isoformat():
+                        continue
+
+                    if (
+                        last_air
+                        and last_air >= (
+                            today - timedelta(days=14)
+                        ).isoformat()
+                    ):
+                        continue
+
+                    selected.append(show)
+
+                selected.sort(
+                    key=lambda item: item.next_episode.air_date
+                )
+
+                status(
+                    f"{library_name}: "
+                    f"{len(selected)} Returning Soon title(s)"
+                )
+
+                for item in selected:
+                    status(
+                        f"  {item.title} "
+                        f"({item.next_episode.air_date})"
+                    )
+
+                ## Check status mode for collection output.
+                write_collection = (
+                    returning_soon.mode in ('all', 'collection')
+                )
+
+                ## Check status mode for overlay output.
+                write_overlay = (
+                    returning_soon.mode in ('all', 'overlay')
+                )
+
+                ## Write collection file.
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='returning-soon',
+                        collection_dir=returning_soon.collection_dir,
+                        collection=returning_soon.collection
+                    )
+
+                    status(
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                ## Build dated overlays and add them to the
+                ## shared template overlay dictionary.
+                if write_overlay:
+                    dated_overlays = build_date_overlays(
+                        selected=selected,
+                        library_slug=library_slug,
+                        status_name='Returning',
+                        overlay=returning_soon.overlay
+                    )
+
+                    overlays.update(dated_overlays)
+
+                print(
+                    f"{library_name}: Returning Soon -> "
+                    f"{len(selected)} titles"
+                )
+
+#######################
+### New Airing Next ###
+#######################
+
+            settings = extended_status.get(
+                'new_airing_next',
+                {}
             )
 
-            selected = []
-            cached = load_cache(library_name)
+            new_airing_next = NewStatus(**settings)
 
-            for entry in cached.values():
-                title = entry.get('title', 'Unknown')
+            if new_airing_next.enabled:
 
-                status_value = entry.get('status')
+                cutoff = (
+                    today
+                    - timedelta(days=new_airing_next.considered_new)
+                ).isoformat()
 
-                if status_value != 'Returning Series':
-                    continue
+                selected = []
 
-                next_air = (
-                    entry.get('next_episode') or {}
-                ).get('air_date')
+                for show in cached.values():
 
-                last_air = (
-                    entry.get('last_episode') or {}
-                ).get('air_date')
+                    first_air = show.dates.first_air_date
+                    next_air = show.next_episode.air_date
+                    plex_id = show.ids.guid
 
-                tmdb_id = (
-                    entry.get('ids') or {}
-                ).get('tmdb')
+                    if not plex_id:
+                        continue
 
-                if not tmdb_id:
-                    continue
+                    if not first_air or first_air == 'null':
+                        continue
 
-                if not next_air or next_air == 'null':
-                    continue
+                    if first_air < cutoff:
+                        continue
 
-                if next_air <= current_date():
-                    continue
+                    if first_air > today.isoformat():
+                        continue
 
-                if next_air > cutoff.isoformat():
-                    continue
+                    if not next_air or next_air == 'null':
+                        continue
 
-                if (
-                    last_air
-                    and last_air >= (
-                        today - timedelta(days=14)
-                    ).isoformat()
-                ):
-                    continue
+                    selected.append(show)
 
-                selected.append(entry)
+                selected.sort(
+                    key=lambda item: item.next_episode.air_date
+                )
 
-            selected.sort(
-                key=lambda item: item['next_episode']['air_date']
+                status(
+                    f"{library_name}: "
+                    f"{len(selected)} New - Airing Next title(s)"
+                )
+
+                for item in selected:
+                    status(
+                        f"  {item.title} "
+                        f"({item.next_episode.air_date})"
+                    )
+
+                write_collection = (
+                    new_airing_next.mode in ('all', 'collection')
+                )
+
+                write_overlay = (
+                    new_airing_next.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='new-airing-next',
+                        collection_dir=new_airing_next.collection_dir,
+                        collection=new_airing_next.collection
+                    )
+
+                    status(
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+                    overlays.update(
+                        build_date_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='New_Airing_Next',
+                            overlay=new_airing_next.overlay
+                        )
+                    )
+
+                print(
+                    f"{library_name}: New - Airing Next -> "
+                    f"{len(selected)} titles"
+                )
+
+###########
+### New ###
+###########
+
+            settings = extended_status.get(
+                'new',
+                {}
+            )
+
+            new_status = NewStatus(**settings)
+
+            if new_status.enabled:
+
+                cutoff = (
+                    today
+                    - timedelta(days=new_status.considered_new)
+                ).isoformat()
+
+                selected = []
+
+                for show in cached.values():
+
+                    first_air = show.dates.first_air_date
+                    plex_id = show.ids.guid
+
+                    if not plex_id:
+                        continue
+
+                    if not first_air or first_air == 'null':
+                        continue
+
+                    if first_air < cutoff:
+                        continue
+
+                    if first_air > today.isoformat():
+                        continue
+
+                    selected.append(show)
+
+                selected.sort(
+                    key=lambda item: item.dates.first_air_date
+                )
+
+                status(
+                    f"{library_name}: "
+                    f"{len(selected)} New Series title(s)"
+                )
+
+                for item in selected:
+                    status(
+                        f"  {item.title} "
+                    )
+
+                write_collection = (
+                    new_status.mode in ('all', 'collection')
+                )
+
+                write_overlay = (
+                    new_status.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='new-series',
+                        collection_dir=new_status.collection_dir,
+                        collection=new_status.collection
+                    )
+
+                    status(
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+                    overlays.update(
+                        build_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='New_Series',
+                            overlay=new_status.overlay
+                        )
+                    )
+
+                print(
+                    f"{library_name}: New Series -> "
+                    f"{len(selected)} titles"
+                )
+
+###################
+### Airing Next ###
+###################
+
+            ## Airing Next
+            ## grab airing_next settings
+            settings = extended_status.get(
+                'airing_next',
+                {}
+            )
+
+            ## format the settings with the dataclass
+            airing_next = Airing(**settings)
+
+            ## skip if this status is disabled
+            if airing_next.enabled:
+
+                ## get currently airing shows
+                selected = get_airing_shows(
+                    cached,
+                    today,
+                    airing_next.days_ahead,
+                    airing_next.days_behind
+                )
+
+                status(
+                    f"{library_name}: "
+                    f"{len(selected)} Airing Next title(s)"
+                )
+
+                ## Check status mode for collection output.
+                write_collection = (
+                    airing_next.mode in ('all', 'collection')
+                )
+
+                ## Check status mode for overlay output.
+                write_overlay = (
+                    airing_next.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='airing-next',
+                        collection_dir=airing_next.collection_dir,
+                        collection=airing_next.collection
+                    )
+
+                    status(
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                ## Airing Next uses the dated overlays.
+                if write_overlay:
+                    dated_overlays = build_date_overlays(
+                        selected=selected,
+                        library_slug=library_slug,
+                        status_name='Airing_Next',
+                        overlay=airing_next.overlay
+                    )
+
+                    overlays.update(dated_overlays)
+
+                print(
+                    f"{library_name}: Airing Next -> "
+                    f"{len(selected)} titles"
+                )
+
+##############
+### Airing ###
+##############
+
+            ## grab airing settings
+            settings = extended_status.get(
+                'airing',
+                {}
+            )
+
+            ## format the settings with the dataclass
+            airing = Airing(**settings)
+
+            ## skip if this status is disabled
+            if airing.enabled:
+
+                ## get currently airing shows
+                selected = get_airing_shows(
+                    cached,
+                    today,
+                    airing.days_ahead,
+                    airing.days_behind
+                )
+
+                status(
+                    f"{library_name}: "
+                    f"{len(selected)} Airing title(s)"
+                )
+
+                for item in selected:
+                    status(
+                        f"  {item.title} "
+                        f"({item.next_episode.air_date})"
+                    )
+
+                ## Check status mode for collection output.
+                write_collection = (
+                    airing.mode in ('all', 'collection')
+                )
+
+                ## Check status mode for overlay output.
+                write_overlay = (
+                    airing.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='airing',
+                        collection_dir=airing.collection_dir,
+                        collection=airing.collection
+                    )
+
+                    status(
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+
+                    ## Use the general status overlay builder with no dates
+
+                    overlays.update(
+                        build_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='Airing',
+                            overlay=airing.overlay
+                        )
+                    )
+
+                    print(
+                        f"{library_name}: Airing -> "
+                        f"{len(selected)} titles"
+                    )
+
+######### Other status filters go here
+
+
+
+        ## Write the complete overlay document once after
+        ## all enabled status sections.
+        if overlays:
+            count = write_overlay_file(
+                overlay_data=overlay_data,
+                library_slug=library_slug,
+                description='extended-status',
+                overlay_dir=instances[0].get(
+                    'returning_soon',
+                    {}
+                ).get(
+                    'overlay_dir',
+                    'overlays/'
+                )
             )
 
             status(
-                f"{library_name}: "
-                f"{len(selected)} Returning Soon title(s)"
+                f"Overlay written: "
+                f"{count} overlay(s)"
             )
 
-            for item in selected:
-                status(
-                    f"  {item['title']} "
-                    f"({item['next_episode']['air_date']})"
-                )
-
-            write_collection = (
-                returning_soon.mode in ('all', 'collection')
-            )
-
-            write_overlay = (
-                returning_soon.mode in ('all', 'overlay')
-            )
-
-            if write_collection:
-                collection_file = path_constructor(
-                    returning_soon.collection_dir,
-                    f'{library_slug}-returning-soon.yml'
-                )
-
-                text_file = path_constructor(
-                    returning_soon.collection_dir,
-                    f'{library_slug}-returning-soon-collection.txt'
-                )
-
-                os.makedirs(
-                    os.path.dirname(collection_file),
-                    exist_ok=True
-                )
-
-                with open(
-                    text_file,
-                    'w',
-                    encoding='utf-8'
-                ) as output:
-                    output.write(
-                        '\n'.join(
-                            f"tmdb:{item['ids']['tmdb']}"
-                            for item in selected
-                        )
-                    )
-
-                    if selected:
-                        output.write('\n')
-
-                collection = dict(
-                    returning_soon.collection
-                )
-
-                collection.pop('name', None)
-                collection.pop('trakt_list', None)
-                collection.pop('trakt_list_url', None)
-
-                collection['text_file'] = (
-                    f"config/{returning_soon.collection_dir}"
-                    f"{library_slug}-returning-soon-collection.txt"
-                )
-
-                with open(
-                    collection_file,
-                    'w',
-                    encoding='utf-8'
-                ) as output:
-                    yaml.dump(
-                        {
-                            'collections': {
-                                returning_soon.collection['name']:
-                                    collection
-                            }
-                        },
-                        output
-                    )
-
-                status(
-                    f"Collection files written: "
-                    f"{len(selected)} title(s)"
-                )
-
-            if write_overlay:
-                overlay_file = path_constructor(
-                    returning_soon.overlay_dir,
-                    f'{library_slug}-returning-soon-overlay.yml'
-                )
-
-                os.makedirs(
-                    os.path.dirname(overlay_file),
-                    exist_ok=True
-                )
-
-                overlays = {}
-
-                for item in selected:
-                    air_date = item['next_episode']['air_date']
-
-                    date_text = datetime.strptime(
-                        air_date,
-                        '%Y-%m-%d'
-                    ).strftime('%m/%d')
-
-                    overlay_key = (
-                        f'{library_slug}_Returning_{air_date}'
-                    )
-
-                    if overlay_key not in overlays:
-                        overlay = dict(
-                            returning_soon.overlay
-                        )
-
-                        overlay_text = (
-                            overlay.get(
-                                'text',
-                                'RETURNING {{MM/DD}}'
-                            ).replace(
-                                '{{MM/DD}}',
-                                date_text
-                            )
-                        )
-
-                        overlay['text'] = (
-                            f'text({overlay_text})'
-                        )
-
-                        if 'text_color' in overlay:
-                            overlay['font_color'] = (
-                                overlay.pop('text_color')
-                            )
-
-                        if 'background_color' in overlay:
-                            overlay['back_color'] = (
-                                overlay.pop('background_color')
-                            )
-
-                        overlays[overlay_key] = {
-                            'tmdb_show': [],
-                            'overlay': overlay
-                        }
-
-                    overlays[overlay_key]['tmdb_show'].append(
-                        item['ids']['tmdb']
-                    )
-
-                with open(
-                    overlay_file,
-                    'w',
-                    encoding='utf-8'
-                ) as output:
-                    yaml.dump(
-                        {'overlays': overlays},
-                        output
-                    )
-
-                status(
-                    f"Overlay written: "
-                    f"{len(overlays)} group(s)"
-                )
-
-            print(
-                f"{library_name}: Returning Soon -> "
-                f"{len(selected)} titles"
-            )
-
-    status("Returning Soon complete")
+    status("Extended Status complete")
 
 
 if __name__ == '__main__':
