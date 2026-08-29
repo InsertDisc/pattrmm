@@ -1,9 +1,5 @@
 libraries:
-  Anime:
-    - extended_status:
-        returning_soon:
-          enabled: true
-          days_ahead: 180
+  TV:
     - in_history:
         enabled: true
         range: day
@@ -23,11 +19,8 @@ libraries:
           name: This month is history
           sync_mode: sync
   Series:
-    - in_history:
-        range: day
-        collection:
-          name: This day in history
     - extended_status:
+        overlay_dir: overlays/
         returning_soon:
           enabled: True
           mode: all
