@@ -1,66 +1,211 @@
 libraries:
-  TV:
-    - in_history:
+
+  Movies:
+    - by_size:
         enabled: true
-        range: day
+        order_by: size.desc
+        minimum: 0
+        maximum: null
+        limit: 500
+        collection_dir: collections/
         collection:
-          name: This day in history
+          name: Movies by Size
+          collection_order: custom
           sync_mode: sync
-    - in_history:
-        enabled: true
-        range: week
-        collection:
-          name: This week in history
-          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
+
     - in_history:
         enabled: true
         range: month
+        starting: 0
+        ending: null
+        increment: 1
+        collection_dir: collections/
         collection:
-          name: This month is history
+          name: Movies This {{range}} in history
+          collection_order: custom
           sync_mode: sync
+          poster_url: https://example.com/poster.jpg
+
+    - in_history:
+        enabled: false
+        range: week
+        starting: 0
+        ending: 2020
+        increment: 2
+        collection_dir: collections/
+        collection:
+          name: Movies This {{range}} in history - Every 2 Years
+          collection_order: custom
+          sync_mode: sync
+
   Series:
+
+    - by_size:
+        enabled: false
+        order_by: title.asc
+        minimum: 0
+        maximum: null
+        limit: 100
+        collection_dir: collections/
+        collection:
+          name: Series by Size
+          collection_order: custom
+          sync_mode: sync
+
+    - in_history:
+        enabled: true
+        range: month
+        starting: 0
+        ending: null
+        increment: 1
+        collection_dir: collections/
+        collection:
+          name: Series This {{range}} in history
+          collection_order: custom
+          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
+
+    - in_history:
+        enabled: false
+        range: week
+        starting: 1990
+        ending: 2020
+        increment: 5
+        collection_dir: collections/
+        collection:
+          name: Series This {{range}} in history - Every 5 Years
+          collection_order: custom
+          sync_mode: sync
+
+    - new_shows:
+        enabled: true
+        first_episode_aired: 45
+        collection_dir: collections/
+        collection:
+          name: New Shows
+          collection_order: custom
+          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
+
     - extended_status:
         overlay_dir: overlays/
+
         returning_soon:
-          enabled: True
+          enabled: true
           mode: all
+          days_ahead: 45
           collection_dir: collections/
-          overlay_dir: overlays/
-          days_ahead: 90
           collection:
             name: Returning Soon
+            collection_order: custom
             sync_mode: sync
           overlay:
-            status_text: "RETURNING {{M}} / {{DD}}"
-            status_font_color: "#FFFFFE"
-        airing_next:
-          enabled: True
+            status_text: RETURNING {{MM}}/{{DD}}
+            weight: 35
+            banner_back_color: '#81007F'
+            status_font_color: '#FFFFFF'
+
+        airing:
+          enabled: true
           mode: overlay
+          days_ahead: 14
+          days_behind: 14
+          collection_dir: collections/
           collection:
             name: Currently Airing
-        airing:
-          enabled: True
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: AIRING
+            weight: 50
+            banner_back_color: '#006580'
+            status_font_color: '#FFFFFF'
+
+        airing_next:
+          enabled: false
+          mode: overlay
+          days_ahead: 14
+          days_behind: 14
+          collection_dir: collections/
+          collection:
+            name: Airing Next
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: AIRING {{MM}}/{{DD}}
+            weight: 55
+            banner_back_color: '#006580'
+            status_font_color: '#FFFFFF'
+
         new:
-          enabled: True
-          mode: all
-          collection:          
+          enabled: true
+          mode: overlay
+          considered_new: 14
+          collection_dir: collections/
+          collection:
             name: New Series
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: NEW
+            weight: 60
+            banner_back_color: '#008001'
+            status_font_color: '#FFFFFF'
+
         new_airing_next:
-          enabled: True
-          mode: all
+          enabled: false
+          mode: overlay
+          considered_new: 14
+          collection_dir: collections/
           collection:
             name: New - Airing
+            collection_order: custom
+            sync_mode: sync
           overlay:
-            status_text: 'New - Airing {{MM}} / {{DD}}'
-  Movies:
-    - by_size:
-        limit: 24
-        order: desc
-        min: 5GB
-        max: 25GB
-        collection:
-          sync_mode: append
-          sort_title: "!1234"
-settings:
-  kometa_config: config.yml
-  data_source: tmdb
+            status_text: NEW - AIRING {{MM}} / {{DD}}
+            weight: 65
+            banner_back_color: '#008001'
+            status_font_color: '#FFFFFF'
+
+        returning:
+          enabled: true
+          mode: overlay
+          collection_dir: collections/
+          collection:
+            name: Recently Returned
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            text: R E T U R N I N G
+            weight: 30
+            banner_back_color: '#81007F'
+            status_font_color: '#FFFFFF'
+
+        ended:
+          enabled: false
+          mode: overlay
+          collection_dir: collections/
+          collection:
+            name: Ended
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: E N D E D
+            weight: 20
+            banner_back_color: '#000000'
+            status_font_color: '#FFFFFF'
+
+        canceled:
+          enabled: false
+          mode: overlay
+          collection_dir: collections/
+          collection:
+            name: Canceled
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            text: C A N C E L E D
+            weight: 20
+            banner_back_color: '#CF142B'
+            status_font_color: '#FFFFFF'
