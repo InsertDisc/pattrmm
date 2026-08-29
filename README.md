@@ -358,7 +358,7 @@ Or:
 
 ```yaml
 settings:
-  kometa_config: /config/server2/config.yml
+  kometa_config: server2/config.yml # Based from default config.yml location
   data_source: tmdb
 ```
 
