@@ -15,7 +15,7 @@ Extract this repo into a subfolder of your Kometa config folder.
 For example:
 
 ```text
-Plex-meta-manager/
+Kometa/
 ├── config/
 │   ├── config.yml
 │   ├── collections/
@@ -363,6 +363,8 @@ settings:
 ```
 
 # Cores
+
+## All currently available cores default to enabled: False and must be explicitly enabled.
 
 ## `extended_status`
 
