@@ -10,6 +10,7 @@ from modules.utilities import (
     clean_string,
     current_date,
     to_dict,
+    pattrmm_base_path
 )
 
 plex = PlexApi()
@@ -20,7 +21,7 @@ cache_expiry = config.settings_data['settings']['cache_expiry']
 
 # Cached show data is returned as dataclasses.
 # Access show data via attributes:
-# show.ids.guid, show.title, show.dates.added,
+# show.id.guid, show.title, show.dates.added,
 # show.status, show.next_episode.air_date,
 # show.next_episode.episode_number
 
@@ -55,7 +56,7 @@ class ShowDates:
 class Show:
     title: str
     status: str
-    ids: ShowIds
+    id: ShowIds
     dates: ShowDates
     next_episode: Episode
     last_episode: Episode
@@ -66,12 +67,22 @@ def status(library_name, message):
 
 
 def load_shows_cache(library_name):
+    library = plex.library(library_name)
+    if library.type != 'show':
+        print(f'Invalid library type: "{library.type}" for cache handler')
+        print(f'Skipping cache: {library_name}')
     status(library_name, "Loading cache")
     status(library_name, "Gathering Plex data")
 
-    library = plex.library(library_name)
+
     library_slug = clean_string(library_name)
-    cache_path = f'data/cache/{library_slug}_cache.json'
+    cache_path = os.path.join(
+        f'{pattrmm_base_path()}',
+        f'data',
+        f'cache',
+        f'{config.settings_slug}',
+        f'{library_slug}_cache.json'
+        )
 
     media_items = library.contents()
 
@@ -124,8 +135,8 @@ def load_shows_cache(library_name):
                 'status',
                 'Unknown'
             ),
-            ids=ShowIds(
-                **entry.get('ids', {})
+            id=ShowIds(
+                **entry.get('id', {})
             ),
             dates=ShowDates(
                 **entry.get('dates', {})
@@ -272,7 +283,7 @@ def load_shows_cache(library_name):
         cached[item.id.rating_key] = Show(
             title=details.name,
             status=details.status,
-            ids=ShowIds(
+            id=ShowIds(
                 guid=show.id.guid,
                 tmdb=str(details.show_id),
                 tvdb=show.id.tvdb,
@@ -330,7 +341,7 @@ def load_shows_cache(library_name):
             ):
                 continue
 
-            tmdb_id = entry.ids.tmdb
+            tmdb_id = entry.id.tmdb
 
             if not tmdb_id:
                 continue
@@ -370,19 +381,21 @@ def load_shows_cache(library_name):
 
             if entry.status != new_status:
                 changes.append(
-                    f"status: "
+                    f"Status: "
                     f"{entry.status} -> "
                     f"{new_status}"
                 )
 
             if entry.next_episode != new_next_episode:
                 changes.append(
-                    "next_episode changed"
+                    f"Next Episode: {entry.next_episode.air_date} -> "
+                    f"{new_next_episode.air_date}"
                 )
 
             if entry.last_episode != new_last_episode:
                 changes.append(
-                    "last_episode changed"
+                    f"Last Episode: {entry.last_episode.air_date} -> "
+                    f"{new_last_episode.air_date}"
                 )
 
             if changes:
