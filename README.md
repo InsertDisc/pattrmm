@@ -1,6 +1,6 @@
 # PATTRMM
 
-PATTRMM (Personal Assistant To The Regional Meta Manager) is a Python script that automates generating overlay and metadata files for collections in Kometa that aren't easily handled out of the box.
+PATTRMM (Personal Assistant To The Regional Meta Manager) is a Python script that automates generating overlay and metadata files for collections in Kometa that are not easily handled out of the box.
 
 This can include things like lists that need to be sorted in specific ways, dynamically generated collections, or collections with overlays whose contents change based on dates or other information.
 
