@@ -3,7 +3,7 @@ import requests
 import datetime
 
 loader = ConfigLoader()
-config = loader.meta_config
+config = loader.kometa_config
 
 
 class ItemDetails:
@@ -163,7 +163,7 @@ class PlexApi:
                                 continue
 
                         info_title = media_item['title'][:30] + '...' if len(media_item['title']) > 30 else media_item['title']
-                        print(f"{str(current_item_num).zfill(total_digit_length)}/{total_num_items} | {self.type.capitalize()} | {info_title.ljust(33)}")
+                        #print(f"{str(current_item_num).zfill(total_digit_length)}/{total_num_items} | {self.type.capitalize()} | {info_title.ljust(33)}")
                         current_item_num += 1
 
                     return library_list
@@ -297,8 +297,8 @@ class PlexApi:
                 episode = response.json()['MediaContainer']['Metadata'][0]
 
                 title = episode['title']
-                season_num = str(episode['parentIndex']).zfill(2)
-                episode_num = str(episode['index']).zfill(2)
+                season_num = str(episode.get('parentIndex', '')).zfill(2)
+                episode_num = str(episode.get('index', '')).zfill(2)
                 rating_key = episode['ratingKey']
                 guid = episode.get('guid', 'Unknown Plex GUID')
                 available_date = episode.get('originallyAvailableAt')
@@ -308,7 +308,7 @@ class PlexApi:
                 added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
                 added_date = added_dt_object.strftime('%Y-%m-%d')
 
-                year = episode['year']
+                year = episode.get('year')
                 size_str = episode['Media'][0]['Part'][0]['size']
                 size_bytes = int(size_str)
                 size_GB = round(size_bytes / 1073741824, 2)
@@ -351,8 +351,8 @@ class PlexApi:
 
                     for episode in episodes_data['MediaContainer']['Metadata']:
                         title = episode['title']
-                        season_num = str(episode['parentIndex']).zfill(2)
-                        episode_num = str(episode['index']).zfill(2)
+                        season_num = str(episode.get('parentIndex', '')).zfill(2)
+                        episode_num = str(episode.get('index', '')).zfill(2)
                         rating_key = episode['ratingKey']
                         guid = episode.get('guid', 'Unknown Plex GUID')
                         available_date = episode.get('originallyAvailableAt')
@@ -362,7 +362,7 @@ class PlexApi:
                         added_dt_object = datetime.datetime.utcfromtimestamp(added_at_timestamp)
                         added_date = added_dt_object.strftime('%Y-%m-%d')
 
-                        year = episode['year']
+                        year = episode.get('year')
                         size_str = episode['Media'][0]['Part'][0]['size']
                         size_bytes = int(size_str)
                         size_GB = round(size_bytes / 1073741824, 2)
