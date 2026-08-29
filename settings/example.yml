@@ -209,3 +209,7 @@ libraries:
             weight: 20
             banner_back_color: '#CF142B'
             status_font_color: '#FFFFFF'
+            
+settings:
+  kometa_config: config.yml
+  data_source: tmdb
