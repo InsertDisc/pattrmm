@@ -326,7 +326,7 @@ def write_collection_files(
     ) as output:
         output.write(
             '\n'.join(
-                f'plex_id:{item.id.guid}'
+                f'{item.id.guid}'
                 for item in selected_list
             )
         )
