@@ -385,15 +385,17 @@ Each status can be enabled independently.
 The available modes are:
 
 ```text
+all
 overlay
 collection
 ```
+`all` generates both overlay and collection files.
 
 `overlay` generates the overlay information for the selected titles.
 
 `collection` generates the collection information for the selected titles.
 
-Some statuses can be useful with either mode.
+Some statuses can be more useful with different modes.
 
 ### `overlay_dir`
 
@@ -495,6 +497,7 @@ Combines the new-series criteria with an upcoming episode.
 #### `upcoming`
 
 ```yaml
+## Not currently implemented
 upcoming:
   enabled: false
   mode: collection
