@@ -1,4 +1,4 @@
-name: Build :neo
+name: "Build :neo"
 
 on:
   workflow_dispatch:
