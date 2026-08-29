@@ -55,39 +55,76 @@ class ConfigData:
 class ConfigLoader:
     def __init__(self):
         self.settings = None
-        self.meta_config = None
+        self.kometa_config = None
+
+        self.settings_name = os.getenv(
+            'PATTRMM_SETTINGS',
+            'settings.yml'
+        )
+
+        self.settings_slug = clean_string(
+            os.path.splitext(self.settings_name)[0]
+        )
+
         self.load_configs()
 
     def load_configs(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        settings_file = os.path.join(script_dir, '..', 'preferences', 'settings.yml')
+
+        settings_file = os.path.join(
+            script_dir,
+            '..',
+            'settings',
+            self.settings_name
+        )
 
         with open(settings_file, 'r', encoding='utf-8') as file:
             self.settings = yaml.load(file) or {}
-            
+
         self.settings.setdefault('settings', {})
-        self.settings['settings'].setdefault('cache_expiry', 30)
-        meta_config_file = self.settings.get('settings', {}).get('kometa_config', 'config.yml')
-        config_file = os.path.join(base_path(), meta_config_file)
+        self.settings['settings'].setdefault(
+            'cache_expiry',
+            30
+        )
+
+        kometa_config_file = self.settings.get(
+            'settings',
+            {}
+        ).get(
+            'kometa_config',
+            'config.yml'
+        )
+
+        config_file = os.path.join(
+            kometa_base_path(),
+            kometa_config_file
+        )
 
         with open(config_file, 'r', encoding='utf-8') as file:
             config_data = yaml.load(file) or {}
 
         filtered_config = {}
+
         for name, dataclass_type in ConfigData.__annotations__.items():
             values = config_data.get(name, {}) or {}
-            values = {key: value for key, value in values.items() if key in dataclass_type.__dataclass_fields__}
+
+            values = {
+                key: value
+                for key, value in values.items()
+                if key in dataclass_type.__dataclass_fields__
+            }
+
             filtered_config[name] = dataclass_type(**values)
 
-        self.meta_config = ConfigData(**filtered_config)
+        self.kometa_config = ConfigData(**filtered_config)
 
     @property
     def settings_data(self):
         return self.settings
 
     @property
-    def meta_config_data(self):
-        return self.meta_config
+    def kometa_config_data(self):
+        return self.kometa_config
 
 
 def get_core_settings(
@@ -172,16 +209,23 @@ def to_dict(obj):
     else:
         return obj
 
-def base_path():
+def kometa_base_path():
     if os.environ.get('PATTRMM_DOCKER') == 'True':
-        base_path = 'config'
+        kometa_base_path = 'config'
     else:
         utilities_file_path = os.path.abspath(__file__)
-        base_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(utilities_file_path)))))
-    return base_path
+        kometa_base_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(utilities_file_path)))))
+    return kometa_base_path
+
+def pattrmm_base_path():
+    return os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    )
 
 def path_constructor(save_folder, file_name):
-    absolute_file_path = os.path.join(base_path(), save_folder, file_name)
+    absolute_file_path = os.path.join(kometa_base_path(), save_folder, file_name)
     if os.name == 'posix':
         absolute_file_path = absolute_file_path.replace('\\', '/')
     elif os.name == 'nt':
@@ -282,7 +326,7 @@ def write_collection_files(
     ) as output:
         output.write(
             '\n'.join(
-                f'plex_id:{item.ids.guid}'
+                f'plex_id:{item.id.guid}'
                 for item in selected_list
             )
         )
