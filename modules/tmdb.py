@@ -2,7 +2,7 @@ from modules.utilities import ConfigLoader
 from modules.utilities import log_title
 from dataclasses import dataclass, fields
 from typing import List, Optional
-config = ConfigLoader().meta_config
+config = ConfigLoader().kometa_config
 import requests
 import datetime
 import re
