@@ -8,18 +8,21 @@ from modules.cache_handler import load_shows_cache as load_cache
 from modules.plex import PlexApi
 from modules.tmdb import TmdbApi
 from modules.utilities import (
+    ConfigLoader,
     clean_string,
     current_date,
     get_core_settings,
     write_collection_files,
     write_overlay_file,
-    format_date_text
+    format_date_text,
+    pattrmm_base_path
 )
 
 yaml = YAML()
 yaml.preserve_quotes = True
 plex = PlexApi()
 tmdb = TmdbApi()
+config = ConfigLoader()
 
 
 @dataclass
@@ -85,7 +88,7 @@ def ensure_overlay_template(
 
     template = template.replace(
         '{library}',
-        library_name
+        clean_string(library_name)
     )
 
     with open(
@@ -123,16 +126,22 @@ def build_date_overlays(
 
             for key, value in overlay.items():
 
-                ## keep the status_text from getting dumped as it gets transformed
-                ## dumping the key directly results in the original text with
-                ## date placeholders being inserted as well
+                # status_* targets the status overlay.
+                # banner_* targets the banner overlay.
+                # Unprefixed settings target both.
+                # The prefix is removed before passing into the overlay.
 
-                if key.startswith('status_') and key != 'status_text':
-                    status_settings[key] = value
+                if key == 'status_text':
+                    continue
+                elif key.startswith('status_'):
+                    status_settings[key.removeprefix('status_')] = value
                 elif key.startswith('banner_'):
+                    banner_settings[key.removeprefix('banner_')] = value
+                else:
+                    status_settings[key] = value
                     banner_settings[key] = value
 
-            status_settings['status_text'] = format_date_text(
+            status_settings['text'] = format_date_text(
                 overlay['status_text'],
                 air_date
             )
@@ -140,7 +149,6 @@ def build_date_overlays(
             overlays[banner_key] = {
                 'template': {
                     'name': f'{library_slug}_Status_Banner',
-                    'weight': overlay['weight'],
                     **banner_settings,
                 },
                 'plex_id': []
@@ -149,18 +157,17 @@ def build_date_overlays(
             overlays[status_key] = {
                 'template': {
                     'name': f'{library_slug}_Status',
-                    'weight': overlay['weight'],
                     **status_settings,
                 },
                 'plex_id': []
             }
 
         overlays[banner_key]['plex_id'].append(
-            item.ids.guid
+            item.id.guid
         )
 
         overlays[status_key]['plex_id'].append(
-            item.ids.guid
+            item.id.guid
         )
 
     return overlays
@@ -181,9 +188,14 @@ def build_overlays(
 
     for key, value in overlay.items():
 
-        if key.startswith('status_'):
-            status_settings[key] = value
+        if key == 'status_text':
+            status_settings['text'] = value
+        elif key.startswith('status_'):
+            status_settings[key.removeprefix('status_')] = value
         elif key.startswith('banner_'):
+            banner_settings[key.removeprefix('banner_')] = value
+        else:
+            status_settings[key] = value
             banner_settings[key] = value
 
     banner_key = (
@@ -197,7 +209,6 @@ def build_overlays(
     overlays[banner_key] = {
         'template': {
             'name': f'{library_slug}_Status_Banner',
-            'weight': overlay['weight'],
             **banner_settings,
         },
         'plex_id': []
@@ -206,7 +217,6 @@ def build_overlays(
     overlays[status_key] = {
         'template': {
             'name': f'{library_slug}_Status',
-            'weight': overlay['weight'],
             **status_settings,
         },
         'plex_id': []
@@ -214,11 +224,11 @@ def build_overlays(
 
     for item in selected:
         overlays[banner_key]['plex_id'].append(
-            item.ids.guid
+            item.id.guid
         )
 
         overlays[status_key]['plex_id'].append(
-            item.ids.guid
+            item.id.guid
         )
 
     return overlays
@@ -235,7 +245,7 @@ def get_new_shows(cached, today, considered_new):
     for show in cached.values():
 
         first_air = show.dates.first_air_date
-        plex_id = show.ids.guid
+        plex_id = show.id.guid
 
         if not plex_id:
             continue
@@ -279,7 +289,7 @@ def get_airing_shows(
 
         next_air = show.next_episode.air_date
         last_air = show.last_episode.air_date
-        plex_id = show.ids.guid
+        plex_id = show.id.guid
 
         if not plex_id:
             continue
@@ -312,16 +322,38 @@ def get_airing_shows(
     return selected
 ## end airing filter
 
+## General status filter.
+def get_shows_by_status(
+    cached,
+    status
+):
+    selected = []
+
+    for show in cached.values():
+
+        plex_id = show.id.guid
+
+        if not plex_id:
+            continue
+
+        if show.status != status:
+            continue
+
+        selected.append(show)
+
+    return selected
+## end general status filter
+
 
 ## Just formatting some info
-def status(section, message):
+def info(section, message):
     print(
         f"[Extended Status][{section}] "
         f"{message}"
     )
 
 
-def library_status(library_name, section, message):
+def library_info(library_name, section, message):
     print(
         f"[{library_name}][Extended Status][{section}] "
         f"{message}"
@@ -333,7 +365,7 @@ def library_status(library_name, section, message):
 def run():
     today = date.today()
 
-    status(
+    info(
         "Core",
         "Starting Extended Status..."
     )
@@ -367,7 +399,7 @@ def run():
 
         'airing': {
             'enabled': False,
-            'mode': 'all',
+            'mode': 'overlay',
             'days_ahead': 14,
             'days_behind': 14,
             'collection_dir': 'collections/',
@@ -379,14 +411,14 @@ def run():
             'overlay': {
                 'status_text': 'AIRING',
                 'weight': 50,
-                'banner_back_color': '#343399',
+                'banner_back_color': '#006580',
                 'status_font_color': '#FFFFFF',
             },
         },
 
         'airing_next': {
             'enabled': False,
-            'mode': 'all',
+            'mode': 'overlay',
             'days_ahead': 14,
             'days_behind': 14,
             'collection_dir': 'collections/',
@@ -398,14 +430,14 @@ def run():
             'overlay': {
                 'status_text': 'AIRING {{MM}}/{{DD}}',
                 'weight': 55,
-                'banner_back_color': '#343399',
+                'banner_back_color': '#006580',
                 'status_font_color': '#FFFFFF',
             },
         },
 
         'new': {
             'enabled': False,
-            'mode': 'all',
+            'mode': 'overlay',
             'considered_new': 14,
             'collection_dir': 'collections/',
             'collection': {
@@ -415,7 +447,6 @@ def run():
             },
             'overlay': {
                 'status_text': 'NEW',
-                'group': 'new_next_air',
                 'weight': 60,
                 'banner_back_color': '#008001',
                 'status_font_color': '#FFFFFF',
@@ -424,7 +455,7 @@ def run():
 
         'new_airing_next': {
             'enabled': False,
-            'mode': 'all',
+            'mode': 'overlay',
             'considered_new': 14,
             'collection_dir': 'collections/',
             'collection': {
@@ -434,7 +465,6 @@ def run():
             },
             'overlay': {
                 'status_text': 'NEW - AIRING {{MM}} / {{DD}}',
-                'group': 'new_next_air',
                 'weight': 65,
                 'banner_back_color': '#008001',
                 'status_font_color': '#FFFFFF',
@@ -451,18 +481,16 @@ def run():
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'U P C O M I N G',
-                'group': 'upcoming',
+                'status_text': 'U P C O M I N G',
                 'weight': 90,
-                'back_color': '#FC4E03',
-                'color': '#FFFFFF',
+                'banner_back_color': '#FC4E03',
+                'status_font_color': '#FFFFFF',
             },
         },
 
         'returning': {
             'enabled': False,
             'mode': 'overlay',
-            'days': 7,
             'collection_dir': 'collections/',
             'collection': {
                 'name': 'Recently Returned',
@@ -471,10 +499,9 @@ def run():
             },
             'overlay': {
                 'text': 'R E T U R N I N G',
-                'group': 'returning',
                 'weight': 30,
-                'back_color': '#81007F',
-                'color': '#FFFFFF',
+                'banner_back_color': '#81007F',
+                'status_font_color': '#FFFFFF',
             },
         },
 
@@ -488,11 +515,10 @@ def run():
                 'sync_mode': 'sync',
             },
             'overlay': {
-                'text': 'E N D E D',
-                'group': 'ended',
+                'status_text': 'E N D E D',
                 'weight': 20,
-                'back_color': '#000000',
-                'color': '#FFFFFF',
+                'banner_back_color': '#000000',
+                'status_font_color': '#FFFFFF',
             },
         },
 
@@ -507,15 +533,14 @@ def run():
             },
             'overlay': {
                 'text': 'C A N C E L E D',
-                'group': 'canceled',
                 'weight': 20,
-                'back_color': '#CF142B',
-                'color': '#FFFFFF',
+                'banner_back_color': '#CF142B',
+                'status_font_color': '#FFFFFF',
             },
         },
     }
 
-    status(
+    info(
         "Core",
         "Loading Extended Status settings"
     )
@@ -526,13 +551,13 @@ def run():
         default_settings
     )
 
-    status(
+    info(
         "Core",
         f"Found {len(core_settings)} library configuration(s)"
     )
 
     for library_name, instances in core_settings.items():
-        status(
+        info(
             "Core",
             f"Processing: {library_name}"
         )
@@ -544,13 +569,18 @@ def run():
         library_slug = clean_string(library_name)
 
         ## define and check template files for overlays
-        template_file = (
-            f'data/templates/'
+        template_file = os.path.join(
+            pattrmm_base_path(),
+            'data',
+            'templates',
+            config.settings_slug,
             f'{library_slug}-extended_status-template.yml'
         )
 
-        source_file = (
-            'cores/_templates/'
+        source_file = os.path.join(
+            pattrmm_base_path(),
+            'cores',
+            '_templates',
             'template-extended_status-overlay.yml'
         )
 
@@ -589,7 +619,7 @@ def run():
 
             if returning_soon.enabled:
 
-                library_status(
+                library_info(
                     library_name,
                     "Returning Soon",
                     "checking"
@@ -611,7 +641,7 @@ def run():
 
                     next_air = show.next_episode.air_date
                     last_air = show.last_episode.air_date
-                    plex_id = show.ids.guid
+                    plex_id = show.id.guid
 
                     if not plex_id:
                         continue
@@ -639,14 +669,14 @@ def run():
                     key=lambda item: item.next_episode.air_date
                 )
 
-                library_status(
+                library_info(
                     library_name,
                     "Returning Soon",
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    library_status(
+                    library_info(
                         library_name,
                         "Returning Soon",
                         f"  {item.title} "
@@ -665,12 +695,12 @@ def run():
                     count = write_collection_files(
                         selected_list=selected,
                         library_slug=library_slug,
-                        description='returning-soon',
+                        description='returning_soon',
                         collection_dir=returning_soon.collection_dir,
                         collection=returning_soon.collection
                     )
 
-                    library_status(
+                    library_info(
                         library_name,
                         "Returning Soon",
                         f"Collection files written: "
@@ -701,7 +731,7 @@ def run():
 
             if new_airing_next.enabled:
 
-                library_status(
+                library_info(
                     library_name,
                     "New - Airing Next",
                     "checking"
@@ -720,7 +750,7 @@ def run():
 
                     first_air = show.dates.first_air_date
                     next_air = show.next_episode.air_date
-                    plex_id = show.ids.guid
+                    plex_id = show.id.guid
 
                     if not plex_id:
                         continue
@@ -743,14 +773,14 @@ def run():
                     key=lambda item: item.next_episode.air_date
                 )
 
-                library_status(
+                library_info(
                     library_name,
                     "New - Airing Next",
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    library_status(
+                    library_info(
                         library_name,
                         "New - Airing Next",
                         f"  {item.title} "
@@ -769,12 +799,12 @@ def run():
                     count = write_collection_files(
                         selected_list=selected,
                         library_slug=library_slug,
-                        description='new-airing-next',
+                        description='new_airing_next',
                         collection_dir=new_airing_next.collection_dir,
                         collection=new_airing_next.collection
                     )
 
-                    library_status(
+                    library_info(
                         library_name,
                         "New - Airing Next",
                         f"Collection files written: "
@@ -805,7 +835,7 @@ def run():
 
             if new_status.enabled:
 
-                library_status(
+                library_info(
                     library_name,
                     "New",
                     "checking"
@@ -823,7 +853,7 @@ def run():
                 for show in cached.values():
 
                     first_air = show.dates.first_air_date
-                    plex_id = show.ids.guid
+                    plex_id = show.id.guid
 
                     if not plex_id:
                         continue
@@ -843,14 +873,14 @@ def run():
                     key=lambda item: item.dates.first_air_date
                 )
 
-                library_status(
+                library_info(
                     library_name,
                     "New",
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    library_status(
+                    library_info(
                         library_name,
                         "New",
                         f"  {item.title}"
@@ -868,12 +898,12 @@ def run():
                     count = write_collection_files(
                         selected_list=selected,
                         library_slug=library_slug,
-                        description='new-series',
+                        description='new_series',
                         collection_dir=new_status.collection_dir,
                         collection=new_status.collection
                     )
 
-                    library_status(
+                    library_info(
                         library_name,
                         "New",
                         f"Collection files written: "
@@ -904,7 +934,7 @@ def run():
 
             if airing_next.enabled:
 
-                library_status(
+                library_info(
                     library_name,
                     "Airing Next",
                     "checking"
@@ -917,14 +947,14 @@ def run():
                     airing_next.days_behind
                 )
 
-                library_status(
+                library_info(
                     library_name,
                     "Airing Next",
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    library_status(
+                    library_info(
                         library_name,
                         "Airing Next",
                         f"  {item.title} "
@@ -943,12 +973,12 @@ def run():
                     count = write_collection_files(
                         selected_list=selected,
                         library_slug=library_slug,
-                        description='airing-next',
+                        description='airing_next',
                         collection_dir=airing_next.collection_dir,
                         collection=airing_next.collection
                     )
 
-                    library_status(
+                    library_info(
                         library_name,
                         "Airing Next",
                         f"Collection files written: "
@@ -979,7 +1009,7 @@ def run():
 
             if airing.enabled:
 
-                library_status(
+                library_info(
                     library_name,
                     "Airing",
                     "checking"
@@ -992,14 +1022,14 @@ def run():
                     airing.days_behind
                 )
 
-                library_status(
+                library_info(
                     library_name,
                     "Airing",
                     f"{len(selected)} title(s)"
                 )
 
                 for item in selected:
-                    library_status(
+                    library_info(
                         library_name,
                         "Airing",
                         f"  {item.title} "
@@ -1023,7 +1053,7 @@ def run():
                         collection=airing.collection
                     )
 
-                    library_status(
+                    library_info(
                         library_name,
                         "Airing",
                         f"Collection files written: "
@@ -1040,30 +1070,236 @@ def run():
                         )
                     )
 
+#################
+### Returning ###
+#################
+
+            settings = extended_status.get(
+                'returning',
+                {}
+            )
+
+            returning = GeneralStatus(**settings)
+
+            if returning.enabled:
+
+                library_info(
+                    library_name,
+                    "Returning Series",
+                    "checking"
+                )
+
+                selected = get_shows_by_status(
+                    cached,
+                    "Returning Series"
+                )
+
+                library_info(
+                    library_name,
+                    "Returning Series",
+                    f"{len(selected)} title(s)"
+                )
+
+                for item in selected:
+                    library_info(
+                        library_name,
+                        "Returning Series",
+                        f"  {item.title} "
+                    )
+
+                write_collection = (
+                    returning.mode in ('all', 'collection')
+                )
+
+                write_overlay = (
+                    returning.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='returning',
+                        collection_dir=returning.collection_dir,
+                        collection=returning.collection
+                    )
+
+                    library_info(
+                        library_name,
+                        "Returning Series",
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+                    overlays.update(
+                        build_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='Returning',
+                            overlay=returning.overlay
+                        )
+                    )
+
+################
+### Canceled ###
+################
+
+            settings = extended_status.get(
+                'canceled',
+                {}
+            )
+
+            canceled = GeneralStatus(**settings)
+
+            if canceled.enabled:
+
+                library_info(
+                    library_name,
+                    "Canceled",
+                    "checking"
+                )
+
+                selected = get_shows_by_status(
+                    cached,
+                    "Canceled"
+                )
+
+                library_info(
+                    library_name,
+                    "Canceled",
+                    f"{len(selected)} title(s)"
+                )
+
+                for item in selected:
+                    library_info(
+                        library_name,
+                        "Canceled",
+                        f"  {item.title} "
+                    )
+
+                write_collection = (
+                    canceled.mode in ('all', 'collection')
+                )
+
+                write_overlay = (
+                    canceled.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='canceled',
+                        collection_dir=canceled.collection_dir,
+                        collection=canceled.collection
+                    )
+
+                    library_info(
+                        library_name,
+                        "Canceled",
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+                    overlays.update(
+                        build_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='Canceled',
+                            overlay=canceled.overlay
+                        )
+                    )
+
+#############
+### Ended ###
+#############
+
+            settings = extended_status.get(
+                'ended',
+                {}
+            )
+
+            ended = GeneralStatus(**settings)
+
+            if ended.enabled:
+
+                library_info(
+                    library_name,
+                    "Ended",
+                    "checking"
+                )
+
+                selected = get_shows_by_status(
+                    cached,
+                    "Ended"
+                )
+
+                library_info(
+                    library_name,
+                    "Ended",
+                    f"{len(selected)} title(s)"
+                )
+
+                for item in selected:
+                    library_info(
+                        library_name,
+                        "Ended",
+                        f"  {item.title} "
+                    )
+
+                write_collection = (
+                    returning.mode in ('all', 'collection')
+                )
+
+                write_overlay = (
+                    returning.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='ended',
+                        collection_dir=ended.collection_dir,
+                        collection=ended.collection
+                    )
+
+                    library_info(
+                        library_name,
+                        "Ended",
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+                    overlays.update(
+                        build_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='Ended',
+                            overlay=ended.overlay
+                        )
+                    )
 
 ######### Other status filters go here
-
-
         ## Write the complete overlay document once after
         ## all enabled status sections.
         if overlays:
             count = write_overlay_file(
                 overlay_data=overlay_data,
                 library_slug=library_slug,
-                description='extended-status',
-                overlay_dir=extended_status.get(
-                    'overlay_dir',
-                    'overlays/'
-                )
+                description='extended_status',
+                overlay_dir=extended_status.get('overlay_dir', 'overlays/')
             )
-
-            library_status(
+            library_info(
                 library_name,
                 "Core",
                 f"Overlay written: {count} overlay(s)"
             )
 
-    status(
+    info(
         "Core",
         "Extended Status complete"
     )
