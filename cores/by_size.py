@@ -12,6 +12,7 @@ plex = PlexApi()
 
 @dataclass
 class BySize:
+    enabled: bool
     order_by: str
     minimum: float
     maximum: float | None
@@ -31,6 +32,7 @@ def status(library_name, message):
 
 def run():
     default_settings = {
+        'enabled': True,
         'order_by': 'size.desc',
         'minimum': 0,
         'maximum': None,
@@ -64,6 +66,10 @@ def run():
                 library_name,
                 "checking"
             )
+
+            if not by_size.enabled:
+                status(library_name, "Skipping: By Size disabled for this instance")
+                continue
 
             field, direction = by_size.order_by.split('.', 1)
             reverse = direction == 'desc'
