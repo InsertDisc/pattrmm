@@ -562,6 +562,12 @@ def run():
             f"Processing: {library_name}"
         )
 
+        library_type = plex.library(library_name).type
+        if library_type != 'show':
+            print(f'Invalid library type: --> {library_type} <-- for this core')
+            print(f'Skipping: {library_name}')
+            continue
+
         ## load stored dates and update cache for this library
         cached = load_cache(library_name)
 
