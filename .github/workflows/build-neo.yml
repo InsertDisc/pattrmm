@@ -1,0 +1,56 @@
+name: "Build :neo"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - neo
+    paths:
+      - '**/*.py'
+      - 'Dockerfile'
+      - 'requirements.txt'
+  pull_request:
+    types: [closed]
+    branches:
+      - neo
+
+jobs:
+  build-and-push-neo:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: neo
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push to GHCR and Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: |
+            ghcr.io/insertdisc/pattrmm:neo
+            ${{ secrets.DOCKER_HUB_USERNAME }}/pattrmm:neo
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
