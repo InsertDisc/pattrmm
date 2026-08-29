@@ -1,485 +1,907 @@
+# PATTRMM
 
-PATTRMM (Plex Assistant To The Regional Meta Manager) is a python script that automates generating
-overlay and metadata files for non 'out-of-the-box' collections for Plex Meta Manager. This may include
-lists that need sorted in specific ways or that need dynamically generated text for overlays.
+PATTRMM (Personal Assistant To The Regional Meta Manager) is a Python script that automates generating overlay and metadata files for collections in Kometa that aren't easily handled out of the box.
 
-Requirements:    
-    Trakt MUST be setup in your PMM installation to post 'returning soon' series and various 'extensions' to.
-    This is also what the *-returning-soon.yml and *-in-history.yml files will pull from.
-    The only must-have module is ruamel.yaml. This is included in requirements.txt. 
-    Note, some environments may also need 'requests' installed.
-    If you want to use the default template font you will also need the font 
-    from the extras folder in your pmm fonts folder.
+This can include things like lists that need to be sorted in specific ways, dynamically generated collections, or collections with overlays whose contents change based on dates or other information.
 
-For stand-alone setup:
-    
-    Just drop pattrymm.py in a subfolder of your Plex Meta Manager config folder 
-    (i.e. Plex-meta-manager/config/pattrmm/pattrmm.py) and run it. 
-    A settings file will be created in the newly created preferences folder. 
-    The script will stop so you can fill in the appropriate settings in preferences/settings.yml.
-    You can modify the appearance of the generated overlays file using the
-    preferences/*-returning-soon-template.yml files. 
-    Run the script again after you make your changes to initiate a full cycle.
+## Requirements
 
-    UPDATING: To update the stand-alone version, you need to delete OR replace vars.py and replace pattrmm.py.
+A currently working Kometa installation.
 
-Docker Compose:
+## Stand-alone Setup
+
+Extract this repo into a subfolder of your Kometa config folder.
+
+For example:
+
+```text
+Plex-meta-manager/
+├── config/
+│   ├── config.yml
+│   ├── collections/
+│   ├── overlays/
+│   └── pattrmm/
+│       ├── pattrmm.py
+│       ├── cores/
+│       ├── modules/
+│       └── settings/
 ```
+
+Run PATTRMM with:
+
+```bash
+python3 pattrmm.py --run
+```
+
+PATTRMM uses the Kometa config directory as its base for generated collection and overlay files.
+
+Settings are stored as YAML files in the `settings/` directory.
+
+## Docker Compose
+
+```yaml
 services:
   pattrmm:
-    image: ghcr.io/insertdisc/pattrmm:develop
+    image: ghcr.io/insertdisc/pattrmm:neo
     container_name: pattrmm
     environment:
       - PUID=1000
       - GUID=1000
-      - TZ=America/New_York
-      - PATTRMM_TIME=02:00  # Schedule run time
+      - PATTRMM_TIMES=02:00,13:00
+      - PATTRMM_SETTINGS=server1.yml,server2.yml
     volumes:
       - ./pattrmm/data:/data
-      - ./pattrmm/preferences:/preferences
-      - ./pmm/config:/config
-    restart: unless-stopped  
+      - ./pattrmm/settings:/settings
+      - ./kometa/config:/config
+    restart: unless-stopped
 ```
-If using the docker version, you can initialize the settings file with this command.
-```
-docker run --rm -it -v "./pattrmm/preferences:/preferences" ghcr.io/insertdisc/pattrmm:develop --run
-```
-The DEVELOP branch is slightly ahead of the latest branch. 
-Extensions have been added and will continue to expand.
-```
-Extensions Available:
-  in_history
-    This extension uses the Originally Available At date within Plex to create Trakt lists
-    based on a specified range per library and a corresponding 'in-history' metadata file
-    for use with that library.
-  by_size
-    This extension uses information available within Plex to approximate Movie sizes, without
-    needing access to the filesystem, to create an ordered and filtered trakt list and accompanying
-    'by-size' metadata file for use with each corresponding 'Movie' library.
-```
-Settings
 
+`PATTRMM_TIMES` specifies the time or times PATTRMM should run each day, using 24-hour time.
+
+`PATTRMM_SETTINGS` specifies which settings files to use. Multiple files can be separated with commas.
+
+For example:
+
+```text
+PATTRMM_SETTINGS=server1.yml,server2.yml
 ```
-libraries:                
-  Anime:
-  - extra_overlays: # Will default to all True
-  - returning_soon:
-      save_folder: metadata/anime/
-      overlay_save_folder: overlays/anime/
-      trakt_list_privacy: private                          
-      refresh: 7     
-      days_ahead: 90
-      text: "RETURNING"          # Text to display before the dates.
-      bgcolor: "#008001"
-      font_color: "#FFFFFF"
+
+This is useful if you have multiple Plex servers or multiple Kometa configurations. Each settings file can point to a different Kometa config.
+
+If `PATTRMM_SETTINGS` isn't specified, PATTRMM will use all `.yml` and `.yaml` files in the `settings/` directory.
+
+## Launch Arguments
+
+### `--run`
+
+Run PATTRMM immediately instead of waiting for the scheduled time.
+
+```bash
+python3 pattrmm.py --run
+```
+
+### `--times`
+
+Specify the time or times PATTRMM should run.
+
+```bash
+python3 pattrmm.py --times "02:00,13:00"
+```
+
+Multiple times can be separated with commas.
+
+### `--settings`
+
+Specify which settings files to use.
+
+```bash
+python3 pattrmm.py --settings "server1.yml,server2.yml"
+```
+
+The files are loaded from the `settings/` directory.
+
+## The NEO Branch
+
+The NEO branch is a complete restructure of the old code.
+
+PATTRMM is now divided into individual **cores**. Each core is responsible for a particular operation.
+
+New cores can be authored and placed into the `cores` directory. They are automatically discovered and run by PATTRMM.
+
+# Settings
+
+Settings are organized around your Plex libraries.
+
+A settings file can contain one or more libraries, with each library containing the cores you want to use.
+
+For example:
+
+```yaml
+libraries:
+
+  Movies:
+
+    - by_size:
+        enabled: true
+        order_by: size.desc
+        minimum: 0
+        maximum: null
+        limit: 500
+        collection_dir: collections/
+        collection:
+          name: Movies by Size
+          collection_order: custom
+          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
+
+    - in_history:
+        enabled: true
+        range: month
+        starting: 0
+        ending: null
+        increment: 1
+        collection_dir: collections/
+        collection:
+          name: Movies This {{range}} in history
+          collection_order: custom
+          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
+
+    - in_history:
+        enabled: false
+        range: week
+        starting: 0
+        ending: 2020
+        increment: 2
+        collection_dir: collections/
+        collection:
+          name: Movies This {{range}} in history - Every 2 Years
+          collection_order: custom
+          sync_mode: sync
 
   Series:
-  - extra_overlays:
-      new: True
-      new_next_air: False
-      upcoming: True
-      returning: True
-      airing: True
-      airing_next_air: False
-      canceled: True
-      ended: True
-      
-  - returning_soon:
-      save_folder: metadata/series/
-      overlay_save_folder: overlays/series/
-      trakt_list_privacy: public
-      refresh: 30
-      returning-soon: False
-      days_ahead: 45
-      text: "RETURNING"          # Text to display before the dates.
-      bgcolor: "#008001"
-      font_color: "#FFFFFF"
-      collection_title: Returning Soon
 
-  - in_history:
-      trakt_list_privacy: public
-      save_folder: metadata/series/
-      range: week
-      collection_title: This {{range}} in history.
-      starting: 1990
-      increment: 5
-          
-  Movies:
-  - in_history:
-      range: month
-      collection_title: Released This {{Range}} In History
-      save_folder: collections/
-      trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
-      starting: 1975
-      ending: 2020
-      increment: 10
-      meta:
-        sort_title: "!!020"
-        collection_mode: hide
-        visible_home: true
-        visible_shared: true
-        sync_mode: sync
-        collection_order: critic_rating.desc
-        summary: Movies released this {{range}} in history
+    - by_size:
+        enabled: false
+        order_by: title.asc
+        minimum: 0
+        maximum: null
+        limit: 100
+        collection_dir: collections/
+        collection:
+          name: Series by Size
+          collection_order: custom
+          sync_mode: sync
 
-  - by_size:
-      minimum: 25                # Size in GB
-      maximum: 90
-      order_by: size.desc
-      collection_title: Movies sorted by size
-      save_folder: collections/
-      trakt_list_privacy: public  # Set privacy for in-history trakt lists, can be set per library
-      meta:
-        sort_title: "!!010"
-        collection_mode: hide
-        visible_home: true
-        visible_shared: true
-        sync_mode: sync
-        collection_order: custom
-        summary: Movies sorted by size between 25 and 90 GB
+    - in_history:
+        enabled: true
+        range: month
+        starting: 0
+        ending: null
+        increment: 1
+        collection_dir: collections/
+        collection:
+          name: Series This {{range}} in history
+          collection_order: custom
+          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
 
-date_settings:
-  date_style: 1                        # 1 for mm/dd, 2 for dd/mm
-  leading_zeros: True                  # 01/14 vs 1/14 for dates. True or False
-  date_delimiter: "/"                  # Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
-  year_in_dates: False                 # Show year in dates: 01/14/22 vs 01/14. True or False
+    - in_history:
+        enabled: false
+        range: week
+        starting: 1990
+        ending: 2020
+        increment: 5
+        collection_dir: collections/
+        collection:
+          name: Series This {{range}} in history - Every 5 Years
+          collection_order: custom
+          sync_mode: sync
 
+    - new_shows:
+        enabled: true
+        first_episode_aired: 45
+        collection_dir: collections/
+        collection:
+          name: New Shows
+          collection_order: custom
+          sync_mode: sync
+          poster_url: https://example.com/poster.jpg
 
-extra_overlays:
-  new:
-    bgcolor: "#008001"
-    font_color: "#FFFFFF"
-    text: "N E W  S E R I E S"
-    horizontal_align: center
-    vertical_align: top
-    horizontal_offset: 0
-    vertical_offset: 0
+    - extended_status:
 
-  new_next_air:
-    bgcolor: "#343399"
-    font_color: "#FFFFFF"
-    text: "New · Airing"
-    
-  upcoming:
-    bgcolor: "#fc4e03"
-    font_color: "#FFFFFF"
-    text: "U P C O M I N G"
-    horizontal_align: center
-    vertical_align: top
+        overlay_dir: overlays/
 
-  airing:
-    bgcolor: "#343399"
-    font_color: "#FFFFFF"
-    text: "A I R I N G"
+        returning_soon:
+          enabled: true
+          mode: collection
+          days_ahead: 45
+          collection_dir: collections/
+          collection:
+            name: Returning Soon
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: RETURNING {{MM}}/{{DD}}
+            weight: 35
+            banner_back_color: '#81007F'
+            status_font_color: '#FFFFFF'
 
-  airing_next_air:
-    bgcolor: "#343399"
-    font_color: "#FFFFFF"
-    text: "A I R I N G"
+        airing:
+          enabled: true
+          mode: overlay
+          days_ahead: 14
+          days_behind: 14
+          collection_dir: collections/
+          collection:
+            name: Currently Airing
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: AIRING
+            weight: 50
+            banner_back_color: '#006580'
+            status_font_color: '#FFFFFF'
 
-  returning:
-    bgcolor: "#81007F"
-    font_color: "#FFFFFF"
-    text: "R E T U R N I N G"
+        airing_next:
+          enabled: false
+          mode: overlay
+          days_ahead: 14
+          days_behind: 14
+          collection_dir: collections/
+          collection:
+            name: Airing Next
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: AIRING {{MM}}/{{DD}}
+            weight: 55
+            banner_back_color: '#006580'
+            status_font_color: '#FFFFFF'
 
-  ended:
-    bgcolor: "#000000"
-    font_color: "#FFFFFF"
-    text: "E N D E D"
+        new:
+          enabled: true
+          mode: overlay
+          considered_new: 14
+          collection_dir: collections/
+          collection:
+            name: New Series
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: NEW
+            weight: 60
+            banner_back_color: '#008001'
+            status_font_color: '#FFFFFF'
 
-  canceled:
-    bgcolor: "#CF142B"
-    font_color: "#FFFFFF"
-    text: "C A N C E L E D"
+        new_airing_next:
+          enabled: false
+          mode: overlay
+          considered_new: 14
+          collection_dir: collections/
+          collection:
+            name: New - Airing
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: NEW - AIRING {{MM}} / {{DD}}
+            weight: 65
+            banner_back_color: '#008001'
+            status_font_color: '#FFFFFF'
+
+        returning:
+          enabled: true
+          mode: overlay
+          collection_dir: collections/
+          collection:
+            name: Recently Returned
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            text: R E T U R N I N G
+            weight: 30
+            banner_back_color: '#81007F'
+            status_font_color: '#FFFFFF'
+
+        ended:
+          enabled: false
+          mode: overlay
+          collection_dir: collections/
+          collection:
+            name: Ended
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: E N D E D
+            weight: 20
+            banner_back_color: '#000000'
+            status_font_color: '#FFFFFF'
+
+        canceled:
+          enabled: false
+          mode: overlay
+          collection_dir: collections/
+          collection:
+            name: Canceled
+            collection_order: custom
+            sync_mode: sync
+          overlay:
+            status_text: C A N C E L E D
+            weight: 20
+            banner_back_color: '#CF142B'
+            status_font_color: '#FFFFFF'
+
+settings:
+  kometa_config: config.yml
+  data_source: tmdb
 ```
 
-Date sytle options
+The `settings/` directory is intended for separate settings files. You can have something like:
+
+```text
+settings/
+├── server1.yml
+├── server2.yml
+└── anime.yml
 ```
-date_style: 1
-        This changes how the dates are formatted in the generated overlay files.
-          1
-            Will display dates as mm/dd (12/31) for December 31st
-          2
-            Will display dates as dd/mm (31/12) for December 31st
 
-date_delimiter: "/"
-        Delimiter for dates. Can be "/", "-", "." or "_", e.g. 01/14, 01-14, 01.14, 01_14
-        Default is '/'
+Each file can reference a different Kometa configuration.
 
-year_in_dates: False
-        Show year in dates: 01/14/22 vs 01/14. True or False
-        Default is False
+For example:
 
+```yaml
+settings:
+  kometa_config: config.yml
+  data_source: tmdb
 ```
-Core settings
 
+Or:
+
+```yaml
+settings:
+  kometa_config: /config/server2/config.yml
+  data_source: tmdb
+```
+
+# Cores
+
+## `extended_status`
+
+`extended_status` handles dynamically generated collections and overlays based on the current status of TV series.
+
+The available statuses are:
+
+* `returning_soon`
+* `airing`
+* `airing_next`
+* `new`
+* `new_airing_next`
+* `upcoming`
+* `returning`
+* `ended`
+* `canceled`
+
+Each status can be enabled independently.
+
+The available modes are:
+
+```text
+overlay
+collection
+```
+
+`overlay` generates the overlay information for the selected titles.
+
+`collection` generates the collection information for the selected titles.
+
+Some statuses can be useful with either mode.
+
+### `overlay_dir`
+
+```yaml
+overlay_dir: overlays/
+```
+
+Specifies where the generated extended status overlay file is written.
+
+The Kometa config directory is always the base location.
+
+For example:
+
+```yaml
+overlay_dir: overlays/
+```
+
+would result in:
+
+```text
+/config/overlays/
+```
+
+If the directory doesn't exist, PATTRMM will attempt to create it.
+
+The default is `overlays/`.
+
+### Status settings
+
+#### `returning_soon`
+
+```yaml
 returning_soon:
-Enables the 'Returning Soon' core for a library.
-![returning_soon](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/13fe4fba-eab9-4e3b-be86-fa55e5dedf38)
-
-```
-save_folder: collections/
-        Specify a location to write the returning soon metadata file to. Your PMM config folder
-        (where your config.yml is), will always be the BASE location.
-        So, a save_folder of 'collections/'
-        would put your file in a 'collections' sub-folder. If this directory does not exist
-        PATTRMM will ATTEMPT to create it.
-        Default location is beside your config.yml and does not need specified.
-
-overlay_save_folder: overlay-files/
-        Specify a location to write the returning soon overlay file to. Your PMM config folder
-        (where your config.yml is), will always be the BASE location.
-        So, a save_folder of 'overlay-files/'
-        would put your file in a 'overlay-files' sub-folder. If this directory does not exist
-        PATTRMM will ATTEMPT to create it.
-        Default location is the default PMM 'overlays' folder and does not need specified.
-
-trakt_list_privacy: private
-        Specify public/private trakt list privacy for returning soon list. Can be set per library.
-        Default is private and does not need specified.
-
-refresh: 30
-        Invterval in days to do a full refresh of the libraries airing status.
-        Sometimes things change.
-        This makes sure you stay up to date.
-
-days_ahead: 45
-        How far ahead a title should still be considered 'Returning Soon'.
-        For example, 45, would consider any title that has a 'Returning' status
-        and airs again within the next 45 days to be 'Returning Soon'.
+  enabled: false
+  mode: collection
+  days_ahead: 45
+  collection_dir: collections/
+  collection:
+    name: Returning Soon
+    collection_order: custom
+    sync_mode: sync
+  overlay:
+    status_text: RETURNING {{MM}}/{{DD}}
+    weight: 35
+    banner_back_color: '#81007F'
+    status_font_color: '#FFFFFF'
 ```
 
+`days_ahead` determines how far into the future a returning series can be before it is no longer considered "Returning Soon."
+
+For example, `45` means a returning series airing within the next 45 days can be included.
+
+#### `airing`
+
+```yaml
+airing:
+  enabled: false
+  mode: overlay
+  days_ahead: 14
+  days_behind: 14
+```
+
+`days_ahead` and `days_behind` determine the window used to identify currently airing series.
+
+#### `airing_next`
+
+```yaml
+airing_next:
+  enabled: false
+  mode: overlay
+  days_ahead: 14
+  days_behind: 14
+```
+
+Used for series with an upcoming episode.
+
+#### `new`
+
+```yaml
+new:
+  enabled: false
+  mode: overlay
+  considered_new: 14
+```
+
+`considered_new` specifies how many days after a series begins that it should continue to be considered new.
+
+#### `new_airing_next`
+
+```yaml
+new_airing_next:
+  enabled: false
+  mode: overlay
+  considered_new: 14
+```
+
+Combines the new-series criteria with an upcoming episode.
+
+#### `upcoming`
+
+```yaml
+upcoming:
+  enabled: false
+  mode: collection
+```
+
+Used for series that have not aired yet.
+
+#### `returning`
+
+```yaml
+returning:
+  enabled: false
+  mode: overlay
+```
+
+Used for series that have recently returned.
+
+#### `ended`
+
+```yaml
+ended:
+  enabled: false
+  mode: overlay
+```
+
+Used for ended series.
+
+#### `canceled`
+
+```yaml
+canceled:
+  enabled: false
+  mode: overlay
+```
+
+Used for canceled series.
+
+## Overlay Settings
+
+Each status can contain an `overlay:` block.
+
+PATTRMM supports three ways of targeting values inside Kometa's overlay configuration.
+
+### Banner settings
+
+Keys beginning with `banner_` are placed into the Kometa `banner` section.
+
+For example:
+
+```yaml
+overlay:
+  banner_back_color: '#81007F'
+```
+
+results in the setting being applied to the banner configuration.
+
+### Status text settings
+
+Keys beginning with `status_` are placed into the Kometa `text` section.
+
+For example:
+
+```yaml
+overlay:
+  status_text: RETURNING
+```
+
+targets the `text` section.
+
+### Direct settings
+
+Keys without either prefix can be used for settings that apply directly to both sections.
+
+For example:
+
+```yaml
+overlay:
+  weight: 35
+```
+
+This allows an overlay configuration to contain a mixture of banner, text, and shared settings.
+
+For example:
+
+```yaml
+overlay:
+  status_text: RETURNING {{MM}}/{{DD}}
+  weight: 35
+  banner_back_color: '#81007F'
+  status_font_color: '#FFFFFF'
+```
+
+### Date placeholders
+
+Dated overlay text can use:
+
+```text
+{{MM}}    04
+{{M}}     4
+{{MMMM}}  April
+
+{{DD}}    09
+{{D}}     9
+{{DDDD}}  Tuesday
+
+{{YYYY}}  2026
+{{YY}}    26
+```
+
+For example:
+
+```yaml
+status_text: RETURNING {{MM}}/{{DD}}
+```
+
+could produce:
+
+```text
+RETURNING 04/09
+```
+
+# `in_history`
+
+Enables the `In History` core for a library.
+
+`In History` creates collections containing titles released during the current day, week, or month across a range of years.
+
+### Settings
+
+```yaml
 in_history:
-Enables the 'In History' core for a library.
-![this_month_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/71575460-c575-4b12-9e77-77ec6a8a59e5)
-![this_week_in_history](https://github.com/InsertDisc/pattrmm-develop/assets/31751462/f412f703-1d81-4bd1-9a0b-87b10789f271)
-
-```
-  In History specific settings
-
+  enabled: true
   range: month
-      This sets the range you would like to filter for.
-      Options are month, week, day.
-      For example
-
-        In 'December', having a 'month' range would filter items throughout the years
-        that were released in December
-
-        During the first week of December, December 1st - December 7th, having a range of 'week'
-        would filter items released on December 1st - December 7th of qualified years.
-
-        On December 5th, having a range of 'day' would filter items releasd on December 5th
-        of qualified years.
-
   starting: 1975
-        Allows you to specify the 'earliest' year the filter will go back till.
-        A setting of 1975 would not include anything released prior to 1975.
-        If this declaration is missing then all items up to the 'earliest' will be included.
-
-  ending: 1999
-        Allows you to specify the 'latest' year the filter will go up to.
-        1999 Would not include anything released after that year.
-        If this delcaration is missing then up to the current year will be included.
-
+  ending: 2025
   increment: 10
-        Allows you to specify the 'spacing' between valid years.
-        Given an 'ending' year of 2003, would only match to titles released every 10 years out.
-        So, 2003, 1993, 1983, 1973
-        If an 'ending' year is not specified then the current year will be used as the initial year.
-
-  save_folder: collections/
-        Specify a location to write the extension metadata file to. Your PMM config folder
-        (where your config.yml is), will always be the BASE location.
-        So, a save_folder of 'collections/'
-        would put your file in a 'collections' sub-folder. If this directory does not exist
-        PATTRMM will ATTEMPT to create it.
-
-  trakt_list_privacy: private
-        Specify public/private trakt list privacy for this extension list. Can be set per library.
-        Default is private and does not need specified.
-
-  collection_title: Released this {{range}} in history.
-        Title for the collection in the generated metadata yml file.
-        This can be manually written entirely or you can use {{range}}
-        to fill in the range automatically.
-        Given a range of 'month',
-        Released this {{range}} in history, would generate:
-            Released this month in history
-        {{Range}} can be used instead for a capitalized range.
-        Released This {{Range}} In History, would generate:
-            Released This Month In History
-        The {{range}} and {{Range}} placeholders will also work in a 'summary'
-        if you decide to add one to meta options.
-
-  meta:
-        Here's where you can apply your 'touch'.
-
-        A default generated metadata yml, with no meta options might look something like:
-
-        collections:
-          Released This Month In History:
-            trakt_list: https://trakt.tv/users/username/lists/in-history-Movies
-            visible_home: true
-            visible_shared: true
-            collection_order: custom
-            sync_mode: sync
-
-        Any of the options under 'Released This Month In History'
-        can be overwritten with meta options.
-        meta:
-          visible_home: false
-          collection_order: critic_rating.desc
-
-        Would generate:
-
-        collections:
-          Released This Month In History:
-            trakt_list: https://trakt.tv/users/username/lists/in-history-Movies
-            visible_home: false
-            visible_shared: true
-            collection_order: critic_rating.desc
-            sync_mode: sync
-
-        Notice how the two options were overwritten. Take care not to overwrite your trakt_list.
-        You can also use meta to ADD any additional in-line options.
-
-        meta:
-          visible_home: false
-          collection_order: critic_rating.desc
-          sort_title: "!+007"
-
-        Generates:
-
-        collections:
-          Released This Month In History:
-            trakt_list: https://trakt.tv/users/username/lists/in-history-Movies
-            visible_home: false
-            visible_shared: true
-            collection_order: critic_rating.desc
-            sync_mode: sync
-            sort_title: "!+007"
-
-        Note:
-        As of now, only 'sort_title' will correctly carry over the " around the values.
-
+  collection_dir: collections/
+  collection:
+    name: This {{range}} in history
+    collection_order: custom
+    sync_mode: sync
 ```
+
+### `range`
+
+The range to filter.
+
+Available options:
+
+```text
+day
+week
+month
+```
+
+A `month` range during December finds titles released during December in the selected years.
+
+A `week` range finds titles released during the current Monday-Sunday week in the selected years.
+
+A `day` range finds titles released on the current day in the selected years.
+
+### `starting`
+
+The earliest year to include.
+
+```yaml
+starting: 1975
+```
+
+Anything released before 1975 will be excluded.
+
+### `ending`
+
+The latest year to include.
+
+```yaml
+ending: 2025
+```
+
+Anything released after 2025 will be excluded.
+
+If omitted, the current year is used.
+
+### `increment`
+
+Controls the spacing between years.
+
+```yaml
+ending: 2025
+increment: 10
+```
+
+would check:
+
+```text
+2025
+2015
+2005
+1995
+...
+```
+
+If `ending` isn't specified, the current year is used as the starting year.
+
+`In History` can be configured multiple times for the same library.
+
+For example:
+
+```yaml
+- in_history:
+    enabled: true
+    range: month
+    starting: 0
+    ending: null
+    increment: 1
+    collection_dir: collections/
+    collection:
+      name: This {{range}} in history
+      collection_order: custom
+      sync_mode: sync
+
+- in_history:
+    enabled: false
+    range: week
+    starting: 1990
+    ending: 2020
+    increment: 5
+    collection_dir: collections/
+    collection:
+      name: This {{range}} in history - Every 5 Years
+      collection_order: custom
+      sync_mode: sync
+```
+
+## `by_size`
+
+Enables the `By Size` core for a library.
+
+```yaml
 by_size:
-Enables the 'By Size' core for a library.
-![sorted_by_size](https://github.com/InsertDisc/pattrmm/assets/31751462/e53b748e-8ffc-461f-88b3-b752289f7b3e)
-```
-  By Size specific settings
-
-  minimum: 25
-      This sets the minimum filesize to be included in the filtered list.
-      The default value is 0 and does not need specified.
-
-  maximum: 90
-      This sets the maximum filesize to be included in the filtered list.
-      The default value has no upper limit. To use this extension with no
-      top limit, leave out this setting.
-        
+  enabled: true
   order_by: size.desc
-      Further sorting of the filtered list is possible with this option.
-      The default value is size.desc and does not need specified.
-      Available options are:
-        size, title, added (date added to Plex), released (Movie release date)
-      Each option is compatible with two sort directions but are not required.
-        asc - Sort items by ascending order
-        desc - Sort items by descending order
-        Default sort direction is 'desc' for everything but 'title'.
-        
-        For example, to sort by a Movie's 'added to plex' date, with the oldest appearing first
-        order_by: added.asc
-
-  save_folder: collections/
-        Specify a location to write the extension metadata file to. Your PMM config folder
-        (where your config.yml is), will always be the BASE location.
-        So, a save_folder of 'collections/'
-        would put your file in a 'collections' sub-folder. If this directory does not exist
-        PATTRMM will ATTEMPT to create it.
-
-  trakt_list_privacy: private
-        Specify public/private trakt list privacy for this extension list. Can be set per library.
-        Default is private and does not need specified.
-
-  collection_title: Sorted by size
-        Title for the collection in the generated metadata yml file.
-        
-
-  meta:
-        Here's where you can apply your 'touch'.
-
-        A default generated metadata yml, with no meta options might look something like:
-
-        collections:
-          Sorted by size:
-            trakt_list: https://trakt.tv/users/username/lists/Sorted-by-size-Movies
-            visible_home: true
-            visible_shared: true
-            collection_order: custom
-            sync_mode: sync
-
-        Any of the options under 'Sorted by size'
-        can be overwritten with meta options.
-        meta:
-          visible_home: false
-          collection_order: critic_rating.desc
-
-        Would generate:
-
-        collections:
-          Sorted by size:
-            trakt_list: https://trakt.tv/users/username/lists/Sorted-by-size-Movies
-            visible_home: false
-            visible_shared: true
-            collection_order: critic_rating.desc
-            sync_mode: sync
-
-        Notice how the two options were overwritten. Take care not to overwrite your trakt_list.
-        You can also use meta to ADD any additional in-line options.
-
-        meta:
-          visible_home: false
-          collection_order: critic_rating.desc
-          sort_title: "!+007"
-
-        Generates:
-
-        collections:
-          Sorted by size:
-            trakt_list: https://trakt.tv/users/username/lists/Sorted-by-size-Movies
-            visible_home: false
-            visible_shared: true
-            collection_order: critic_rating.desc
-            sync_mode: sync
-            sort_title: "!+007"
-
-        Note:
-        As of now, only 'sort_title' will correctly carry over the " around the values.     
-          
-Each extension can only be used within a library ONCE, otherwise an error will occur.
-In-History supports ONE range per library.
-```
-extra_overlays:
-Enables additional status overlays.
-If extra_overlays: is enabled for a library, all available extra overlays will be enabled for that library.
-These can be disabled
-```
- Series:
-  - extra_overlays:
-      new_next_air: False
-      airing_next_air: False
+  minimum: 0
+  maximum: null
+  limit: 500
+  collection_dir: collections/
+  collection:
+    name: By Size
+    collection_order: custom
+    sync_mode: sync
 ```
 
-What now:
+### `minimum`
 
-    Add your generated metadata files under the appropriate 
-    metadata section of the corresponding library 
-    that you are having it scan.
-    Add the generated overlay files under the appropriate 
-    overlay section of the same library.
+Minimum size to include.
 
-When to run:
+```yaml
+minimum: 25
+```
 
-    Docker version runs daily at the specified PATTRMM_TIME. This is a 24 hour format.
+### `maximum`
 
+Maximum size to include.
+
+```yaml
+maximum: 90
+```
+
+Leaving this as `null` means there is no maximum.
+
+### `limit`
+
+Maximum number of titles to put into the collection.
+
+```yaml
+limit: 500
+```
+
+### `order_by`
+
+Controls how the results are sorted.
+
+Available fields:
+
+```text
+size
+title
+added
+released
+release_date
+```
+
+Available directions:
+
+```text
+asc
+desc
+```
+
+Examples:
+
+```yaml
+order_by: size.desc
+order_by: size.asc
+order_by: title.asc
+order_by: added.asc
+order_by: released.desc
+```
+
+`size.desc` is the default.
+
+For titles, ascending order is the default direction if no direction is supplied.
+
+## `new_shows`
+
+Enables the `New Shows` core for a show library.
+
+```yaml
+new_shows:
+  enabled: true
+  first_episode_aired: 45
+  collection_dir: collections/
+  collection:
+    name: New Shows
+    collection_order: custom
+    sync_mode: sync
+```
+
+`first_episode_aired` determines how many days back the first episode of a series can have aired while still being considered a new show.
+
+For example:
+
+```yaml
+first_episode_aired: 45
+```
+
+will include shows whose first episode aired within the last 45 days.
+
+`new_shows` only operates on Plex libraries whose type is `show`.
+
+# Collection Settings
+
+Every core that creates a collection has a `collection:` section.
+
+For example:
+
+```yaml
+collection:
+  name: My Collection
+  collection_order: custom
+  sync_mode: sync
+```
+
+PATTRMM passes the collection settings through to the generated Kometa collection configuration.
+
+This means you can add other Kometa collection options here as well.
+
+For example:
+
+```yaml
+collection:
+  name: My Collection
+  collection_order: custom
+  sync_mode: sync
+  poster_url: https://example.com/poster.jpg
+```
+
+PATTRMM does not need to explicitly know about every Kometa collection option.
+
+Additional options can be added to the `collection:` block and will be carried into the generated collection configuration.
+
+# Generated Files
+
+PATTRMM generates the files needed by Kometa.
+
+Collections are written to the configured `collection_dir` and overlays are written to the configured `overlay_dir`.
+
+The generated files can then be referenced from the corresponding Kometa library using:
+
+```yaml
+collection_files:
+  - collections/example.yml
+
+overlay_files:
+  - overlays/example.yml
+```
+
+The paths are relative to the Kometa config directory.
+
+# Running PATTRMM
+
+For a manual run:
+
+```bash
+python3 pattrmm.py --run
+```
+
+For Docker, PATTRMM will run automatically according to `PATTRMM_TIMES`.
+
+For example:
+
+```yaml
+environment:
+  - PATTRMM_TIMES=02:00,13:00
+```
+
+will run PATTRMM every day at 2:00 AM and 1:00 PM.
+
+PATTRMM will process the settings files specified by `PATTRMM_SETTINGS`, or all settings files in the `settings/` directory if none are specified.
