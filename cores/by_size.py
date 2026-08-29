@@ -32,7 +32,7 @@ def status(library_name, message):
 
 def run():
     default_settings = {
-        'enabled': True,
+        'enabled': False,
         'order_by': 'size.desc',
         'minimum': 0,
         'maximum': None,
