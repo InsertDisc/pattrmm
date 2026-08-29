@@ -5,54 +5,54 @@ templates:
     builder_level: show
     overlay:
       name: backdrop
-      horizontal_offset: <<banner_horizontal_offset>>
-      horizontal_align: <<banner_horizontal_align>>
-      vertical_offset: <<banner_vertical_offset>>
-      vertical_align: <<banner_vertical_align>>
-      group: <<banner_group>>
+      horizontal_offset: <<horizontal_offset>>
+      horizontal_align: <<horizontal_align>>
+      vertical_offset: <<vertical_offset>>
+      vertical_align: <<vertical_align>>
+      group: <<group>>
       weight: <<weight>>
-      back_color: <<banner_back_color>>
-      back_width: <<banner_back_width>>
-      back_height: <<banner_back_height>>
+      back_color: <<back_color>>
+      back_width: <<back_width>>
+      back_height: <<back_height>>
 
     default:
-      banner_group: banner_backdrop
-      banner_horizontal_align: center
-      banner_vertical_align: top
-      banner_horizontal_offset: 0
-      banner_vertical_offset: 0
-      banner_back_width: 1000
-      banner_back_height: 90
+      group: banner_backdrop
+      horizontal_align: center
+      vertical_align: top
+      horizontal_offset: 0
+      vertical_offset: 0
+      back_width: 1000
+      back_height: 90
 
   # {library} STATUS
   {library}_Status:
     sync_mode: sync
     builder_level: show
     overlay:
-      name: text(<<status_text>>)
-      horizontal_offset: <<status_horizontal_offset>>
-      horizontal_align: <<status_horizontal_align>>
-      vertical_offset: <<status_vertical_offset>>
-      vertical_align: <<status_vertical_align>>
-      font: <<status_font>>
-      font_size: <<status_font_size>>
-      font_color: <<status_font_color>>
-      group: <<status_group>>
+      name: text(<<text>>)
+      horizontal_offset: <<horizontal_offset>>
+      horizontal_align: <<horizontal_align>>
+      vertical_offset: <<vertical_offset>>
+      vertical_align: <<vertical_align>>
+      font: <<font>>
+      font_size: <<font_size>>
+      font_color: <<font_color>>
+      group: <<group>>
       weight: <<weight>>
-      back_color: <<status_back_color>>
-      back_width: <<status_back_width>>
-      back_height: <<status_back_height>>
-      back_align: <<status_back_align>>
+      back_color: <<back_color>>
+      back_width: <<back_width>>
+      back_height: <<back_height>>
+      back_align: <<back_align>>
 
     default:
-      status_font: config/fonts/Juventus-Fans-Bold.ttf
-      status_group: banner_text
-      status_horizontal_align: center
-      status_vertical_align: top
-      status_horizontal_offset: 0
-      status_vertical_offset: 10
-      status_font_size: 70
-      status_back_color: "#00000000"
-      status_back_align: center
-      status_back_height: 90
-      status_back_width: 1000
+      font: config/fonts/Juventus-Fans-Bold.ttf
+      group: banner_text
+      horizontal_align: center
+      vertical_align: top
+      horizontal_offset: 0
+      vertical_offset: 0
+      font_size: 70
+      back_color: "#00000000"
+      back_align: center
+      back_height: 90
+      back_width: 1000
