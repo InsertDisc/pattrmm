@@ -342,7 +342,6 @@ The `settings/` directory is intended for separate settings files. You can have 
 settings/
 ├── server1.yml
 ├── server2.yml
-└── anime.yml
 ```
 
 Each file can reference a different Kometa configuration.
