@@ -1,24 +1,22 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import os
-
-from ruamel.yaml import YAML
 
 from modules.plex import PlexApi
 from modules.utilities import (
     clean_string,
     date_within_range,
     get_core_settings,
-    path_constructor
+    to_dict,
+    write_collection_files
 )
 
-yaml = YAML()
-yaml.preserve_quotes = True
+
 plex = PlexApi()
 
 
 @dataclass
 class InHistory:
+    enabled: bool
     range: str
     starting: int
     ending: int | None
@@ -28,11 +26,14 @@ class InHistory:
 
 
 def status(library_name, message):
-    print(f"[{library_name}] [In History] {message}")
+    print(
+        f"[{library_name}] [In History] {message}"
+    )
 
 
 def run():
     default_settings = {
+        'enabled': False,
         'range': 'month',
         'starting': 0,
         'ending': None,
@@ -47,11 +48,12 @@ def run():
 
     core_settings = get_core_settings(
         'in_history',
-        3,
+        None,
         default_settings
     )
 
     for library_name, instances in core_settings.items():
+
         status(
             library_name,
             "Processing library"
@@ -76,18 +78,39 @@ def run():
             )
             continue
 
+        instance_counts = {}
+
         for settings in instances:
             history = InHistory(**settings)
-            library_slug = clean_string(
-                library_name
+
+            if not history.enabled:
+                status(
+                    library_name,
+                    "Skipping: In History disabled "
+                    f"in instance"
+                )
+                continue
+
+            instance_int = instance_counts.get(
+                history.range,
+                0
+            )
+
+            description = (
+                f'{history.range}-in-history'
+                f'{f"-{instance_int}" if instance_int else ""}'
+            )
+
+            instance_counts[history.range] = (
+                instance_int + 1
             )
 
             status(
                 library_name,
-                f"Processing: {history.range} "
-                f"({history.starting} -> "
-                f"{history.ending or today.year}, "
-                f"increment {history.increment})"
+                f"Processing: This {history.range} in history: "
+                f"From ({history.starting} -> "
+                f"To {history.ending or today.year}, "
+                f"Increment of {history.increment} year/s)"
             )
 
             if history.range == 'day':
@@ -101,6 +124,7 @@ def run():
                         days=today.weekday()
                     )
                 )
+
                 end_date = (
                     start_date
                     + timedelta(days=6)
@@ -151,6 +175,7 @@ def run():
                             '%Y-%m-%d'
                         )
                     )
+
                 except ValueError:
                     continue
 
@@ -182,96 +207,27 @@ def run():
                     f"Checking: {item.title}"
                 )
 
-                detail = (
-                    plex.show(
-                        item.id.rating_key
-                    )
-                    if library.type == 'show'
-                    else plex.movie(
-                        item.id.rating_key
-                    )
+                selected.append(
+                    item
                 )
-
-                ids = detail.id
-
-                if (
-                    ids.tmdb
-                    and ids.tmdb != 'null'
-                ):
-                    selected.append(
-                        f'tmdb:{ids.tmdb}'
-                    )
-
-                elif (
-                    ids.tvdb
-                    and ids.tvdb != 'null'
-                ):
-                    selected.append(
-                        f'tvdb:{ids.tvdb}'
-                    )
-
-                elif (
-                    ids.imdb
-                    and ids.imdb != 'null'
-                ):
-                    selected.append(
-                        f'imdb:{ids.imdb}'
-                    )
-
-                else:
-                    status(
-                        library_name,
-                        f"No usable ID: "
-                        f"{item.title}"
-                    )
-
-            selected = list(
-                dict.fromkeys(selected)
-            )
 
             status(
                 library_name,
-                f"Selected {len(selected)} "
-                f"title(s)"
+                f"Selected {len(selected)} title(s)"
             )
 
-            text_file = path_constructor(
-                history.collection_dir,
-                f'{library_slug}-'
-                f'{history.range}-in-history.txt'
-            )
-
-            collection_file = path_constructor(
-                history.collection_dir,
-                f'{library_slug}-'
-                f'{history.range}-in-history.yml'
-            )
-
-            os.makedirs(
-                os.path.dirname(text_file),
-                exist_ok=True
-            )
-
-            status(
-                library_name,
-                f"Writing text file: "
-                f"{text_file}"
-            )
-
-            with open(
-                text_file,
-                'w',
-                encoding='utf-8'
-            ) as output:
-                output.write(
-                    '\n'.join(selected)
+            for item in selected:
+                print(
+                    f"  {item.title} "
+                    f"({item.date.available_date})"
                 )
 
-                if selected:
-                    output.write('\n')
+            collection = dict(
+                history.collection
+            )
 
-            title = (
-                history.collection['name']
+            collection['name'] = (
+                collection['name']
                 .replace(
                     '{{range}}',
                     history.range
@@ -282,56 +238,19 @@ def run():
                 )
             )
 
-            collection = dict(
-                history.collection
-            )
-
-            collection.pop(
-                'name',
-                None
-            )
-
-            collection.pop(
-                'trakt_list',
-                None
-            )
-
-            collection.pop(
-                'trakt_list_url',
-                None
-            )
-
-            collection['text_file'] = (
-                f'config/'
-                f'{history.collection_dir}'
-                f'{library_slug}-'
-                f'{history.range}-in-history.txt'
+            count = write_collection_files(
+                selected_list=selected,
+                library_slug=clean_string(
+                    library_name
+                ),
+                description=description,
+                collection_dir=history.collection_dir,
+                collection=collection
             )
 
             status(
                 library_name,
-                f"Writing collection file: "
-                f"{collection_file}"
-            )
-
-            with open(
-                collection_file,
-                'w',
-                encoding='utf-8'
-            ) as output:
-                yaml.dump(
-                    {
-                        'collections': {
-                            title: collection
-                        }
-                    },
-                    output
-                )
-
-            status(
-                library_name,
-                f"Complete: "
-                f"{len(selected)} title(s)"
+                f"Complete: {count} title(s)"
             )
 
 
