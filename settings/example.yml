@@ -91,6 +91,15 @@ libraries:
     - extended_status:
         overlay_dir: overlays/
 
+        season_finale:
+          enabled: true
+          mode: overlay
+          collection:
+            name: Season Finales
+            visible_home: true
+            visible_shared: true
+          overlay:
+            status_text: SEASON FINALE {{MM}}/{{DD}}
         returning_soon:
           enabled: true
           mode: all
