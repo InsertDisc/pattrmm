@@ -382,7 +382,7 @@ def run():
         'returning_soon': {
             'enabled': False,
             'mode': 'all',
-            'days_ahead': 45,
+            'days_ahead': 90,
             'collection_dir': 'collections/',
             'collection': {
                 'name': 'Returning Soon',
@@ -431,6 +431,23 @@ def run():
                 'status_text': 'AIRING {{MM}}/{{DD}}',
                 'weight': 55,
                 'banner_back_color': '#006580',
+                'status_font_color': '#FFFFFF',
+            },
+        },
+
+        'season_finale': {
+            'enabled': False,
+            'mode': 'overlay',
+            'collection_dir': 'collections/',
+            'collection': {
+                'name': 'Season Finales',
+                'collection_order': 'custom',
+                'sync_mode': 'sync',
+            },
+            'overlay': {
+                'status_text': 'SEASON FINALE {{MM}}/{{DD}}',
+                'weight': 70,
+                'banner_back_color': '#D4A017',
                 'status_font_color': '#FFFFFF',
             },
         },
@@ -1076,6 +1093,103 @@ def run():
                         )
                     )
 
+#####################
+### Season Finale ###
+#####################
+
+            settings = extended_status.get(
+                'season_finale',
+                {}
+            )
+
+            season_finale = GeneralStatus(**settings)
+
+            if season_finale.enabled:
+
+                library_info(
+                    library_name,
+                    "Season Finale",
+                    "checking"
+                )
+
+                selected = []
+
+                for show in cached.values():
+
+                    plex_id = show.id.guid
+
+                    if not plex_id:
+                        continue
+
+                    if show.status != 'Returning Series':
+                        continue
+
+                    if not show.next_episode:
+                        continue
+
+                    if show.next_episode.episode_type != 'finale':
+                        continue
+
+                    if (
+                        not show.next_episode.air_date
+                        or show.next_episode.air_date == 'null'
+                    ):
+                        continue
+
+                    selected.append(show)
+
+                selected.sort(
+                    key=lambda item: item.next_episode.air_date
+                )
+
+                library_info(
+                    library_name,
+                    "Season Finale",
+                    f"{len(selected)} title(s)"
+                )
+
+                for item in selected:
+                    library_info(
+                        library_name,
+                        "Season Finale",
+                        f"  {item.title} "
+                        f"({item.next_episode.air_date})"
+                    )
+
+                write_collection = (
+                    season_finale.mode in ('all', 'collection')
+                )
+
+                write_overlay = (
+                    season_finale.mode in ('all', 'overlay')
+                )
+
+                if write_collection:
+                    count = write_collection_files(
+                        selected_list=selected,
+                        library_slug=library_slug,
+                        description='season_finale',
+                        collection_dir=season_finale.collection_dir,
+                        collection=season_finale.collection
+                    )
+
+                    library_info(
+                        library_name,
+                        "Season Finale",
+                        f"Collection files written: "
+                        f"{count} title(s)"
+                    )
+
+                if write_overlay:
+                    overlays.update(
+                        build_date_overlays(
+                            selected=selected,
+                            library_slug=library_slug,
+                            status_name='Season_Finale',
+                            overlay=season_finale.overlay
+                        )
+                    )
+
 #################
 ### Returning ###
 #################
@@ -1288,6 +1402,8 @@ def run():
                             overlay=ended.overlay
                         )
                     )
+
+
 
 ######### Other status filters go here
         ## Write the complete overlay document once after
