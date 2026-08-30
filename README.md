@@ -212,6 +212,12 @@ libraries:
 
         overlay_dir: overlays/
 
+        season_finale:
+          enabled: true
+          mode: overlay
+          overlay:
+            status_text: SEASON FINALE {{MM}}/{{DD}}
+
         returning_soon:
           enabled: true
           mode: collection
@@ -372,6 +378,7 @@ settings:
 
 The available statuses are:
 
+* `season_finale`
 * `returning_soon`
 * `airing`
 * `airing_next`
@@ -426,7 +433,17 @@ If the directory doesn't exist, PATTRMM will attempt to create it.
 The default is `overlays/`.
 
 ### Status settings
+#### `season_finale`
 
+```yaml
+season_finale:
+  enabled: false
+  mode: overlay
+  overlay:
+    status_text: SEASON FINALE {{MM}}/{{DD}}
+```
+
+Used for series that have a next episode of 'finale'.
 #### `returning_soon`
 
 ```yaml
