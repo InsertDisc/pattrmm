@@ -29,20 +29,20 @@ class Tvdb:
 
 @dataclass
 class Sonarr:
-    url: str
-    token: str
-    root_folder_path: str
-    monitor: bool
-    language_profile: str
-    series_type: str
+    url: Optional[str] = None
+    token: Optional[str] = None
+    root_folder_path: Optional[str] = None
+    monitor: Optional[str] = None
+    language_profile: Optional[str] = None
+    series_type: Optional[str] = None
 
 @dataclass
 class Radarr:
-    url: str
-    token: str
-    root_folder_path: str
-    monitor: bool
-
+    url: Optional[str] = None
+    token: Optional[str] = None
+    root_folder_path: Optional[str] = None
+    monitor: Optional[str] = None
+    
 @dataclass
 class ConfigData:
     plex: Plex
