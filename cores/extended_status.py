@@ -1370,11 +1370,11 @@ def run():
                     )
 
                 write_collection = (
-                    returning.mode in ('all', 'collection')
+                    ended.mode in ('all', 'collection')
                 )
 
                 write_overlay = (
-                    returning.mode in ('all', 'overlay')
+                    ended.mode in ('all', 'overlay')
                 )
 
                 if write_collection:
@@ -1411,11 +1411,10 @@ def run():
         ## removing any section with empty plex_id[] lists first
 
         ## Remove any overlays that have no Plex IDs.
-        overlays = {
-            key: value
-            for key, value in overlays.items()
-            if value.get('plex_id')
-        }
+        for key in list(overlays):
+            if not overlays[key].get('plex_id'):
+                del overlays[key]
+                
 
         if overlays:
             count = write_overlay_file(
