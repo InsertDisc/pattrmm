@@ -14,6 +14,14 @@ templates:
       back_color: <<back_color>>
       back_width: <<back_width>>
       back_height: <<back_height>>
+      back_line_color: <<back_line_color>>
+      back_line_width: <<back_line_width>>
+      back_padding: <<back_padding>>
+      back_radius: <<back_radius>>
+      file: <<file>>
+      git: <<git>>
+      repo: <<repo>>
+      url: <<url>>
 
     default:
       group: banner_backdrop
@@ -25,14 +33,14 @@ templates:
       back_height: 90
 
     optional:
-      back_line_color: <<back_line_color>>
-      back_line_width: <<back_line_width>>
-      back_padding: <<back_padding>>
-      back_radius: <<back_radius>>
-      file: <<file>>
-      git: <<git>>
-      repo: <<repo>>
-      url: <<url>>
+      - back_line_color
+      - back_line_width
+      - back_padding
+      - back_radius
+      - file
+      - git
+      - repo
+      - url
 
   # {library} STATUS
   {library}_Status:
@@ -53,6 +61,14 @@ templates:
       back_width: <<back_width>>
       back_height: <<back_height>>
       back_align: <<back_align>>
+      back_line_color: <<back_line_color>>
+      back_line_width: <<back_line_width>>
+      back_padding: <<back_padding>>
+      back_radius: <<back_radius>>
+      file: <<file>>
+      git: <<git>>
+      repo: <<repo>>
+      url: <<url>>
 
     default:
       font: config/fonts/Juventus-Fans-Bold.ttf
@@ -68,11 +84,11 @@ templates:
       back_width: 1000
 
     optional:
-      back_line_color: <<back_line_color>>
-      back_line_width: <<back_line_width>>
-      back_padding: <<back_padding>>
-      back_radius: <<back_radius>>
-      file: <<file>>
-      git: <<git>>
-      repo: <<repo>>
-      url: <<url>>
+      - back_line_color
+      - back_line_width
+      - back_padding
+      - back_radius
+      - file
+      - git
+      - repo
+      - url
