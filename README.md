@@ -49,6 +49,7 @@ services:
       - GUID=1000
       - PATTRMM_TIMES=02:00,13:00
       - PATTRMM_SETTINGS=server1.yml,server2.yml
+      - TZ=America/New_York
     volumes:
       - ./pattrmm/data:/data
       - ./pattrmm/settings:/settings
@@ -614,16 +615,17 @@ overlay:
 Dated overlay text can use:
 
 ```text
-{{MM}}    04
 {{M}}     4
+{{MM}}    04
 {{MMMM}}  April
 
-{{DD}}    09
 {{D}}     9
+{{DD}}    09
+{{DDD}}   Tue
 {{DDDD}}  Tuesday
 
-{{YYYY}}  2026
 {{YY}}    26
+{{YYYY}}  2026
 ```
 
 For example:
