@@ -133,7 +133,7 @@ libraries:
           name: Movies by Size
           collection_order: custom
           sync_mode: sync
-          poster_url: https://example.com/poster.jpg
+          url_poster: https://example.com/poster.jpg
 
     - in_history:
         enabled: true
@@ -146,7 +146,7 @@ libraries:
           name: Movies This {{range}} in history
           collection_order: custom
           sync_mode: sync
-          poster_url: https://example.com/poster.jpg
+          url_poster: https://example.com/poster.jpg
 
     - in_history:
         enabled: false
@@ -185,7 +185,7 @@ libraries:
           name: Series This {{range}} in history
           collection_order: custom
           sync_mode: sync
-          poster_url: https://example.com/poster.jpg
+          url_poster: https://example.com/poster.jpg
 
     - in_history:
         enabled: false
@@ -207,7 +207,7 @@ libraries:
           name: New Shows
           collection_order: custom
           sync_mode: sync
-          poster_url: https://example.com/poster.jpg
+          url_poster: https://example.com/poster.jpg
 
     - extended_status:
 
@@ -301,7 +301,7 @@ libraries:
           mode: overlay
           collection_dir: collections/
           collection:
-            name: Recently Returned
+            name: Returned Series
             collection_order: custom
             sync_mode: sync
           overlay:
