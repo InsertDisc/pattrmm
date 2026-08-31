@@ -29,17 +29,31 @@ config = ConfigLoader()
 class ReturningSoon:
     enabled: bool
     mode: str
+    use_today: bool
+    today_text: str
     days_ahead: int
+    days_behind: int
     collection_dir: str
     collection: dict
     overlay: dict
 
 
 @dataclass
-class NewStatus:
+class New:
     enabled: bool
     mode: str
-    considered_new: int
+    days_considered_new: int
+    collection_dir: str
+    collection: dict
+    overlay: dict
+
+@dataclass
+class NewAiringNext:
+    enabled: bool
+    use_today: bool
+    today_text: str
+    mode: str
+    days_considered_new: int
     collection_dir: str
     collection: dict
     overlay: dict
@@ -55,6 +69,27 @@ class Airing:
     collection: dict
     overlay: dict
 
+@dataclass
+class AiringNext:
+    enabled: bool
+    use_today: bool
+    today_text: str
+    mode: str
+    days_ahead: int
+    days_behind: int
+    collection_dir: str
+    collection: dict
+    overlay: dict
+
+@dataclass
+class SeasonFinale:
+    enabled: bool
+    use_today: bool
+    today_text: str
+    mode: str
+    collection_dir: str
+    collection: dict
+    overlay: dict
 
 @dataclass
 class GeneralStatus:
@@ -105,7 +140,9 @@ def build_date_overlays(
     selected,
     library_slug,
     status_name,
-    overlay
+    overlay,
+    use_today=False,
+    today_text=None
 ):
     overlays = {}
 
@@ -143,7 +180,9 @@ def build_date_overlays(
 
             status_settings['text'] = format_date_text(
                 overlay['status_text'],
-                air_date
+                air_date,
+                use_today=use_today,
+                today_text=today_text
             )
 
             overlays[banner_key] = {
@@ -235,9 +274,9 @@ def build_overlays(
 
 
 ## Get shows that are considered newly airing
-def get_new_shows(cached, today, considered_new):
+def get_new_shows(cached, today, days_considered_new):
     cutoff = (
-        today - timedelta(days=considered_new)
+        today - timedelta(days=days_considered_new)
     ).isoformat()
 
     selected = []
@@ -381,8 +420,11 @@ def run():
 
         'returning_soon': {
             'enabled': False,
+            'use_today': False,
+            'today_text': 'Returning Today',
             'mode': 'all',
             'days_ahead': 90,
+            'days_behind': 14,
             'collection_dir': 'collections/',
             'collection': {
                 'name': 'Returning Soon',
@@ -418,6 +460,8 @@ def run():
 
         'airing_next': {
             'enabled': False,
+            'use_today': False,
+            'today_text': 'Airing Today',
             'mode': 'overlay',
             'days_ahead': 14,
             'days_behind': 14,
@@ -437,6 +481,8 @@ def run():
 
         'season_finale': {
             'enabled': False,
+            'use_today': False,
+            'today_text': 'Season Finale Today',
             'mode': 'overlay',
             'collection_dir': 'collections/',
             'collection': {
@@ -455,7 +501,7 @@ def run():
         'new': {
             'enabled': False,
             'mode': 'overlay',
-            'considered_new': 14,
+            'days_considered_new': 14,
             'collection_dir': 'collections/',
             'collection': {
                 'name': 'New Series',
@@ -472,8 +518,10 @@ def run():
 
         'new_airing_next': {
             'enabled': False,
+            'use_today': False,
+            'today_text': 'New - Airing Today',
             'mode': 'overlay',
-            'considered_new': 14,
+            'days_considered_new': 14,
             'collection_dir': 'collections/',
             'collection': {
                 'name': 'New - Airing',
@@ -735,7 +783,9 @@ def run():
                         selected=selected,
                         library_slug=library_slug,
                         status_name='Returning',
-                        overlay=returning_soon.overlay
+                        overlay=returning_soon.overlay,
+                        use_today=returning_soon.use_today,
+                        today_text=returning_soon.today_text
                     )
 
                     overlays.update(dated_overlays)
@@ -750,7 +800,7 @@ def run():
                 {}
             )
 
-            new_airing_next = NewStatus(**settings)
+            new_airing_next = NewAiringNext(**settings)
 
             if new_airing_next.enabled:
 
@@ -760,41 +810,17 @@ def run():
                     "checking"
                 )
 
-                cutoff = (
-                    today
-                    - timedelta(
-                        days=new_airing_next.considered_new
+                selected = [
+                    show for show in get_new_shows(
+                        cached,
+                        today,
+                        new_airing_next.days_considered_new
                     )
-                ).isoformat()
-
-                selected = []
-
-                for show in cached.values():
-
-                    first_air = show.dates.first_air_date
-                    next_air = show.next_episode.air_date
-                    plex_id = show.id.guid
-
-                    if not plex_id:
-                        continue
-
-                    if not first_air or first_air == 'null':
-                        continue
-
-                    if first_air < cutoff:
-                        continue
-
-                    if first_air > today.isoformat():
-                        continue
-
-                    if not next_air or next_air == 'null':
-                        continue
-
-                    selected.append(show)
-
-                selected.sort(
-                    key=lambda item: item.next_episode.air_date
-                )
+                    if (
+                        show.next_episode.air_date
+                        and show.next_episode.air_date != 'null'
+                    )
+                ]
 
                 library_info(
                     library_name,
@@ -840,7 +866,9 @@ def run():
                             selected=selected,
                             library_slug=library_slug,
                             status_name='New_Airing_Next',
-                            overlay=new_airing_next.overlay
+                            overlay=new_airing_next.overlay,
+                            use_today=new_airing_next.use_today,
+                            today_text=new_airing_next.today_text
                         )
                     )
 
@@ -854,7 +882,7 @@ def run():
                 {}
             )
 
-            new_status = NewStatus(**settings)
+            new_status = New(**settings)
 
             if new_status.enabled:
 
@@ -864,36 +892,10 @@ def run():
                     "checking"
                 )
 
-                cutoff = (
-                    today
-                    - timedelta(
-                        days=new_status.considered_new
-                    )
-                ).isoformat()
-
-                selected = []
-
-                for show in cached.values():
-
-                    first_air = show.dates.first_air_date
-                    plex_id = show.id.guid
-
-                    if not plex_id:
-                        continue
-
-                    if not first_air or first_air == 'null':
-                        continue
-
-                    if first_air < cutoff:
-                        continue
-
-                    if first_air > today.isoformat():
-                        continue
-
-                    selected.append(show)
-
-                selected.sort(
-                    key=lambda item: item.dates.first_air_date
+                selected = get_new_shows(
+                    cached,
+                    today,
+                    new_status.days_considered_new
                 )
 
                 library_info(
@@ -953,7 +955,7 @@ def run():
                 {}
             )
 
-            airing_next = Airing(**settings)
+            airing_next = AiringNext(**settings)
 
             if airing_next.enabled:
 
@@ -1013,7 +1015,9 @@ def run():
                         selected=selected,
                         library_slug=library_slug,
                         status_name='Airing_Next',
-                        overlay=airing_next.overlay
+                        overlay=airing_next.overlay,
+                        use_today=airing_next.use_today,
+                        today_text=airing_next.today_text
                     )
 
                     overlays.update(dated_overlays)
@@ -1102,7 +1106,7 @@ def run():
                 {}
             )
 
-            season_finale = GeneralStatus(**settings)
+            season_finale = SeasonFinale(**settings)
 
             if season_finale.enabled:
 
@@ -1186,7 +1190,9 @@ def run():
                             selected=selected,
                             library_slug=library_slug,
                             status_name='Season_Finale',
-                            overlay=season_finale.overlay
+                            overlay=season_finale.overlay,
+                            use_today=season_finale.use_today,
+                            today_text=season_finale.today_text
                         )
                     )
 
