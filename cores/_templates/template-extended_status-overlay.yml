@@ -24,6 +24,16 @@ templates:
       back_width: 1000
       back_height: 90
 
+    optional:
+      back_line_color: <<back_line_color>>
+      back_line_width: <<back_line_width>>
+      back_padding: <<back_padding>>
+      back_radius: <<back_radius>>
+      file: <<file>>
+      git: <<git>>
+      repo: <<repo>>
+      url: <<url>>
+
   # {library} STATUS
   {library}_Status:
     sync_mode: sync
@@ -56,3 +66,13 @@ templates:
       back_align: center
       back_height: 90
       back_width: 1000
+
+    optional:
+      back_line_color: <<back_line_color>>
+      back_line_width: <<back_line_width>>
+      back_padding: <<back_padding>>
+      back_radius: <<back_radius>>
+      file: <<file>>
+      git: <<git>>
+      repo: <<repo>>
+      url: <<url>>
