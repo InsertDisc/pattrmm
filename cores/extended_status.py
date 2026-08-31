@@ -1407,7 +1407,16 @@ def run():
 
 ######### Other status filters go here
         ## Write the complete overlay document once after
-        ## all enabled status sections.
+        ## all enabled status sections
+        ## removing any section with empty plex_id[] lists first
+
+        ## Remove any overlays that have no Plex IDs.
+        overlays = {
+            key: value
+            for key, value in overlays.items()
+            if value.get('plex_id')
+        }
+
         if overlays:
             count = write_overlay_file(
                 overlay_data=overlay_data,
