@@ -3,7 +3,7 @@ from ruamel.yaml import YAML
 from dataclasses import dataclass, fields
 from typing import Optional
 import re
-from datetime import datetime
+from datetime import datetime, date
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -278,23 +278,54 @@ def file_exists(path):
     
     return True
 
-def format_date_text(text, date_value):
+import re
+from datetime import datetime, date
+
+
+def format_date_text(
+    text,
+    date_value,
+    use_today=False,
+    today_text=None
+):
     date_object = datetime.strptime(
         date_value,
         '%Y-%m-%d'
     )
 
+    days_away = (
+        date_object.date() - date.today()
+    ).days
+
+    if use_today and days_away == 0:
+        return today_text
+
+    text = re.sub(
+        r'\[([^|\]]+)\s*\|\|\s*([^\]]+)\]',
+        lambda match: (
+            match.group(1).strip()
+            if days_away < 7
+            else match.group(2).strip()
+        ),
+        text
+    )
+
     return (
         text
-        .replace('{{MMMM}}', date_object.strftime('%B'))
-        .replace('{{DDDD}}', date_object.strftime('%A'))
-        .replace('{{DDD}}', date_object.strftime('%A')[:3])
-        .replace('{{YYYY}}', date_object.strftime('%Y'))
-        .replace('{{MM}}', date_object.strftime('%m'))
-        .replace('{{M}}', str(date_object.month))
-        .replace('{{DD}}', date_object.strftime('%d'))
+        .replace('{{ddd}}', date_object.strftime('%a'))
+        .replace('{{dddd}}', date_object.strftime('%A'))
         .replace('{{D}}', str(date_object.day))
+        .replace('{{DD}}', date_object.strftime('%d'))
+        .replace('{{DDD}}', date_object.strftime('%a').upper())
+        .replace('{{DDDD}}', date_object.strftime('%A').upper())
+        .replace('{{mmm}}', date_object.strftime('%b'))
+        .replace('{{mmmm}}', date_object.strftime('%B'))
+        .replace('{{M}}', str(date_object.month))
+        .replace('{{MM}}', date_object.strftime('%m'))
+        .replace('{{MMM}}', date_object.strftime('%b').upper())
+        .replace('{{MMMM}}', date_object.strftime('%B').upper())
         .replace('{{YY}}', date_object.strftime('%y'))
+        .replace('{{YYYY}}', date_object.strftime('%Y'))
     )
 
 def write_collection_files(
