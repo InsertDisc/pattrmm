@@ -288,7 +288,7 @@ def format_date_text(text, date_value):
         text
         .replace('{{MMMM}}', date_object.strftime('%B'))
         .replace('{{DDDD}}', date_object.strftime('%A'))
-        .replace('{{YYYY}}', date_object.strftime('%Y'))
+        .replace('{{DDD}}', date_object.strftime('%A')[:3])
         .replace('{{YYYY}}', date_object.strftime('%Y'))
         .replace('{{MM}}', date_object.strftime('%m'))
         .replace('{{M}}', str(date_object.month))
