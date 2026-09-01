@@ -623,19 +623,19 @@ overlay:
 Dated overlay text can use:
 
 ```text
-{{M}}     4
-{{MM}}    04
-{{mmm}} Apr
-{{MMM}} APR
+{{M}}    4
+{{MM}}   04
+{{mmm}}  Apr
+{{MMM}}  APR
 {{mmmm}} April
-{{MMMM}}  APRIL
+{{MMMM}} APRIL
 
-{{D}}     9
-{{DD}}    09
-{{ddd}} Tue
-{{DDD}}   TUE
+{{D}}    9
+{{DD}}   09
+{{ddd}}  Tue
+{{DDD}}  TUE
 {{dddd}} Tuesday
-{{DDDD}}  TUESDAY
+{{DDDD}} TUESDAY
 
 {{YY}}    26
 {{YYYY}}  2026
@@ -650,39 +650,80 @@ could produce:
 ```text
 RETURNING 04/09
 ```
-Conditional Placeholders
-```
-Same-week conditionals are supported in a specific format in [..||..]
-Airing [{{DDD}} || {{MM}} / {{DD}}]
-The section before the double pipe is used when the next air date is less than 7 days away.
-The section after the double pipe is used when the next air date is 7 or more days away.
-With the above format and today being 2026-08-31:
-A show with a next air date of 2026-09-01 would result in
-Airing TUE
-While a show with a next air date of 2026-09-08 (Next Tuesday), would result in
-Airing 09 / 08
-```
-(Today) replacement
-```
-Every *dated* overlay also supports
-use_today: true
-today_text: Airing Today
+### Conditional Placeholders
 
-This allows a special case text if the next air date of any dated overlay (returning_soon, season_finale, airing_next, new_airing_next)
-to be replaced with whatever is in the today_text field.
+Dated overlays support conditional text using the `[... || ...]` format.
 
-For example:
-If today is 2026-08-31 and the next air date is 2026-08-31
-using
-use_today: true
-today_text: Airing Today
-regardless of the
-overlay:
-  status_text: Airing {{MM}} / {{DD}}
-  or
-  status_text: Airing [{{DDD}} || {{MM}} / {{DD}}]
-the resulting text would be "Airing Today"
+```yaml
+status_text: 'Airing [{{DDD}} || {{MM}} / {{DD}}]'
 ```
+
+* The section **before** `||` is used when the next air date is **less than 7 days away**.
+* The section **after** `||` is used when the next air date is **7 or more days away**.
+
+For example, with today being **2026-08-31**:
+
+```text
+Next air date: 2026-09-01
+Result: Airing TUE
+```
+
+```text
+Next air date: 2026-09-08
+Result: Airing 09 / 08
+```
+
+The conditional format can be used with any supported date placeholders.
+
+### Today Replacement
+
+Every *dated* overlay supports the following settings:
+
+```yaml
+use_today: true
+today_text: 'Airing Today'
+```
+
+When `use_today` is enabled and the next air date is **today**, the entire `status_text` is replaced with the value of `today_text`.
+
+For example, with today being **2026-08-31** and:
+
+```yaml
+use_today: true
+today_text: 'Airing Today'
+```
+
+The result will be:
+
+```text
+Airing Today
+```
+
+This applies regardless of whether the `status_text` uses conditional placeholders:
+
+```yaml
+status_text: 'Airing [{{DDD}} || {{MM}} / {{DD}}]'
+```
+
+or standard date placeholders:
+
+```yaml
+status_text: 'Airing {{MM}} / {{DD}}'
+```
+
+Both will result in:
+
+```text
+Airing Today
+```
+
+`use_today` is supported by all dated statuses:
+
+* `returning_soon`
+* `season_finale`
+* `airing_next`
+* `new_airing_next`
+
 
 # `in_history`
 
