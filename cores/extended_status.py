@@ -1137,6 +1137,7 @@ def run():
                     if (
                         not show.next_episode.air_date
                         or show.next_episode.air_date == 'null'
+                        or show.next_episode.air_date < today
                     ):
                         continue
 
