@@ -729,7 +729,7 @@ def run():
                     if (
                         last_air
                         and last_air >= (
-                            today - timedelta(days=14)
+                            today - timedelta(days=returning_soon.days_behind)
                         ).isoformat()
                     ):
                         continue
