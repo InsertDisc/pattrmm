@@ -217,12 +217,15 @@ libraries:
           enabled: true
           mode: overlay
           overlay:
-            status_text: SEASON FINALE {{MM}}/{{DD}}
+            status_text: SEASON FINALE [{{DDD}} || {{MM}}/{{DD}}]
 
         returning_soon:
           enabled: true
+          use_today: true
+          today_text: Returning Today
           mode: collection
           days_ahead: 45
+          days_behind: 14
           collection_dir: collections/
           collection:
             name: Returning Soon
@@ -252,6 +255,8 @@ libraries:
 
         airing_next:
           enabled: false
+          use_today: true
+          today_text: Airing Today
           mode: overlay
           days_ahead: 14
           days_behind: 14
@@ -269,7 +274,7 @@ libraries:
         new:
           enabled: true
           mode: overlay
-          considered_new: 14
+          days_considered_new: 14
           collection_dir: collections/
           collection:
             name: New Series
@@ -284,7 +289,7 @@ libraries:
         new_airing_next:
           enabled: false
           mode: overlay
-          considered_new: 14
+          days_considered_new: 14
           collection_dir: collections/
           collection:
             name: New - Airing
@@ -379,12 +384,12 @@ settings:
 
 The available statuses are:
 
-* `season_finale`
-* `returning_soon`
+* `season_finale (dated overlay)`
+* `returning_soon (dated overlay)`
 * `airing`
-* `airing_next`
+* `airing_next (dated overlay)`
 * `new`
-* `new_airing_next`
+* `new_airing_next (dated overlay)`
 * `upcoming`
 * `returning`
 * `ended`
@@ -450,6 +455,8 @@ Used for series that have a next episode of 'finale'.
 ```yaml
 returning_soon:
   enabled: false
+  use_today: true
+  today_text: Returning Today
   mode: collection
   days_ahead: 45
   collection_dir: collections/
@@ -465,9 +472,10 @@ returning_soon:
 ```
 
 `days_ahead` determines how far into the future a returning series can be before it is no longer considered "Returning Soon."
+`days_behind` determines how long ago the last episode must have aired to be considered "Returning Soon."
 
-For example, `45` means a returning series airing within the next 45 days can be included.
-
+For example, `days_ahead: 45` means a returning series airing within the next 45 days can be included.
+While `days_behind: 14` means an episode must not have aired within the past 14 days.
 #### `airing`
 
 ```yaml
@@ -501,7 +509,7 @@ new:
   considered_new: 14
 ```
 
-`considered_new` specifies how many days after a series begins that it should continue to be considered new.
+`days_considered_new` specifies how many days after a series begins that it should continue to be considered new.
 
 #### `new_airing_next`
 
@@ -509,7 +517,7 @@ new:
 new_airing_next:
   enabled: false
   mode: overlay
-  considered_new: 14
+  days_considered_new: 14
 ```
 
 Combines the new-series criteria with an upcoming episode.
@@ -585,7 +593,7 @@ overlay:
   status_text: RETURNING
 ```
 
-targets the `text` section.
+targets the `text overlay` section.
 
 ### Direct settings
 
@@ -617,19 +625,22 @@ Dated overlay text can use:
 ```text
 {{M}}     4
 {{MM}}    04
-{{MMMM}}  April
+{{mmm}} Apr
+{{MMM}} APR
+{{mmmm}} April
+{{MMMM}}  APRIL
 
 {{D}}     9
 {{DD}}    09
-{{DDD}}   Tue
-{{DDDD}}  Tuesday
+{{ddd}} Tue
+{{DDD}}   TUE
+{{dddd}} Tuesday
+{{DDDD}}  TUESDAY
 
 {{YY}}    26
 {{YYYY}}  2026
 ```
-
-For example:
-
+For example
 ```yaml
 status_text: RETURNING {{MM}}/{{DD}}
 ```
@@ -638,6 +649,39 @@ could produce:
 
 ```text
 RETURNING 04/09
+```
+Conditional Placeholders
+```
+Same-week conditionals are supported in a specific format in [..||..]
+Airing [{{DDD}} || {{MM}} / {{DD}}]
+The section before the double pipe is used when the next air date is less than 7 days away.
+The section after the double pipe is used when the next air date is 7 or more days away.
+With the above format and today being 2026-08-31:
+A show with a next air date of 2026-09-01 would result in
+Airing TUE
+While a show with a next air date of 2026-09-08 (Next Tuesday), would result in
+Airing 09 / 08
+```
+(Today) replacement
+```
+Every *dated* overlay also supports
+use_today: true
+today_text: Airing Today
+
+This allows a special case text if the next air date of any dated overlay (returning_soon, season_finale, airing_next, new_airing_next)
+to be replaced with whatever is in the today_text field.
+
+For example:
+If today is 2026-08-31 and the next air date is 2026-08-31
+using
+use_today: true
+today_text: Airing Today
+regardless of the
+overlay:
+  status_text: Airing {{MM}} / {{DD}}
+  or
+  status_text: Airing [{{DDD}} || {{MM}} / {{DD}}]
+the resulting text would be "Airing Today"
 ```
 
 # `in_history`
