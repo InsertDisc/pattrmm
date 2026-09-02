@@ -14,6 +14,7 @@ templates:
       back_color: <<back_color>>
       back_width: <<back_width>>
       back_height: <<back_height>>
+      back_align: <<back_align>>
       back_line_color: <<back_line_color>>
       back_line_width: <<back_line_width>>
       back_padding: <<back_padding>>
@@ -22,6 +23,16 @@ templates:
       git: <<git>>
       repo: <<repo>>
       url: <<url>>
+      addon_offset: <<addon_offset>>
+      addon_position: <<addon_position>>
+      scale_height: <<scale_height>>
+      scale_width: <<scale_width>>
+      stroke_color: <<stroke_color>>
+      stroke_width: <<stroke_width>>
+      font: <<font>>
+      font_size: <<font_size>>
+      font_color: <<font_color>>
+      font_style: <<font_style>>
 
     default:
       group: banner_backdrop
@@ -33,8 +44,90 @@ templates:
       back_height: 90
 
     optional:
+      - addon_offset
+      - addon_position
+      - back_align
       - back_line_color
       - back_line_width
+      - back_padding
+      - back_radius
+      - file
+      - font
+      - font_color
+      - font_style
+      - git
+      - repo
+      - scale_height
+      - scale_width
+      - stroke_color
+      - stroke_width
+      - url
+
+  # {library} STATUS
+  {library}_Status:
+    sync_mode: sync
+    builder_level: show
+    overlay:
+      name: text(<<text>>)
+      horizontal_offset: <<horizontal_offset>>
+      horizontal_align: <<horizontal_align>>
+      vertical_offset: <<vertical_offset>>
+      vertical_align: <<vertical_align>>
+      font: <<font>>
+      font_size: <<font_size>>
+      font_color: <<font_color>>
+      font_style: <<font_style>>
+      group: <<group>>
+      weight: <<weight>>
+      back_color: <<back_color>>
+      back_width: <<back_width>>
+      back_height: <<back_height>>
+      back_align: <<back_align>>
+      back_line_color: <<back_line_color>>
+      back_line_width: <<back_line_width>>
+      back_padding: <<back_padding>>
+      back_radius: <<back_radius>>
+      file: <<file>>
+      git: <<git>>
+      repo: <<repo>>
+      url: <<url>>
+      addon_offset: <<addon_offset>>
+      addon_position: <<addon_position>>
+      scale_height: <<scale_height>>
+      scale_width: <<scale_width>>
+      stroke_color: <<stroke_color>>
+      stroke_width: <<stroke_width>>
+
+    default:
+      font: config/fonts/Juventus-Fans-Bold.ttf
+      group: banner_text
+      horizontal_align: center
+      vertical_align: top
+      horizontal_offset: 0
+      vertical_offset: 0
+      font_size: 70
+      back_color: "#00000000"
+      back_align: center
+      back_height: 90
+      back_width: 1000
+
+    optional:
+      - addon_offset
+      - addon_position
+      - back_line_color
+      - back_line_width
+      - back_padding
+      - back_radius
+      - file
+      - font_color
+      - font_style
+      - git
+      - repo
+      - scale_height
+      - scale_width
+      - stroke_color
+      - stroke_width
+      - url      - back_line_width
       - back_padding
       - back_radius
       - file
