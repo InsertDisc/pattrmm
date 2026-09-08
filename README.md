@@ -207,18 +207,7 @@ libraries:
           collection_order: custom
           sync_mode: sync
 
-    - new_shows:
-        enabled: true
-        first_episode_aired: 45
-        collection_dir: collections/
-        collection:
-          name: New Shows
-          collection_order: custom
-          sync_mode: sync
-          url_poster: https://example.com/poster.jpg
-
     - extended_status:
-
         overlay_dir: overlays/
 
         season_finale:
