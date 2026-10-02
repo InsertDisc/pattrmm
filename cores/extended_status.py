@@ -341,7 +341,11 @@ def get_airing_shows(
 
         ## Last episode must have aired within
         ## the previous N days, including today.
-        if last_air < last_cutoff:
+        ## Returning shows airing today also count as airing.
+        if (
+            next_air != today.isoformat()
+            and last_air < last_cutoff
+        ):
             continue
 
         ## Next episode must air within the next
